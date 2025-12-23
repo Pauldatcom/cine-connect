@@ -112,7 +112,7 @@ messagesRouter.get('/', authenticate, async (req, res, next) => {
 messagesRouter.get('/:userId', authenticate, async (req, res, next) => {
   try {
     const currentUserId = req.user!.userId;
-    const { userId } = req.params;
+    const userId = z.string().uuid().parse(req.params.userId);
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = 50;
     const offset = (page - 1) * limit;

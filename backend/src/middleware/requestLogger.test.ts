@@ -40,7 +40,7 @@ describe('requestLogger', () => {
     requestLogger(mockReq as Request, mockRes as Response, mockNext);
 
     expect(consoleLogSpy).toHaveBeenCalled();
-    const logMessage = consoleLogSpy.mock.calls[0][0];
+    const logMessage = consoleLogSpy.mock.calls[0]?.[0] as string;
     expect(logMessage).toContain('GET');
     expect(logMessage).toContain('/api/v1/users');
     expect(logMessage).toContain('200');
@@ -52,7 +52,7 @@ describe('requestLogger', () => {
 
     requestLogger(mockReq as Request, mockRes as Response, mockNext);
 
-    const logMessage = consoleLogSpy.mock.calls[0][0];
+    const logMessage = consoleLogSpy.mock.calls[0]?.[0] as string;
     expect(logMessage).toContain('POST');
     expect(logMessage).toContain('/api/v1/auth/login');
   });
@@ -62,7 +62,7 @@ describe('requestLogger', () => {
 
     requestLogger(mockReq as Request, mockRes as Response, mockNext);
 
-    const logMessage = consoleLogSpy.mock.calls[0][0];
+    const logMessage = consoleLogSpy.mock.calls[0]?.[0] as string;
     expect(logMessage).toContain('404');
   });
 });

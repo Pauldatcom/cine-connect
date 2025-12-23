@@ -221,7 +221,7 @@ friendsRouter.post('/request', authenticate, async (req, res, next) => {
  */
 friendsRouter.patch('/requests/:id', authenticate, async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const id = z.string().uuid().parse(req.params.id);
     const { accept } = respondRequestSchema.parse(req.body);
     const userId = req.user!.userId;
 
@@ -282,7 +282,7 @@ friendsRouter.patch('/requests/:id', authenticate, async (req, res, next) => {
  */
 friendsRouter.delete('/:id', authenticate, async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const id = z.string().uuid().parse(req.params.id);
     const userId = req.user!.userId;
 
     // Find friendship

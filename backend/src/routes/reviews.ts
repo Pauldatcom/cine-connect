@@ -118,7 +118,7 @@ reviewsRouter.post('/', authenticate, async (req, res, next) => {
  */
 reviewsRouter.get('/film/:filmId', optionalAuth, async (req, res, next) => {
   try {
-    const { filmId } = req.params;
+    const filmId = z.string().uuid().parse(req.params.filmId);
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = 20;
     const offset = (page - 1) * limit;
@@ -171,7 +171,7 @@ reviewsRouter.get('/film/:filmId', optionalAuth, async (req, res, next) => {
  */
 reviewsRouter.get('/user/:userId', optionalAuth, async (req, res, next) => {
   try {
-    const { userId } = req.params;
+    const userId = z.string().uuid().parse(req.params.userId);
 
     const reviews = await db.query.reviews.findMany({
       where: eq(schema.reviews.userId, userId),
@@ -223,7 +223,7 @@ reviewsRouter.get('/user/:userId', optionalAuth, async (req, res, next) => {
  */
 reviewsRouter.patch('/:id', authenticate, async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const id = z.string().uuid().parse(req.params.id);
     const updates = updateReviewSchema.parse(req.body);
     const userId = req.user!.userId;
 
@@ -284,7 +284,7 @@ reviewsRouter.patch('/:id', authenticate, async (req, res, next) => {
  */
 reviewsRouter.delete('/:id', authenticate, async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const id = z.string().uuid().parse(req.params.id);
     const userId = req.user!.userId;
 
     // Find review and verify ownership
