@@ -146,7 +146,7 @@ describe('TMDb API Client', () => {
         await searchMovies('Matrix');
 
         expect(mockFetch).toHaveBeenCalled();
-        const url = mockFetch.mock.calls[0][0];
+        const url = mockFetch.mock.calls[0]![0];
         expect(url).toContain('/search/movie');
         expect(url).toContain('query=Matrix');
       });
@@ -154,7 +154,7 @@ describe('TMDb API Client', () => {
       it('passes page parameter', async () => {
         await searchMovies('Matrix', 2);
 
-        const url = mockFetch.mock.calls[0][0];
+        const url = mockFetch.mock.calls[0]![0];
         expect(url).toContain('page=2');
       });
     });
@@ -163,14 +163,14 @@ describe('TMDb API Client', () => {
       it('calls trending endpoint with week by default', async () => {
         await getTrending();
 
-        const url = mockFetch.mock.calls[0][0];
+        const url = mockFetch.mock.calls[0]![0];
         expect(url).toContain('/trending/movie/week');
       });
 
       it('calls trending endpoint with day when specified', async () => {
         await getTrending('day');
 
-        const url = mockFetch.mock.calls[0][0];
+        const url = mockFetch.mock.calls[0]![0];
         expect(url).toContain('/trending/movie/day');
       });
     });
@@ -179,14 +179,14 @@ describe('TMDb API Client', () => {
       it('calls popular endpoint', async () => {
         await getPopular();
 
-        const url = mockFetch.mock.calls[0][0];
+        const url = mockFetch.mock.calls[0]![0];
         expect(url).toContain('/movie/popular');
       });
 
       it('passes page parameter', async () => {
         await getPopular(3);
 
-        const url = mockFetch.mock.calls[0][0];
+        const url = mockFetch.mock.calls[0]![0];
         expect(url).toContain('page=3');
       });
     });
@@ -195,7 +195,7 @@ describe('TMDb API Client', () => {
       it('calls top_rated endpoint', async () => {
         await getTopRated();
 
-        const url = mockFetch.mock.calls[0][0];
+        const url = mockFetch.mock.calls[0]![0];
         expect(url).toContain('/movie/top_rated');
       });
     });
@@ -204,7 +204,7 @@ describe('TMDb API Client', () => {
       it('calls upcoming endpoint', async () => {
         await getUpcoming();
 
-        const url = mockFetch.mock.calls[0][0];
+        const url = mockFetch.mock.calls[0]![0];
         expect(url).toContain('/movie/upcoming');
       });
     });
@@ -213,7 +213,7 @@ describe('TMDb API Client', () => {
       it('calls now_playing endpoint', async () => {
         await getNowPlaying();
 
-        const url = mockFetch.mock.calls[0][0];
+        const url = mockFetch.mock.calls[0]![0];
         expect(url).toContain('/movie/now_playing');
       });
     });
@@ -222,7 +222,7 @@ describe('TMDb API Client', () => {
       it('calls discover endpoint with genre', async () => {
         await getMoviesByGenre(28);
 
-        const url = mockFetch.mock.calls[0][0];
+        const url = mockFetch.mock.calls[0]![0];
         expect(url).toContain('/discover/movie');
         expect(url).toContain('with_genres=28');
       });
@@ -237,7 +237,7 @@ describe('TMDb API Client', () => {
 
         await getMovieDetails(123);
 
-        const url = mockFetch.mock.calls[0][0];
+        const url = mockFetch.mock.calls[0]![0];
         expect(url).toContain('/movie/123');
       });
 
@@ -249,7 +249,7 @@ describe('TMDb API Client', () => {
 
         await getMovieDetails('456');
 
-        const url = mockFetch.mock.calls[0][0];
+        const url = mockFetch.mock.calls[0]![0];
         expect(url).toContain('/movie/456');
       });
     });
@@ -263,7 +263,7 @@ describe('TMDb API Client', () => {
 
         await getMovieCredits(123);
 
-        const url = mockFetch.mock.calls[0][0];
+        const url = mockFetch.mock.calls[0]![0];
         expect(url).toContain('/movie/123/credits');
       });
     });
@@ -277,7 +277,7 @@ describe('TMDb API Client', () => {
 
         await getMovieVideos(123);
 
-        const url = mockFetch.mock.calls[0][0];
+        const url = mockFetch.mock.calls[0]![0];
         expect(url).toContain('/movie/123/videos');
       });
     });
@@ -286,7 +286,7 @@ describe('TMDb API Client', () => {
       it('calls similar endpoint', async () => {
         await getSimilarMovies(123);
 
-        const url = mockFetch.mock.calls[0][0];
+        const url = mockFetch.mock.calls[0]![0];
         expect(url).toContain('/movie/123/similar');
       });
     });
@@ -295,7 +295,7 @@ describe('TMDb API Client', () => {
       it('calls recommendations endpoint', async () => {
         await getRecommendations(123);
 
-        const url = mockFetch.mock.calls[0][0];
+        const url = mockFetch.mock.calls[0]![0];
         expect(url).toContain('/movie/123/recommendations');
       });
     });
@@ -309,7 +309,7 @@ describe('TMDb API Client', () => {
 
         await getGenres();
 
-        const url = mockFetch.mock.calls[0][0];
+        const url = mockFetch.mock.calls[0]![0];
         expect(url).toContain('/genre/movie/list');
       });
     });

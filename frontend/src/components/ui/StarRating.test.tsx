@@ -78,7 +78,7 @@ describe('StarRating', () => {
       render(<StarRating onRatingChange={handleChange} />);
 
       const buttons = screen.getAllByRole('button');
-      fireEvent.click(buttons[0]); // Click first half star
+      fireEvent.click(buttons[0]!); // Click first half star
 
       expect(handleChange).toHaveBeenCalledWith(0.5);
     });
@@ -88,7 +88,7 @@ describe('StarRating', () => {
       render(<StarRating onRatingChange={handleChange} />);
 
       const buttons = screen.getAllByRole('button');
-      fireEvent.click(buttons[1]); // Click second half (full star)
+      fireEvent.click(buttons[1]!); // Click second half (full star)
 
       expect(handleChange).toHaveBeenCalledWith(1);
     });
@@ -98,7 +98,7 @@ describe('StarRating', () => {
       render(<StarRating rating={3} onRatingChange={handleChange} />);
 
       const buttons = screen.getAllByRole('button');
-      fireEvent.click(buttons[5]); // Click to rate 3 again
+      fireEvent.click(buttons[5]!); // Click to rate 3 again
 
       expect(handleChange).toHaveBeenCalledWith(0);
     });
@@ -108,7 +108,7 @@ describe('StarRating', () => {
       const { container } = render(<StarRating onRatingChange={handleChange} />);
 
       const buttons = screen.getAllByRole('button');
-      fireEvent.mouseEnter(buttons[7]); // Hover on 4th star
+      fireEvent.mouseEnter(buttons[7]!); // Hover on 4th star
 
       // Component should update to show hover state
       expect(container).toBeInTheDocument();

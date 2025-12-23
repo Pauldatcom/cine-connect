@@ -68,7 +68,7 @@ describe('Navbar', () => {
       render(<Navbar />, { wrapper: Wrapper });
 
       const buttons = screen.getAllByRole('button');
-      const menuButton = buttons[buttons.length - 1];
+      const menuButton = buttons[buttons.length - 1]!;
 
       fireEvent.click(menuButton);
 

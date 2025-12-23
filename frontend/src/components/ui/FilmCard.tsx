@@ -109,7 +109,7 @@ export function FilmActivityCard({
                     className="h-full w-full rounded-full object-cover"
                   />
                 ) : (
-                  user.name[0].toUpperCase()
+                  (user.name[0] ?? 'U').toUpperCase()
                 )}
               </div>
               <span className="text-text-primary text-sm font-medium">{user.name}</span>

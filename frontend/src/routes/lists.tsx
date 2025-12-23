@@ -211,7 +211,7 @@ function ListCard({ list }: ListCardProps) {
         </div>
 
         {/* Title */}
-        <Link to="/lists/$id" params={{ id: list.id }} className="group">
+        <Link to="/lists" className="group">
           <h3 className="font-display text-text-primary group-hover:text-letterboxd-green text-lg font-semibold transition-colors">
             {list.title}
           </h3>
