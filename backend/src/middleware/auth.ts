@@ -31,7 +31,7 @@ function getJwtSecret(): string {
 /**
  * Middleware to verify JWT token
  */
-export const authenticate: RequestHandler = (req, res, next) => {
+export const authenticate: RequestHandler = (req, _res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -39,9 +39,12 @@ export const authenticate: RequestHandler = (req, res, next) => {
   }
 
   const token = authHeader.split(' ')[1];
+  if (!token) {
+    throw ApiError.unauthorized('Invalid token format');
+  }
 
   try {
-    const decoded = jwt.verify(token, getJwtSecret()) as JwtPayload;
+    const decoded = jwt.verify(token, getJwtSecret()) as unknown as JwtPayload;
     req.user = decoded;
     next();
   } catch (error) {
@@ -55,7 +58,7 @@ export const authenticate: RequestHandler = (req, res, next) => {
 /**
  * Optional authentication - doesn't throw if no token
  */
-export const optionalAuth: RequestHandler = (req, res, next) => {
+export const optionalAuth: RequestHandler = (req, _res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -63,9 +66,12 @@ export const optionalAuth: RequestHandler = (req, res, next) => {
   }
 
   const token = authHeader.split(' ')[1];
+  if (!token) {
+    return next();
+  }
 
   try {
-    const decoded = jwt.verify(token, getJwtSecret()) as JwtPayload;
+    const decoded = jwt.verify(token, getJwtSecret()) as unknown as JwtPayload;
     req.user = decoded;
   } catch {
     // Ignore invalid tokens for optional auth
@@ -79,14 +85,16 @@ export const optionalAuth: RequestHandler = (req, res, next) => {
  */
 export function generateTokens(payload: JwtPayload) {
   const secret = getJwtSecret();
+  const accessExpiresIn = process.env.JWT_EXPIRES_IN ?? '7d';
+  const refreshExpiresIn = process.env.JWT_REFRESH_EXPIRES_IN ?? '30d';
 
   const accessToken = jwt.sign(payload, secret, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  });
+    expiresIn: accessExpiresIn,
+  } as jwt.SignOptions);
 
   const refreshToken = jwt.sign(payload, secret, {
-    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
-  });
+    expiresIn: refreshExpiresIn,
+  } as jwt.SignOptions);
 
   return { accessToken, refreshToken };
 }

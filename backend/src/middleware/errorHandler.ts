@@ -43,7 +43,7 @@ export class ApiError extends Error {
 /**
  * Global error handler middleware
  */
-export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
+export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   console.error('Error:', err);
 
   // Handle Zod validation errors

@@ -71,7 +71,7 @@ authRouter.post('/register', async (req, res, next) => {
     const passwordHash = await bcrypt.hash(password, 12);
 
     // Create user
-    const [user] = await db
+    const result = await db
       .insert(schema.users)
       .values({
         email,
@@ -86,6 +86,11 @@ authRouter.post('/register', async (req, res, next) => {
         createdAt: schema.users.createdAt,
         updatedAt: schema.users.updatedAt,
       });
+
+    const user = result[0];
+    if (!user) {
+      throw new Error('Failed to create user');
+    }
 
     // Generate tokens
     const tokens = generateTokens({ userId: user.id, email: user.email });
@@ -191,7 +196,7 @@ authRouter.post('/login', async (req, res, next) => {
  *       401:
  *         description: Invalid refresh token
  */
-authRouter.post('/refresh', async (req, res, next) => {
+authRouter.post('/refresh', async (_req, res, next) => {
   try {
     // TODO: Implement token refresh logic
     res.json({
