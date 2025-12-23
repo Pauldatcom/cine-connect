@@ -1,0 +1,194 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Inter:wght@400;500;600;700&display=swap');
+
+@layer base {
+  /* Dark theme by default (Letterboxd style) */
+  :root {
+    --color-bg-primary: #14181c;
+    --color-bg-secondary: #1c2228;
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #9ab;
+    --color-accent-green: #00e054;
+    --color-accent-orange: #ff8000;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply antialiased;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-bg-primary text-text-primary;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Custom selection color */
+  ::selection {
+    @apply bg-letterboxd-green/30 text-white;
+  }
+}
+
+@layer components {
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded px-4 py-2 text-sm font-medium transition-all duration-200;
+    @apply focus:ring-letterboxd-green focus:ring-offset-bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn bg-letterboxd-green text-bg-primary hover:bg-letterboxd-green-dark;
+  }
+
+  .btn-secondary {
+    @apply btn bg-bg-tertiary text-text-primary hover:bg-border;
+  }
+
+  .btn-ghost {
+    @apply btn text-text-secondary hover:text-text-primary hover:bg-bg-tertiary;
+  }
+
+  .btn-orange {
+    @apply btn bg-letterboxd-orange hover:bg-letterboxd-orange-dark text-white;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-bg-secondary border-border rounded-lg border p-4;
+  }
+
+  /* Inputs */
+  .input {
+    @apply bg-bg-tertiary border-border text-text-primary w-full rounded border px-3 py-2 text-sm;
+    @apply placeholder:text-text-tertiary;
+    @apply focus:border-letterboxd-green focus:ring-letterboxd-green focus:outline-none focus:ring-1;
+    @apply transition-colors duration-200;
+  }
+
+  /* Film poster card */
+  .poster-card {
+    @apply relative overflow-hidden rounded transition-transform duration-300;
+    @apply hover:z-10 hover:scale-105;
+  }
+
+  .poster-card::after {
+    content: '';
+    @apply absolute inset-0 rounded border-2 border-transparent;
+    @apply transition-colors duration-300;
+  }
+
+  .poster-card:hover::after {
+    @apply border-letterboxd-green;
+  }
+
+  /* Star rating */
+  .star-rating {
+    @apply flex gap-0.5;
+  }
+
+  .star-rating .star {
+    @apply text-letterboxd-green h-4 w-4;
+  }
+
+  .star-rating .star.empty {
+    @apply text-border;
+  }
+
+  /* Link styles */
+  .link {
+    @apply text-letterboxd-blue hover:text-letterboxd-blue/80 transition-colors;
+  }
+
+  /* Genre tag */
+  .genre-tag {
+    @apply inline-block rounded px-2 py-1 text-xs font-medium;
+    @apply bg-bg-tertiary text-text-secondary border-border border;
+    @apply hover:border-letterboxd-green hover:text-letterboxd-green transition-colors;
+  }
+
+  /* Section header */
+  .section-header {
+    @apply text-text-primary text-lg font-semibold uppercase tracking-wider;
+  }
+}
+
+@layer utilities {
+  /* Custom scrollbar (Letterboxd style) */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #456 transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #456;
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: #678;
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Text gradient */
+  .text-gradient {
+    @apply from-letterboxd-green to-letterboxd-blue bg-gradient-to-r bg-clip-text text-transparent;
+  }
+
+  /* Backdrop blur */
+  .backdrop-blur-strong {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  /* Line clamp utilities */
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
