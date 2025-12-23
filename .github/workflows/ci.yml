@@ -47,14 +47,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build shared package
+        run: pnpm --filter @cine-connect/shared build
+
       - name: Run ESLint
         run: pnpm lint
 
-      - name: Run Typecheck (Frontend)
-        run: pnpm --filter @cine-connect/frontend typecheck
+      - name: Run Typecheck (Shared)
+        run: pnpm --filter @cine-connect/shared typecheck
 
       - name: Run Typecheck (Backend)
         run: pnpm --filter @cine-connect/backend typecheck
+
+      - name: Run Typecheck (Frontend)
+        run: pnpm --filter @cine-connect/frontend typecheck
 
   # ==========================================
   # TESTS
