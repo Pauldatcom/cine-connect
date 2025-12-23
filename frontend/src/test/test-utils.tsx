@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, type RenderOptions } from '@testing-library/react';
+import { render, type RenderOptions, type RenderResult } from '@testing-library/react';
 import { vi } from 'vitest';
 import type { TMDbMovie } from '@/lib/api/tmdb';
 
@@ -41,7 +41,7 @@ export function createTestWrapper() {
 export function renderWithProviders(
   ui: React.ReactElement,
   options?: Omit<RenderOptions, 'wrapper'>
-) {
+): RenderResult {
   const Wrapper = createTestWrapper();
   return render(ui, { wrapper: Wrapper, ...options });
 }
