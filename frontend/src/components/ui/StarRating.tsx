@@ -1,0 +1,190 @@
+import { Star } from 'lucide-react';
+import { useState } from 'react';
+
+interface StarRatingProps {
+  /** Rating value from 0 to 5 (supports half values) */
+  rating?: number;
+  /** Callback when rating changes (makes it interactive) */
+  onRatingChange?: (rating: number) => void;
+  /** Size variant */
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  /** Show rating number next to stars */
+  showValue?: boolean;
+  /** Make rating readonly */
+  readonly?: boolean;
+  /** Custom class for container */
+  className?: string;
+}
+
+/**
+ * Star Rating Component - Exact Letterboxd style
+ * Supports 0-5 rating with half-star precision
+ */
+export function StarRating({
+  rating = 0,
+  onRatingChange,
+  size = 'md',
+  showValue = false,
+  readonly = false,
+  className = '',
+}: StarRatingProps) {
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
+
+  const displayRating = hoverRating ?? rating;
+  const isInteractive = !readonly && !!onRatingChange;
+
+  const sizeClasses = {
+    sm: 'h-3 w-3',
+    md: 'h-4 w-4',
+    lg: 'h-6 w-6',
+    xl: 'h-8 w-8',
+  };
+
+  const gapClasses = {
+    sm: 'gap-0.5',
+    md: 'gap-0.5',
+    lg: 'gap-1',
+    xl: 'gap-1',
+  };
+
+  const textClasses = {
+    sm: 'text-xs',
+    md: 'text-sm',
+    lg: 'text-lg',
+    xl: 'text-xl',
+  };
+
+  /**
+   * Handle click on a star position
+   * Each star has two clickable halves for half-star precision
+   */
+  const handleClick = (starIndex: number, isLeftHalf: boolean) => {
+    if (!isInteractive) return;
+    const newRating = isLeftHalf ? starIndex + 0.5 : starIndex + 1;
+    onRatingChange(newRating === rating ? 0 : newRating);
+  };
+
+  /**
+   * Handle mouse enter on a star position
+   */
+  const handleMouseEnter = (starIndex: number, isLeftHalf: boolean) => {
+    if (!isInteractive) return;
+    setHoverRating(isLeftHalf ? starIndex + 0.5 : starIndex + 1);
+  };
+
+  /**
+   * Render a single star (full, half, or empty)
+   */
+  const renderStar = (index: number) => {
+    const value = displayRating - index;
+    const isFull = value >= 1;
+    const isHalf = value >= 0.5 && value < 1;
+
+    return (
+      <div key={index} className="relative">
+        {/* Base empty star */}
+        <Star className={`${sizeClasses[size]} text-border`} strokeWidth={1.5} />
+
+        {/* Filled portion */}
+        {(isFull || isHalf) && (
+          <div
+            className="absolute inset-0 overflow-hidden"
+            style={{ width: isHalf ? '50%' : '100%' }}
+          >
+            <Star
+              className={`${sizeClasses[size]} text-letterboxd-green fill-letterboxd-green`}
+              strokeWidth={1.5}
+            />
+          </div>
+        )}
+
+        {/* Interactive hover zones */}
+        {isInteractive && (
+          <>
+            {/* Left half */}
+            <button
+              type="button"
+              className="absolute inset-y-0 left-0 w-1/2 cursor-pointer"
+              onClick={() => handleClick(index, true)}
+              onMouseEnter={() => handleMouseEnter(index, true)}
+              aria-label={`Rate ${index + 0.5} stars`}
+            />
+            {/* Right half */}
+            <button
+              type="button"
+              className="absolute inset-y-0 right-0 w-1/2 cursor-pointer"
+              onClick={() => handleClick(index, false)}
+              onMouseEnter={() => handleMouseEnter(index, false)}
+              aria-label={`Rate ${index + 1} stars`}
+            />
+          </>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div
+      className={`flex items-center ${gapClasses[size]} ${className}`}
+      onMouseLeave={() => isInteractive && setHoverRating(null)}
+    >
+      {/* Stars */}
+      <div className={`flex ${gapClasses[size]}`}>{[0, 1, 2, 3, 4].map(renderStar)}</div>
+
+      {/* Optional value display */}
+      {showValue && rating > 0 && (
+        <span className={`${textClasses[size]} text-letterboxd-green ml-1 font-semibold`}>
+          {rating.toFixed(1)}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Simple display-only star rating (lighter weight)
+ */
+export function StarRatingDisplay({
+  rating,
+  size = 'sm',
+  className = '',
+}: {
+  rating: number;
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+}) {
+  const sizeClasses = {
+    sm: 'h-3 w-3',
+    md: 'h-4 w-4',
+    lg: 'h-5 w-5',
+  };
+
+  const fullStars = Math.floor(rating);
+  const hasHalf = rating % 1 >= 0.5;
+  const emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
+
+  return (
+    <div className={`flex gap-0.5 ${className}`}>
+      {/* Full stars */}
+      {Array.from({ length: fullStars }).map((_, i) => (
+        <Star
+          key={`full-${i}`}
+          className={`${sizeClasses[size]} text-letterboxd-green fill-letterboxd-green`}
+        />
+      ))}
+      {/* Half star */}
+      {hasHalf && (
+        <div className="relative">
+          <Star className={`${sizeClasses[size]} text-border`} />
+          <div className="absolute inset-0 w-1/2 overflow-hidden">
+            <Star className={`${sizeClasses[size]} text-letterboxd-green fill-letterboxd-green`} />
+          </div>
+        </div>
+      )}
+      {/* Empty stars */}
+      {Array.from({ length: emptyStars }).map((_, i) => (
+        <Star key={`empty-${i}`} className={`${sizeClasses[size]} text-border`} />
+      ))}
+    </div>
+  );
+}
