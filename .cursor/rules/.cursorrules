@@ -1,0 +1,324 @@
+# CinéConnect - Cursor Rules
+
+# Project: Collaborative movie platform (Letterboxd-inspired)
+
+# Deadline: March 25, 2026
+
+## LANGUAGE POLICY (STRICT)
+
+**ENGLISH ONLY. NO EXCEPTIONS.**
+
+- All code comments: English
+- All variable/function names: English
+- All documentation: English
+- All commit messages: English
+- All responses from AI: English
+- NO French anywhere in the codebase
+
+## TESTING POLICY (MANDATORY)
+
+**100% CODE COVERAGE REQUIRED for frontend AND backend.**
+
+### Rules:
+
+1. Every new component MUST have a corresponding `.test.tsx` file
+2. Every new API route MUST have a corresponding `.test.ts` file
+3. Every new utility function MUST have unit tests
+4. Every new hook MUST have tests
+5. NO code is considered complete without tests
+6. Run `pnpm test:coverage` before any PR
+
+### Test File Naming:
+
+- Component: `FilmPoster.tsx` → `FilmPoster.test.tsx`
+- Route: `auth.ts` → `auth.test.ts`
+- Utility: `utils.ts` → `utils.test.ts`
+
+### Test Location:
+
+- Frontend tests: Same folder as component OR `frontend/src/__tests__/`
+- Backend tests: Same folder as module OR `backend/src/__tests__/`
+
+### Coverage Thresholds (vitest.config.ts):
+
+```typescript
+coverage: {
+  provider: 'v8',
+  reporter: ['text', 'html', 'lcov'],
+  thresholds: {
+    statements: 100,
+    branches: 100,
+    functions: 100,
+    lines: 100,
+  },
+}
+```
+
+## PROJECT CONTEXT
+
+This is a full-stack school project evaluated on 100 points across 4 modules:
+
+- React (25 pts): Frontend architecture, TanStack Router, API integration
+- UI/Design (10 pts): Aesthetics, responsive, accessibility, dark/light mode
+- Database (15 pts): PostgreSQL schema, Drizzle ORM, migrations
+- Node.js/Backend (35 pts): REST API, JWT, WebSocket, Swagger, tests
+- Collaboration (10 pts): GitHub workflow, branches, documentation
+- Writing (5 pts): README, technical coherence
+
+## MONOREPO STRUCTURE (STRICT)
+
+```
+cine-connect/
+├── frontend/          # React app (DO NOT rename)
+├── backend/           # Node.js API (DO NOT rename)
+├── shared/            # Shared types/constants (DO NOT rename)
+└── docs/              # Documentation, schemas
+```
+
+## REQUIRED TECH STACK (NON-NEGOTIABLE)
+
+### Frontend
+
+- React.js with TypeScript
+- TanStack Router (file-based routing)
+- TanStack Query (data fetching)
+- TailwindCSS (styling)
+- Vite (bundler)
+- Vitest + React Testing Library (testing)
+
+### Backend
+
+- Node.js + Express
+- Drizzle ORM (NOT Prisma, NOT TypeORM)
+- JWT authentication (jsonwebtoken)
+- Socket.io (real-time chat)
+- Swagger (API documentation)
+- Vitest + Supertest (testing)
+
+### Database
+
+- PostgreSQL (via Docker)
+- Required tables: users, films, categories, reviews, messages, friends
+
+### Tools
+
+- pnpm (package manager)
+- Vitest (testing)
+- Git with feature branches
+
+## REQUIRED ROUTES (Frontend)
+
+MUST implement these exact routes:
+
+- `/` - Home page
+- `/films` - Film listing with filters
+- `/films/:categorie` - Films by category
+- `/film/:id` - Single film detail
+- `/profil` - User profile / Auth
+- `/discussion` - Real-time chat
+
+## CODING STANDARDS
+
+### TypeScript
+
+- Use strict mode
+- Define interfaces in `shared/src/types/`
+- Export shared types from `@cine-connect/shared`
+
+### React Components
+
+- Functional components only
+- Use TanStack Query for ALL API calls
+- File naming: PascalCase for components, camelCase for utilities
+
+### API Endpoints Pattern
+
+- Base: `/api/v1/`
+- Auth: `/api/v1/auth/register`, `/api/v1/auth/login`
+- Resources: `/api/v1/users`, `/api/v1/films`, `/api/v1/reviews`, etc.
+- Document ALL endpoints with Swagger JSDoc comments
+
+### Database Schema
+
+- Use UUID for all primary keys
+- Include created_at, updated_at on all tables
+- Define relations with Drizzle relations()
+
+## DESIGN REQUIREMENTS
+
+### Letterboxd-Inspired Theme
+
+- Primary background: #14181c (dark)
+- Secondary: #1c2228
+- Accent green: #00e054
+- Accent orange: #ff8000
+- Text muted: #9ab
+
+### UI Requirements
+
+- Dark mode by default (light mode optional)
+- Fully responsive (mobile-first)
+- Accessible (aria labels, semantic HTML)
+- Smooth animations (Tailwind transitions)
+
+## API INTEGRATION
+
+### TMDb API (Primary)
+
+- Use for: posters, backdrops, cast, trailers, genres
+- Image base: https://image.tmdb.org/t/p/
+- Poster sizes: w185, w342, w500, original
+- Backdrop sizes: w300, w780, w1280, original
+
+### Backend API
+
+- Use for: auth, user data, reviews, messages, friends
+- Always return { success: boolean, data?: T, error?: string }
+
+## SOCKET.IO EVENTS
+
+Required events for chat:
+
+- `connect` / `disconnect`
+- `message` - Send/receive messages
+- `typing` - Typing indicator
+- `online` - User online status
+- `join_room` / `leave_room`
+
+## GIT WORKFLOW
+
+- Main branch: `main` (production-ready)
+- Feature branches: `feature/feature-name`
+- Never commit directly to main
+- Write meaningful commit messages (in English)
+
+## TESTING REQUIREMENTS (CRITICAL)
+
+### Coverage: 100% MANDATORY
+
+- Statements: 100%
+- Branches: 100%
+- Functions: 100%
+- Lines: 100%
+
+### When Adding Code:
+
+1. Write the test FIRST (TDD preferred)
+2. Or write test IMMEDIATELY after the code
+3. Never commit code without tests
+4. Run `pnpm test:coverage` to verify
+
+### What to Test:
+
+**Frontend:**
+
+- Component rendering
+- User interactions (clicks, inputs)
+- API call mocking with MSW or vitest mocks
+- Error states
+- Loading states
+- Route navigation
+
+**Backend:**
+
+- API endpoint responses
+- Authentication/authorization
+- Database operations (with test DB)
+- Error handling
+- Socket.io events
+
+## DOCUMENTATION
+
+### Required
+
+- README.md at root (project overview, setup)
+- Swagger at /api-docs (backend)
+- JSDoc comments on complex functions
+
+### Report (2-3 pages)
+
+- Architecture overview
+- Team role distribution
+- Technical choices justification
+
+## COMMON ERRORS TO AVOID
+
+1. DON'T use `packages/` folder - use flat structure
+2. DON'T mix OMDb and TMDb - pick one (we use TMDb)
+3. DON'T skip Swagger documentation
+4. DON'T hardcode API keys - use .env
+5. DON'T forget to handle loading/error states
+6. DON'T create components without TypeScript props interface
+7. DON'T write code without tests
+8. DON'T use French anywhere
+9. DON'T commit with coverage below 100%
+
+## EVALUATION CHECKLIST
+
+Before each submission, verify:
+
+### React Module
+
+- [ ] TanStack Router with all 6 routes
+- [ ] TanStack Query for API calls
+- [ ] Film cards, navigation, filters
+- [ ] Clean component structure
+- [ ] 100% test coverage
+
+### UI Module
+
+- [ ] TailwindCSS styling
+- [ ] Responsive design (test on mobile)
+- [ ] Dark/light mode toggle
+- [ ] Consistent typography & spacing
+
+### Database Module
+
+- [ ] PostgreSQL with Docker
+- [ ] Drizzle schema with relations
+- [ ] Migrations working
+- [ ] All 6 tables implemented
+
+### Backend Module
+
+- [ ] Express REST API
+- [ ] JWT auth (register/login)
+- [ ] Socket.io chat working
+- [ ] Swagger documentation complete
+- [ ] 100% test coverage
+
+## IMPORTS CONVENTION
+
+```typescript
+// React/External libs first
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
+
+// Shared package
+import { User, Film } from '@cine-connect/shared';
+
+// Local imports (use @/ alias)
+import { FilmPoster } from '@/components/FilmPoster';
+import { getMovieDetails } from '@/lib/api/tmdb';
+```
+
+## FILE CREATION RULES
+
+When creating new files:
+
+1. Frontend components → `frontend/src/components/` + `ComponentName.test.tsx`
+2. Frontend routes → `frontend/src/routes/` (TanStack file-based)
+3. API clients → `frontend/src/lib/api/` + `apiName.test.ts`
+4. Backend routes → `backend/src/routes/` + `routeName.test.ts`
+5. Database schema → `backend/src/db/schema/`
+6. Shared types → `shared/src/types/`
+
+## RESPONSE LANGUAGE
+
+**ENGLISH ONLY.**
+
+- All AI responses must be in English
+- All code must be in English
+- All comments must be in English
+- No French, no exceptions

@@ -1,0 +1,26 @@
+#!/bin/sh
+# ============================================
+# Commit Message Convention Checker
+# ============================================
+# Format: type(scope): description
+# Types: feat, fix, docs, style, refactor, test, chore
+# ============================================
+
+commit_regex='^(feat|fix|docs|style|refactor|perf|test|chore|build|ci)(\(.+\))?: .{1,72}$'
+
+if ! grep -qE "$commit_regex" "$1"; then
+    echo ""
+    echo "❌ Invalid commit message format!"
+    echo ""
+    echo "Expected format: type(scope): description"
+    echo ""
+    echo "Types: feat, fix, docs, style, refactor, perf, test, chore, build, ci"
+    echo ""
+    echo "Examples:"
+    echo "  feat(auth): add JWT refresh token"
+    echo "  fix(films): resolve poster loading issue"
+    echo "  docs: update README with setup instructions"
+    echo ""
+    exit 1
+fi
+
