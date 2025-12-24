@@ -241,6 +241,46 @@ Required events for chat:
 - Team role distribution
 - Technical choices justification
 
+## PRE-COMMIT CHECKLIST (MANDATORY)
+
+**Before ANY commit or push, run ALL three commands:**
+
+```bash
+pnpm lint && pnpm typecheck && pnpm test
+```
+
+### Why This Matters:
+
+1. **`pnpm lint`** - Catches code style issues and ESLint errors
+2. **`pnpm typecheck`** - Catches TypeScript strict mode errors (CI runs this!)
+3. **`pnpm test`** - Ensures tests pass at runtime
+
+### Common TypeScript Pitfalls:
+
+1. **Mock type casting** - Always use `as unknown as` for mock types:
+
+   ```typescript
+   // ❌ WRONG - strict mode rejects this
+   const mockApi = api as { get: Mock };
+
+   // ✅ CORRECT - double assertion
+   const mockApi = api as unknown as { get: Mock };
+   ```
+
+2. **Array access** - Use non-null assertion when certain element exists:
+
+   ```typescript
+   // ❌ WRONG - TypeScript says could be undefined
+   await user.click(buttons[0]);
+
+   // ✅ CORRECT - assert it exists
+   await user.click(buttons[0]!);
+   ```
+
+3. **Optional properties** - Always handle undefined cases or assert
+
+**NEVER push code that hasn't passed all three checks locally.**
+
 ## COMMON ERRORS TO AVOID
 
 1. DON'T use `packages/` folder - use flat structure
@@ -252,6 +292,7 @@ Required events for chat:
 7. DON'T write code without tests
 8. DON'T use French anywhere
 9. DON'T commit with coverage below 100%
+10. DON'T push without running `pnpm lint && pnpm typecheck && pnpm test`
 
 ## EVALUATION CHECKLIST
 
