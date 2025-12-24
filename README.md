@@ -48,10 +48,16 @@ docker-compose up -d
 
 ### 4. Setup environment variables
 
-Create `.env` files for each package:
+Copy the example files and fill in your values:
+
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+```
 
 **backend/.env**
 
+```
 NODE_ENV=development
 PORT=3000
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/cineconnect
@@ -59,11 +65,14 @@ JWT_SECRET=your-super-secret-jwt-key-at-least-32-chars-long
 JWT_EXPIRES_IN=7d
 JWT_REFRESH_EXPIRES_IN=30d
 FRONTEND_URL=http://localhost:5173
+```
 
 **frontend/.env**
 
+```
 VITE_TMDB_API_KEY=your_tmdb_api_key
 VITE_API_URL=http://localhost:3000
+```
 
 > Get your free TMDb API key at https://www.themoviedb.org/settings/api
 
@@ -208,15 +217,44 @@ friends
 | `join_room`  | Join conversation  |
 | `leave_room` | Leave conversation |
 
+## Authentication
+
+The app uses JWT-based authentication:
+
+- **Access Token**: Short-lived, stored in localStorage
+- **Refresh Token**: Long-lived for session renewal
+- Login/Register at `/profil`
+- Protected routes redirect to `/profil` if not authenticated
+
+### Frontend Auth Flow
+
+1. User submits login/register form
+2. Backend returns JWT tokens
+3. Tokens stored in localStorage
+4. API client automatically attaches Bearer token to requests
+5. AuthContext provides `isAuthenticated`, `user`, `login()`, `logout()`
+
+## CI/CD
+
+GitHub Actions runs on every push/PR:
+
+- **Lint**: ESLint check
+- **Typecheck**: TypeScript strict mode
+- **Test**: Vitest with 100% coverage requirement
+- **Build**: Production build verification
+
+Branch protection is enabled on `main` - all checks must pass before merge.
+
 ## Testing
 
-pnpm test
+```bash
+pnpm test              # Run all tests
+pnpm test:frontend     # Frontend tests only
+pnpm test:backend      # Backend tests only
+pnpm test:coverage     # Run with coverage report
+```
 
-pnpm test:frontend
-
-pnpm test:backend
-
-pnpm test:coverage
+**Coverage requirement: 100%** - CI will fail if coverage drops below threshold.
 
 ## Routes (Frontend)
 
