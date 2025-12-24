@@ -223,7 +223,7 @@ describe('Profil Page', () => {
 
       // Click the toggle button (the second button with "Create Account")
       const buttons = screen.getAllByRole('button', { name: 'Create Account' });
-      await user.click(buttons[0]);
+      await user.click(buttons[0]!);
 
       expect(screen.getByText('Join CineConnect')).toBeInTheDocument();
       expect(screen.getByPlaceholderText('filmfan42')).toBeInTheDocument();
@@ -281,7 +281,7 @@ describe('Profil Page', () => {
 
       // Switch to register
       const buttons = screen.getAllByRole('button', { name: 'Create Account' });
-      await user.click(buttons[0]);
+      await user.click(buttons[0]!);
 
       await user.type(screen.getByPlaceholderText('filmfan42'), 'testuser');
       await user.type(screen.getByPlaceholderText('you@example.com'), 'test@test.com');
@@ -300,7 +300,7 @@ describe('Profil Page', () => {
       render(<ProfilPageTest />);
 
       const buttons = screen.getAllByRole('button', { name: 'Create Account' });
-      await user.click(buttons[0]);
+      await user.click(buttons[0]!);
 
       await user.type(screen.getByPlaceholderText('filmfan42'), 'testuser');
       await user.type(screen.getByPlaceholderText('you@example.com'), 'test@test.com');
@@ -321,7 +321,7 @@ describe('Profil Page', () => {
       render(<ProfilPageTest />);
 
       const buttons = screen.getAllByRole('button', { name: 'Create Account' });
-      await user.click(buttons[0]);
+      await user.click(buttons[0]!);
 
       await user.type(screen.getByPlaceholderText('filmfan42'), 'ab');
       await user.type(screen.getByPlaceholderText('you@example.com'), 'test@test.com');
@@ -343,7 +343,7 @@ describe('Profil Page', () => {
       render(<ProfilPageTest />);
 
       const buttons = screen.getAllByRole('button', { name: 'Create Account' });
-      await user.click(buttons[0]);
+      await user.click(buttons[0]!);
 
       await user.type(screen.getByPlaceholderText('filmfan42'), 'testuser');
       await user.type(screen.getByPlaceholderText('you@example.com'), 'test@test.com');

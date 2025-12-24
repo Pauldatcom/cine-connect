@@ -37,14 +37,14 @@ vi.mock('@/lib/api/client', () => ({
 import { authApi } from '@/lib/api/auth';
 import { tokenStorage, ApiError } from '@/lib/api/client';
 
-const mockAuthApi = authApi as {
+const mockAuthApi = authApi as unknown as {
   login: Mock;
   register: Mock;
   logout: Mock;
   getCurrentUser: Mock;
 };
 
-const mockTokenStorage = tokenStorage as {
+const mockTokenStorage = tokenStorage as unknown as {
   hasTokens: Mock;
   clearTokens: Mock;
 };

@@ -139,7 +139,7 @@ describe('api', () => {
 
       await api.post('/auth/login', { email: 'test@test.com' }, { skipAuth: true });
 
-      const callArgs = mockFetch.mock.calls[0];
+      const callArgs = mockFetch.mock.calls[0] as [string, RequestInit];
       const headers = callArgs[1].headers as Record<string, string>;
       expect(headers['Authorization']).toBeUndefined();
     });
@@ -154,7 +154,7 @@ describe('api', () => {
 
       await api.get('/public');
 
-      const callArgs = mockFetch.mock.calls[0];
+      const callArgs = mockFetch.mock.calls[0] as [string, RequestInit];
       const headers = callArgs[1].headers as Record<string, string>;
       expect(headers['Authorization']).toBeUndefined();
     });

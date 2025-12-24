@@ -35,12 +35,12 @@ vi.mock('./client', async () => {
 
 import { api } from './client';
 
-const mockApi = api as {
+const mockApi = api as unknown as {
   get: ReturnType<typeof vi.fn>;
   post: ReturnType<typeof vi.fn>;
 };
 
-const mockTokenStorage = tokenStorage as {
+const mockTokenStorage = tokenStorage as unknown as {
   getAccessToken: ReturnType<typeof vi.fn>;
   getRefreshToken: ReturnType<typeof vi.fn>;
   setTokens: ReturnType<typeof vi.fn>;
