@@ -17,6 +17,7 @@ import {
   LogOut,
   ChevronDown,
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 /**
  * Main Navigation Bar - Exact Letterboxd style
@@ -29,9 +30,8 @@ export function Navbar() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
-  // TODO: Replace with real auth state
-  const isAuthenticated = false;
-  const user = { name: 'FilmFan', avatar: null };
+  // Use real auth state
+  const { isAuthenticated, user, logout } = useAuth();
 
   // Focus search input when opened
   useEffect(() => {
@@ -163,8 +163,8 @@ export function Navbar() {
                   className="hover:bg-bg-tertiary flex items-center gap-2 rounded-full p-1.5 transition-colors"
                 >
                   <div className="bg-bg-tertiary border-border flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border">
-                    {user.avatar ? (
-                      <img src={user.avatar} alt="" className="h-full w-full object-cover" />
+                    {user?.avatarUrl ? (
+                      <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
                       <User className="text-text-secondary h-4 w-4" />
                     )}
@@ -176,7 +176,7 @@ export function Navbar() {
                 {profileMenuOpen && (
                   <div className="bg-bg-secondary border-border animate-fade-in absolute right-0 top-full mt-2 w-56 overflow-hidden rounded-lg border shadow-xl">
                     <div className="border-border border-b p-3">
-                      <p className="text-text-primary font-medium">{user.name}</p>
+                      <p className="text-text-primary font-medium">{user?.username}</p>
                       <p className="text-text-tertiary text-xs">View profile</p>
                     </div>
                     <div className="py-1">
@@ -197,7 +197,13 @@ export function Navbar() {
                       <DropdownLink to="/settings" icon={<Settings className="h-4 w-4" />}>
                         Settings
                       </DropdownLink>
-                      <button className="hover:bg-bg-tertiary flex w-full items-center gap-3 px-4 py-2 text-sm text-red-400 transition-colors">
+                      <button
+                        onClick={() => {
+                          logout();
+                          setProfileMenuOpen(false);
+                        }}
+                        className="hover:bg-bg-tertiary flex w-full items-center gap-3 px-4 py-2 text-sm text-red-400 transition-colors"
+                      >
                         <LogOut className="h-4 w-4" />
                         Sign Out
                       </button>
@@ -209,11 +215,16 @@ export function Navbar() {
               <div className="flex items-center gap-2">
                 <Link
                   to="/profil"
+                  search={{ mode: 'login' }}
                   className="text-text-secondary hover:text-text-primary hidden px-3 py-2 text-sm font-medium transition-colors sm:block"
                 >
                   Sign In
                 </Link>
-                <Link to="/profil" className="btn-primary py-1.5 text-sm">
+                <Link
+                  to="/profil"
+                  search={{ mode: 'register' }}
+                  className="btn-primary py-1.5 text-sm"
+                >
                   Create Account
                 </Link>
               </div>
