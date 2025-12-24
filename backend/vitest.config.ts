@@ -11,6 +11,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
+      clean: true, // Clean coverage folder before each run
       include: ['src/**/*.ts'],
       exclude: [
         'src/**/*.test.ts',
