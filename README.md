@@ -23,6 +23,43 @@ cine-connect/
 
 **Database:** PostgreSQL 16
 
+## Architecture
+
+### Backend - Clean Architecture
+
+The backend follows Clean Architecture principles for maintainability and testability:
+
+```
+backend/src/
+├── domain/              # Core business logic (no framework dependencies)
+│   ├── entities/        # User, Film, Review, ReviewLike, ReviewComment
+│   └── repositories/    # Interface contracts (IUserRepository, IFilmRepository, etc.)
+│
+├── application/         # Use cases - orchestrate business logic
+│   └── use-cases/       # CreateReviewUseCase, LikeReviewUseCase, CommentOnReviewUseCase, etc.
+│
+├── infrastructure/      # External implementations
+│   ├── repositories/    # Drizzle ORM implementations (DrizzleUserRepository, etc.)
+│   └── container.ts     # tsyringe dependency injection setup
+│
+└── routes/              # Express HTTP handlers (presentation layer)
+```
+
+**Key Principles:**
+
+- Business logic lives in use cases, NOT in routes
+- Routes only handle HTTP concerns (parse request, call use case, format response)
+- Repository interfaces define contracts, implementations handle database
+- Dependency injection via tsyringe enables easy testing and swapping implementations
+- Domain entities are framework-agnostic pure TypeScript classes
+
+### Frontend
+
+- File-based routing with TanStack Router
+- API state management with TanStack Query
+- Component-based architecture with React
+- Type-safe API clients in `src/lib/api/`
+
 ## Prerequisites
 
 - **Node.js** >= 20.0.0
@@ -119,7 +156,7 @@ users
 
 films
 ├── id (uuid, pk)
-├── imdb_id (unique)
+├── tmdb_id (unique, not null)
 ├── title
 ├── year
 ├── poster
@@ -128,7 +165,7 @@ films
 ├── actors
 ├── genre
 ├── runtime
-├── imdb_rating
+├── tmdb_rating
 ├── created_at
 └── updated_at
 
@@ -181,15 +218,26 @@ friends
 
 - `GET /api/v1/films` - List films
 - `GET /api/v1/films/:id` - Get film details
-- `GET /api/v1/films/imdb/:imdbId` - Get by IMDb ID
+- `GET /api/v1/films/tmdb/:tmdbId` - Get by TMDb ID
+- `POST /api/v1/films/tmdb` - Register film from TMDb (get or create)
 
 ### Reviews
 
 - `POST /api/v1/reviews` - Create review
+- `GET /api/v1/reviews/:id` - Get single review
 - `GET /api/v1/reviews/film/:filmId` - Get film reviews
 - `GET /api/v1/reviews/user/:userId` - Get user reviews
 - `PATCH /api/v1/reviews/:id` - Update review
 - `DELETE /api/v1/reviews/:id` - Delete review
+
+### Review Interactions
+
+- `POST /api/v1/reviews/:id/like` - Like a review
+- `DELETE /api/v1/reviews/:id/like` - Unlike a review
+- `GET /api/v1/reviews/:id/likes` - Get review likes
+- `POST /api/v1/reviews/:id/comments` - Comment on a review
+- `GET /api/v1/reviews/:id/comments` - Get review comments
+- `DELETE /api/v1/reviews/:reviewId/comments/:commentId` - Delete comment
 
 ### Messages
 
@@ -275,6 +323,29 @@ pnpm test:coverage     # Run with coverage report
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)               | System architecture & design |
 | [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md)           | What's done, what's left     |
 | [docs/CLEAN_CODE_ANALYSIS.md](docs/CLEAN_CODE_ANALYSIS.md) | Code quality assessment      |
+
+## Recent Changes
+
+### Architecture Refactoring
+
+The backend has been refactored to follow **Clean Architecture** principles:
+
+- **Use Cases Pattern**: Business logic extracted from routes into dedicated use case classes
+- **Repository Interfaces**: Data access abstracted behind interfaces in the domain layer
+- **Dependency Injection**: tsyringe container manages all dependencies
+- **Separation of Concerns**: Routes only handle HTTP, use cases handle business logic
+
+### New Review System Features
+
+- **Review Likes**: Users can like/unlike reviews
+- **Review Comments**: Users can comment on reviews and delete their own comments
+- **Enhanced Review API**: New endpoints for interactions and single review retrieval
+
+### Code Quality
+
+- 100% test coverage for frontend and backend
+- Comprehensive unit tests for use cases, routes, and components
+- Proper mocking strategy with repository interfaces
 
 ## License
 

@@ -106,6 +106,40 @@ cine-connect/
 - Vitest (testing)
 - Git with feature branches
 
+## CLEAN ARCHITECTURE (Backend)
+
+The backend follows Clean Architecture principles with proper separation of concerns:
+
+### Layer Structure
+
+1. **Domain Layer** (`src/domain/`)
+   - `entities/` - Pure domain models (User, Film, Review, etc.)
+   - `repositories/` - Repository interfaces (IUserRepository, IFilmRepository, etc.)
+   - No framework dependencies
+
+2. **Application Layer** (`src/application/`)
+   - `use-cases/` - Business logic (CreateReviewUseCase, LikeReviewUseCase, etc.)
+   - Depends only on domain layer
+   - Injectable via tsyringe
+
+3. **Infrastructure Layer** (`src/infrastructure/`)
+   - `repositories/` - Drizzle ORM implementations (DrizzleUserRepository, etc.)
+   - `container.ts` - Dependency injection setup
+   - Implements domain interfaces
+
+4. **Presentation Layer** (`src/routes/`, `src/middleware/`, `src/socket/`)
+   - Express routes handle HTTP concerns only
+   - Delegate business logic to use cases
+   - Socket handlers for real-time features
+
+### Rules
+
+- Business logic MUST be in use cases, NOT in routes
+- Routes should only: parse input, call use case, format response
+- Repository interfaces define contracts, implementations handle DB
+- Use tsyringe for dependency injection
+- Domain entities are framework-agnostic
+
 ## REQUIRED ROUTES (Frontend)
 
 MUST implement these exact routes:
