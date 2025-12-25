@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { authenticate, optionalAuth, generateTokens } from './auth.js';
 
 // Use the same JWT_SECRET that's set in test/setup.ts
 const JWT_SECRET = 'test-secret-key-for-testing-purposes-only-minimum-32-chars';
+const originalJwtSecret = process.env.JWT_SECRET;
 
 describe('Auth Middleware', () => {
   let mockReq: Partial<Request>;
@@ -43,6 +44,14 @@ describe('Auth Middleware', () => {
       expect(() => {
         authenticate(mockReq as Request, mockRes as Response, mockNext);
       }).toThrow('Invalid token');
+    });
+
+    it('should throw error when token is empty after Bearer', () => {
+      mockReq.headers = { authorization: 'Bearer ' };
+
+      expect(() => {
+        authenticate(mockReq as Request, mockRes as Response, mockNext);
+      }).toThrow('Invalid token format');
     });
 
     it('should set user on request for valid token', () => {
@@ -106,6 +115,15 @@ describe('Auth Middleware', () => {
       expect(mockReq.user).toBeUndefined();
       expect(mockNext).toHaveBeenCalled();
     });
+
+    it('should continue without setting user when token is empty after Bearer', () => {
+      mockReq.headers = { authorization: 'Bearer ' };
+
+      optionalAuth(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockReq.user).toBeUndefined();
+      expect(mockNext).toHaveBeenCalled();
+    });
   });
 
   describe('generateTokens', () => {
@@ -138,6 +156,37 @@ describe('Auth Middleware', () => {
       expect(decodedAccess.email).toBe('test@example.com');
       expect(decodedRefresh.userId).toBe('user-123');
       expect(decodedRefresh.email).toBe('test@example.com');
+    });
+  });
+
+  describe('missing JWT_SECRET', () => {
+    afterEach(() => {
+      // Restore JWT_SECRET after each test
+      process.env.JWT_SECRET = originalJwtSecret;
+    });
+
+    it('should throw error when JWT_SECRET is not set for generateTokens', () => {
+      delete process.env.JWT_SECRET;
+
+      const payload = { userId: 'user-123', email: 'test@example.com' };
+
+      expect(() => {
+        generateTokens(payload);
+      }).toThrow('JWT_SECRET environment variable is required');
+    });
+
+    it('should throw Invalid token when JWT_SECRET is missing during authenticate', () => {
+      // When JWT_SECRET is missing, getJwtSecret throws but it's caught
+      // by the try/catch and re-thrown as "Invalid token"
+      delete process.env.JWT_SECRET;
+
+      const payload = { userId: 'user-123', email: 'test@example.com' };
+      const token = jwt.sign(payload, 'any-secret');
+      mockReq.headers = { authorization: `Bearer ${token}` };
+
+      expect(() => {
+        authenticate(mockReq as Request, mockRes as Response, mockNext);
+      }).toThrow('Invalid token');
     });
   });
 });
