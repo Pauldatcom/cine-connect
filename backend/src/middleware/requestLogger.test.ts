@@ -65,4 +65,48 @@ describe('requestLogger', () => {
     const logMessage = consoleLogSpy.mock.calls[0]?.[0] as string;
     expect(logMessage).toContain('404');
   });
+
+  it('should use red color for 500+ status codes', () => {
+    mockRes.statusCode = 500;
+
+    requestLogger(mockReq as Request, mockRes as Response, mockNext);
+
+    const logMessage = consoleLogSpy.mock.calls[0]?.[0] as string;
+    // Red color escape code
+    expect(logMessage).toContain('\x1b[31m');
+    expect(logMessage).toContain('500');
+  });
+
+  it('should use cyan color for 300+ status codes', () => {
+    mockRes.statusCode = 301;
+
+    requestLogger(mockReq as Request, mockRes as Response, mockNext);
+
+    const logMessage = consoleLogSpy.mock.calls[0]?.[0] as string;
+    // Cyan color escape code
+    expect(logMessage).toContain('\x1b[36m');
+    expect(logMessage).toContain('301');
+  });
+
+  it('should use yellow color for 400+ status codes', () => {
+    mockRes.statusCode = 400;
+
+    requestLogger(mockReq as Request, mockRes as Response, mockNext);
+
+    const logMessage = consoleLogSpy.mock.calls[0]?.[0] as string;
+    // Yellow color escape code
+    expect(logMessage).toContain('\x1b[33m');
+    expect(logMessage).toContain('400');
+  });
+
+  it('should use green color for 200+ status codes', () => {
+    mockRes.statusCode = 201;
+
+    requestLogger(mockReq as Request, mockRes as Response, mockNext);
+
+    const logMessage = consoleLogSpy.mock.calls[0]?.[0] as string;
+    // Green color escape code
+    expect(logMessage).toContain('\x1b[32m');
+    expect(logMessage).toContain('201');
+  });
 });

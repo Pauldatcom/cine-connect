@@ -109,7 +109,7 @@ function FilmsIndexPage() {
 
     // Filter by rating
     if (filters.ratingMin) {
-      filtered = filtered.filter((movie) => movie.vote_average >= filters.ratingMin!);
+      filtered = filtered.filter((movie) => movie.vote_average >= (filters.ratingMin ?? 0));
     }
 
     return filtered;
@@ -225,7 +225,7 @@ function FilmsIndexPage() {
             <span className="text-text-primary font-medium">
               {searchResults.total_results.toLocaleString()}
             </span>{' '}
-            results for "<span className="text-letterboxd-green">{activeSearch}</span>"
+            results for &ldquo;<span className="text-letterboxd-green">{activeSearch}</span>&rdquo;
           </p>
         )}
 
@@ -256,7 +256,9 @@ function FilmsIndexPage() {
           </div>
         ) : activeSearch ? (
           <div className="py-20 text-center">
-            <p className="text-text-secondary text-lg">No films found for "{activeSearch}"</p>
+            <p className="text-text-secondary text-lg">
+              No films found for &ldquo;{activeSearch}&rdquo;
+            </p>
             <p className="text-text-tertiary mt-2">Try adjusting your search or filters</p>
             <button onClick={handleClear} className="btn-secondary mt-6">
               Clear Search

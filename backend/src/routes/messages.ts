@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { eq, and, or, desc } from 'drizzle-orm';
 import { db, schema } from '../db/index.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, getAuthUser } from '../middleware/auth.js';
 import { ApiError } from '../middleware/errorHandler.js';
 
 export const messagesRouter = Router();
@@ -27,7 +27,7 @@ const sendMessageSchema = z.object({
  */
 messagesRouter.get('/', authenticate, async (req, res, next) => {
   try {
-    const userId = req.user!.userId;
+    const userId = getAuthUser(req).userId;
 
     // Get all unique conversations
     const messages = await db.query.messages.findMany({
@@ -76,8 +76,10 @@ messagesRouter.get('/', authenticate, async (req, res, next) => {
       }
 
       if (msg.receiverId === userId && !msg.read) {
-        const conv = conversationsMap.get(partnerId)!;
-        conv.unreadCount++;
+        const conv = conversationsMap.get(partnerId);
+        if (conv) {
+          conv.unreadCount++;
+        }
       }
     }
 
@@ -111,7 +113,7 @@ messagesRouter.get('/', authenticate, async (req, res, next) => {
  */
 messagesRouter.get('/:userId', authenticate, async (req, res, next) => {
   try {
-    const currentUserId = req.user!.userId;
+    const currentUserId = getAuthUser(req).userId;
     const userId = z.string().uuid().parse(req.params.userId);
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = 50;
@@ -180,7 +182,7 @@ messagesRouter.get('/:userId', authenticate, async (req, res, next) => {
 messagesRouter.post('/', authenticate, async (req, res, next) => {
   try {
     const { receiverId, content } = sendMessageSchema.parse(req.body);
-    const senderId = req.user!.userId;
+    const senderId = getAuthUser(req).userId;
 
     if (senderId === receiverId) {
       throw ApiError.badRequest('Cannot send message to yourself');

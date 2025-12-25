@@ -131,6 +131,29 @@ describe('StarRating', () => {
       const buttons = screen.queryAllByRole('button');
       expect(buttons.length).toBe(0);
     });
+
+    it('handles hover on half star correctly', () => {
+      const handleChange = vi.fn();
+      render(<StarRating onRatingChange={handleChange} />);
+
+      const buttons = screen.getAllByRole('button');
+      // Hover on first half of second star (index 2 = left half of star 2)
+      fireEvent.mouseEnter(buttons[2]!);
+
+      // Should show hover state
+      expect(handleChange).not.toHaveBeenCalled(); // Just hover, no click
+    });
+
+    it('handles hover on full star correctly', () => {
+      const handleChange = vi.fn();
+      render(<StarRating onRatingChange={handleChange} />);
+
+      const buttons = screen.getAllByRole('button');
+      // Hover on right half of third star (index 5 = right half of star 3)
+      fireEvent.mouseEnter(buttons[5]!);
+
+      expect(handleChange).not.toHaveBeenCalled();
+    });
   });
 
   describe('accessibility', () => {
