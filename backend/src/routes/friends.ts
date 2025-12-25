@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { eq, and, or } from 'drizzle-orm';
 import { db, schema } from '../db/index.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, getAuthUser } from '../middleware/auth.js';
 import { ApiError } from '../middleware/errorHandler.js';
 
 export const friendsRouter = Router();
@@ -30,7 +30,7 @@ const respondRequestSchema = z.object({
  */
 friendsRouter.get('/', authenticate, async (req, res, next) => {
   try {
-    const userId = req.user!.userId;
+    const userId = getAuthUser(req).userId;
 
     const friendships = await db.query.friends.findMany({
       where: and(
@@ -85,7 +85,7 @@ friendsRouter.get('/', authenticate, async (req, res, next) => {
  */
 friendsRouter.get('/requests', authenticate, async (req, res, next) => {
   try {
-    const userId = req.user!.userId;
+    const userId = getAuthUser(req).userId;
 
     const requests = await db.query.friends.findMany({
       where: and(eq(schema.friends.receiverId, userId), eq(schema.friends.status, 'pending')),
@@ -139,7 +139,7 @@ friendsRouter.get('/requests', authenticate, async (req, res, next) => {
 friendsRouter.post('/request', authenticate, async (req, res, next) => {
   try {
     const { userId: receiverId } = sendRequestSchema.parse(req.body);
-    const senderId = req.user!.userId;
+    const senderId = getAuthUser(req).userId;
 
     if (senderId === receiverId) {
       throw ApiError.badRequest('Cannot send friend request to yourself');
@@ -223,7 +223,7 @@ friendsRouter.patch('/requests/:id', authenticate, async (req, res, next) => {
   try {
     const id = z.string().uuid().parse(req.params.id);
     const { accept } = respondRequestSchema.parse(req.body);
-    const userId = req.user!.userId;
+    const userId = getAuthUser(req).userId;
 
     // Find request
     const request = await db.query.friends.findFirst({
@@ -283,7 +283,7 @@ friendsRouter.patch('/requests/:id', authenticate, async (req, res, next) => {
 friendsRouter.delete('/:id', authenticate, async (req, res, next) => {
   try {
     const id = z.string().uuid().parse(req.params.id);
-    const userId = req.user!.userId;
+    const userId = getAuthUser(req).userId;
 
     // Find friendship
     const friendship = await db.query.friends.findFirst({

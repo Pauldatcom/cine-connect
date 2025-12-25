@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '../db/index.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, getAuthUser } from '../middleware/auth.js';
 import { ApiError } from '../middleware/errorHandler.js';
 
 export const usersRouter = Router();
@@ -34,7 +34,7 @@ const updateProfileSchema = z.object({
 usersRouter.get('/me', authenticate, async (req, res, next) => {
   try {
     const user = await db.query.users.findFirst({
-      where: eq(schema.users.id, req.user!.userId),
+      where: eq(schema.users.id, getAuthUser(req).userId),
       columns: {
         id: true,
         email: true,
@@ -147,7 +147,7 @@ usersRouter.patch('/me', authenticate, async (req, res, next) => {
         ...(avatarUrl && { avatarUrl }),
         updatedAt: new Date(),
       })
-      .where(eq(schema.users.id, req.user!.userId))
+      .where(eq(schema.users.id, getAuthUser(req).userId))
       .returning({
         id: schema.users.id,
         email: schema.users.email,

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { eq, and, desc } from 'drizzle-orm';
 import { db, schema } from '../db/index.js';
-import { authenticate, optionalAuth } from '../middleware/auth.js';
+import { authenticate, optionalAuth, getAuthUser } from '../middleware/auth.js';
 import { ApiError } from '../middleware/errorHandler.js';
 import { MIN_RATING, MAX_RATING, COMMENT_MAX_LENGTH } from '@cine-connect/shared';
 
@@ -54,7 +54,7 @@ const updateReviewSchema = z.object({
 reviewsRouter.post('/', authenticate, async (req, res, next) => {
   try {
     const { filmId, rating, comment } = createReviewSchema.parse(req.body);
-    const userId = req.user!.userId;
+    const userId = getAuthUser(req).userId;
 
     // Check if user already reviewed this film
     const existingReview = await db.query.reviews.findFirst({
@@ -225,7 +225,7 @@ reviewsRouter.patch('/:id', authenticate, async (req, res, next) => {
   try {
     const id = z.string().uuid().parse(req.params.id);
     const updates = updateReviewSchema.parse(req.body);
-    const userId = req.user!.userId;
+    const userId = getAuthUser(req).userId;
 
     // Find review and verify ownership
     const review = await db.query.reviews.findFirst({
@@ -285,7 +285,7 @@ reviewsRouter.patch('/:id', authenticate, async (req, res, next) => {
 reviewsRouter.delete('/:id', authenticate, async (req, res, next) => {
   try {
     const id = z.string().uuid().parse(req.params.id);
-    const userId = req.user!.userId;
+    const userId = getAuthUser(req).userId;
 
     // Find review and verify ownership
     const review = await db.query.reviews.findFirst({

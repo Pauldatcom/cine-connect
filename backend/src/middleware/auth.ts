@@ -1,10 +1,21 @@
-import type { RequestHandler } from 'express';
+import type { Request, RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
 import { ApiError } from './errorHandler.js';
 
-interface JwtPayload {
+export interface JwtPayload {
   userId: string;
   email: string;
+}
+
+/**
+ * Get authenticated user from request - throws if not authenticated
+ * Use this in routes that use the authenticate middleware
+ */
+export function getAuthUser(req: Request): JwtPayload {
+  if (!req.user) {
+    throw ApiError.unauthorized('User not authenticated');
+  }
+  return req.user;
 }
 
 // Extend Express Request to include user
