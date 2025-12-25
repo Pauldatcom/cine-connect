@@ -1,6 +1,6 @@
-import type { Server, Socket } from 'socket.io';
-import jwt from 'jsonwebtoken';
 import { WS_EVENTS } from '@cine-connect/shared';
+import jwt from 'jsonwebtoken';
+import type { Server, Socket } from 'socket.io';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -43,7 +43,7 @@ export function setupSocketHandlers(io: Server): void {
   });
 
   io.on(WS_EVENTS.CONNECT, (socket: AuthenticatedSocket) => {
-    console.log(`🔌 User connected: ${socket.userId}`);
+    console.log(`[Socket] User connected: ${socket.userId}`);
 
     if (socket.userId) {
       // Track user as online
@@ -97,7 +97,7 @@ export function setupSocketHandlers(io: Server): void {
 
     // Handle disconnect
     socket.on(WS_EVENTS.DISCONNECT, () => {
-      console.log(`🔌 User disconnected: ${socket.userId}`);
+      console.log(`[Socket] User disconnected: ${socket.userId}`);
 
       if (socket.userId) {
         onlineUsers.delete(socket.id);
