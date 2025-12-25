@@ -31,7 +31,7 @@ function FilmsCategoryPage() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['movies', 'genre', genreId],
-    queryFn: () => getMoviesByGenre(genreId!),
+    queryFn: () => getMoviesByGenre(genreId as number),
     enabled: !!genreId,
   });
 
@@ -39,7 +39,9 @@ function FilmsCategoryPage() {
     return (
       <div className="py-20 text-center">
         <h1 className="text-text-primary text-2xl font-bold">Category Not Found</h1>
-        <p className="text-text-secondary mt-2">The category "{categorie}" doesn't exist.</p>
+        <p className="text-text-secondary mt-2">
+          The category &ldquo;{categorie}&rdquo; doesn&apos;t exist.
+        </p>
       </div>
     );
   }

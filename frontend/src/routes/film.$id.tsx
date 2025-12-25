@@ -82,7 +82,9 @@ function FilmDetailPage() {
       <div className="mx-auto max-w-7xl px-4 py-20 text-center">
         <Film className="text-text-tertiary mx-auto mb-4 h-16 w-16" />
         <h1 className="text-text-primary text-2xl font-bold">Film Not Found</h1>
-        <p className="text-text-secondary mt-2">We couldn't find the film you're looking for.</p>
+        <p className="text-text-secondary mt-2">
+          We couldn&apos;t find the film you&apos;re looking for.
+        </p>
         <Link to="/films" className="btn-primary mt-6 inline-flex">
           <ArrowLeft className="h-4 w-4" />
           Back to Films
@@ -246,7 +248,7 @@ function FilmDetailPage() {
               {/* Tagline */}
               {film.tagline && (
                 <p className="text-text-secondary border-letterboxd-green mt-6 border-l-2 pl-4 text-xl italic">
-                  "{film.tagline}"
+                  &ldquo;{film.tagline}&rdquo;
                 </p>
               )}
 

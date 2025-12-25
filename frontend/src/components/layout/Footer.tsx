@@ -19,7 +19,8 @@ export function Footer() {
               <span className="font-display text-text-primary text-xl font-bold">CinéConnect</span>
             </Link>
             <p className="text-text-secondary mt-4 text-sm leading-relaxed">
-              Track films you've watched. Save those you want to see. Tell your friends what's good.
+              Track films you&apos;ve watched. Save those you want to see. Tell your friends
+              what&apos;s good.
             </p>
             {/* Social links */}
             <div className="mt-6 flex gap-4">

@@ -197,9 +197,9 @@ function WelcomeSection() {
           </div>
         </div>
         <h2 className="font-display text-text-primary mb-4 text-3xl font-bold md:text-4xl">
-          Track films you've watched.
+          Track films you&apos;ve watched.
           <br />
-          <span className="text-letterboxd-green">Tell your friends what's good.</span>
+          <span className="text-letterboxd-green">Tell your friends what&apos;s good.</span>
         </h2>
         <p className="text-text-secondary mx-auto max-w-2xl text-lg">
           The social network for film lovers. Rate, review, and discover your next favorite movie
@@ -207,7 +207,7 @@ function WelcomeSection() {
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-4">
           <Link to="/profil" className="btn-primary px-8 py-3 text-base">
-            Get Started — It's Free
+            Get Started — It&apos;s Free
           </Link>
           <Link to="/films" className="btn-ghost px-8 py-3 text-base">
             Browse Films
