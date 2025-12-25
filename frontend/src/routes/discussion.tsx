@@ -80,7 +80,7 @@ function DiscussionPage() {
     e.preventDefault();
     if (message.trim()) {
       // TODO: Send via Socket.io
-      console.log('Sending:', message);
+      // Message will be sent via socket.emit when implemented
       setMessage('');
     }
   };
