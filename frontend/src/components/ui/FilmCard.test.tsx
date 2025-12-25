@@ -92,6 +92,30 @@ describe('FilmActivityCard', () => {
       });
       expect(screen.getByText('J')).toBeInTheDocument();
     });
+
+    it('shows avatar image when provided', () => {
+      const Wrapper = createTestWrapper();
+      const { container } = render(
+        <FilmActivityCard
+          film={mockFilm}
+          activity="watched"
+          user={{ name: 'John Doe', avatar: 'https://example.com/avatar.jpg' }}
+        />,
+        { wrapper: Wrapper }
+      );
+
+      const avatarImg = container.querySelector('img[src="https://example.com/avatar.jpg"]');
+      expect(avatarImg).toBeInTheDocument();
+    });
+
+    it('shows user initial fallback for empty name', () => {
+      const Wrapper = createTestWrapper();
+      render(<FilmActivityCard film={mockFilm} activity="watched" user={{ name: '' }} />, {
+        wrapper: Wrapper,
+      });
+      // Should show 'U' as fallback when name is empty
+      expect(screen.getByText('U')).toBeInTheDocument();
+    });
   });
 
   describe('rating', () => {
@@ -147,6 +171,44 @@ describe('FilmActivityCard', () => {
         { wrapper: Wrapper }
       );
       expect(container.querySelector('.w-12')).toBeInTheDocument();
+    });
+
+    it('renders rating in compact mode when provided', () => {
+      const Wrapper = createTestWrapper();
+      const { container } = render(
+        <FilmActivityCard film={mockFilm} activity="watched" compact rating={4} />,
+        { wrapper: Wrapper }
+      );
+      expect(container.querySelector('.fill-letterboxd-green')).toBeInTheDocument();
+    });
+
+    it('does not render rating in compact mode when not provided', () => {
+      const Wrapper = createTestWrapper();
+      const { container } = render(
+        <FilmActivityCard film={mockFilm} activity="watched" compact />,
+        { wrapper: Wrapper }
+      );
+      // Should not have filled stars when no rating
+      expect(container.querySelectorAll('.fill-letterboxd-green').length).toBe(0);
+    });
+  });
+
+  describe('edge cases', () => {
+    it('handles missing release date', () => {
+      const Wrapper = createTestWrapper();
+      const filmNoDate = createMockFilm({ release_date: '' });
+      render(<FilmActivityCard film={filmNoDate} activity="watched" />, { wrapper: Wrapper });
+
+      expect(screen.getByText(filmNoDate.title)).toBeInTheDocument();
+    });
+
+    it('renders logged activity type', () => {
+      const Wrapper = createTestWrapper();
+      const { container } = render(
+        <FilmActivityCard film={mockFilm} activity="logged" user={{ name: 'Test' }} />,
+        { wrapper: Wrapper }
+      );
+      expect(container.querySelector('.text-text-secondary')).toBeInTheDocument();
     });
   });
 });

@@ -135,6 +135,24 @@ describe('ReviewCard', () => {
       });
       expect(container.querySelector('.fill-current')).toBeInTheDocument();
     });
+
+    it('unlikes when clicking on already liked review', () => {
+      const Wrapper = createTestWrapper();
+      render(<ReviewCard {...defaultReviewProps} likes={10} isLiked />, { wrapper: Wrapper });
+
+      const likeButton = screen.getByText('10').closest('button');
+      fireEvent.click(likeButton!);
+
+      expect(screen.getByText('9')).toBeInTheDocument();
+    });
+
+    it('does not show count when likes is 0', () => {
+      const Wrapper = createTestWrapper();
+      render(<ReviewCard {...defaultReviewProps} likes={0} />, { wrapper: Wrapper });
+
+      // Should not render '0' next to heart
+      expect(screen.queryByText('0')).not.toBeInTheDocument();
+    });
   });
 
   describe('comments', () => {
@@ -166,6 +184,56 @@ describe('ReviewCard', () => {
       const Wrapper = createTestWrapper();
       render(<ReviewCard {...defaultReviewProps} hasSpoilers compact />, { wrapper: Wrapper });
       expect(screen.getByText('Show spoilers')).toBeInTheDocument();
+    });
+
+    it('shows avatar image in compact mode when provided', () => {
+      const Wrapper = createTestWrapper();
+      const { container } = render(
+        <ReviewCard
+          {...defaultReviewProps}
+          compact
+          user={{ ...defaultReviewProps.user, avatar: 'https://example.com/compact-avatar.jpg' }}
+        />,
+        { wrapper: Wrapper }
+      );
+
+      const avatarImg = container.querySelector(
+        'img[src="https://example.com/compact-avatar.jpg"]'
+      );
+      expect(avatarImg).toBeInTheDocument();
+    });
+
+    it('reveals spoilers in compact mode when button clicked', () => {
+      const Wrapper = createTestWrapper();
+      const { container } = render(<ReviewCard {...defaultReviewProps} hasSpoilers compact />, {
+        wrapper: Wrapper,
+      });
+
+      const spoilerButton = screen.getByText('Show spoilers');
+      fireEvent.click(spoilerButton);
+
+      // After clicking, the blur should be removed
+      expect(container.querySelector('.blur-sm')).not.toBeInTheDocument();
+    });
+
+    it('does not show rating in compact mode when not provided', () => {
+      const Wrapper = createTestWrapper();
+      const { container } = render(<ReviewCard {...defaultReviewProps} compact />, {
+        wrapper: Wrapper,
+      });
+
+      // Should not have rating stars
+      expect(container.querySelector('.fill-letterboxd-green')).not.toBeInTheDocument();
+    });
+
+    it('shows rating in compact mode when provided', () => {
+      const Wrapper = createTestWrapper();
+      const { container } = render(<ReviewCard {...defaultReviewProps} compact rating={4} />, {
+        wrapper: Wrapper,
+      });
+
+      // Should have rating stars
+      expect(container.querySelector('.fill-letterboxd-green')).toBeInTheDocument();
     });
   });
 

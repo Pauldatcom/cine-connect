@@ -134,6 +134,19 @@ describe('FilmStrip', () => {
 
       expect(container.querySelector('.bg-bg-secondary')).toBeInTheDocument();
     });
+
+    it('uses providedFilms over popularData when both exist', () => {
+      const Wrapper = createTestWrapper();
+      const { container } = render(
+        <Wrapper>
+          <FilmStrip films={mockFilms} />
+        </Wrapper>
+      );
+
+      // Should use the provided films
+      const images = container.querySelectorAll('img');
+      expect(images.length).toBe(3);
+    });
   });
 
   describe('custom className', () => {

@@ -81,6 +81,47 @@ describe('Navbar', () => {
       expect(screen.queryByText('Sign In')).not.toBeInTheDocument();
       expect(screen.queryByText('Create Account')).not.toBeInTheDocument();
     });
+
+    it('renders user avatar image when avatarUrl is provided', () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+        user: {
+          id: '1',
+          username: 'testuser',
+          email: 'test@test.com',
+          avatarUrl: 'https://example.com/avatar.jpg',
+        },
+        logout: vi.fn(),
+      });
+
+      const Wrapper = createTestWrapper();
+      const { container } = render(<Navbar />, { wrapper: Wrapper });
+
+      const avatarImg = container.querySelector('img[src="https://example.com/avatar.jpg"]');
+      expect(avatarImg).toBeInTheDocument();
+    });
+
+    it('renders Lists and Members links when authenticated', () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+        user: {
+          id: '1',
+          username: 'testuser',
+          email: 'test@test.com',
+          avatarUrl: null,
+        },
+        logout: vi.fn(),
+      });
+
+      const Wrapper = createTestWrapper();
+      render(<Navbar />, { wrapper: Wrapper });
+
+      // Desktop nav should have Lists and Members when authenticated
+      expect(screen.getByText('Lists')).toBeInTheDocument();
+      expect(screen.getByText('Members')).toBeInTheDocument();
+    });
   });
 
   describe('search functionality', () => {
@@ -106,6 +147,30 @@ describe('Navbar', () => {
 
       expect(searchInput).toHaveValue('Matrix');
     });
+
+    it('closes search and clears query when X button clicked', () => {
+      const Wrapper = createTestWrapper();
+      render(<Navbar />, { wrapper: Wrapper });
+
+      // Open search
+      const searchButton = screen.getByLabelText('Search');
+      fireEvent.click(searchButton);
+
+      // Type something
+      const searchInput = screen.getByPlaceholderText('Search films...');
+      fireEvent.change(searchInput, { target: { value: 'Matrix' } });
+
+      // Find and click close button (the X button after the search submit)
+      const buttons = screen.getAllByRole('button');
+      const closeButton = buttons.find(
+        (btn) => btn.classList.contains('ml-2') && (btn as HTMLButtonElement).type === 'button'
+      );
+      expect(closeButton).toBeInTheDocument();
+      fireEvent.click(closeButton!);
+
+      // Search input should be gone
+      expect(screen.queryByPlaceholderText('Search films...')).not.toBeInTheDocument();
+    });
   });
 
   describe('mobile menu', () => {
@@ -120,6 +185,53 @@ describe('Navbar', () => {
 
       const homeLinks = screen.getAllByText('Home');
       expect(homeLinks.length).toBeGreaterThan(0);
+    });
+
+    it('shows Lists and Members in mobile menu when authenticated', () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+        user: {
+          id: '1',
+          username: 'testuser',
+          email: 'test@test.com',
+          avatarUrl: null,
+        },
+        logout: vi.fn(),
+      });
+
+      const Wrapper = createTestWrapper();
+      render(<Navbar />, { wrapper: Wrapper });
+
+      // Open mobile menu
+      const buttons = screen.getAllByRole('button');
+      const menuButton = buttons[buttons.length - 1]!;
+      fireEvent.click(menuButton);
+
+      // Should show Lists and Members in mobile menu
+      const listsLinks = screen.getAllByText('Lists');
+      const membersLinks = screen.getAllByText('Members');
+      expect(listsLinks.length).toBeGreaterThan(0);
+      expect(membersLinks.length).toBeGreaterThan(0);
+    });
+
+    it('closes mobile menu when link is clicked', () => {
+      const Wrapper = createTestWrapper();
+      render(<Navbar />, { wrapper: Wrapper });
+
+      // Open mobile menu
+      const buttons = screen.getAllByRole('button');
+      const menuButton = buttons[buttons.length - 1]!;
+      fireEvent.click(menuButton);
+
+      // Click Home link in mobile menu
+      const homeLinks = screen.getAllByText('Home');
+      const mobileHomeLink = homeLinks[homeLinks.length - 1];
+      fireEvent.click(mobileHomeLink!);
+
+      // Mobile menu should be closed (only one Home link should be visible)
+      const remainingHomeLinks = screen.getAllByText('Home');
+      expect(remainingHomeLinks.length).toBe(1);
     });
   });
 
@@ -173,6 +285,106 @@ describe('Navbar', () => {
       fireEvent.click(signOutButton);
 
       expect(mockLogout).toHaveBeenCalled();
+    });
+  });
+
+  describe('profile menu', () => {
+    it('closes profile menu when clicking outside', () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+        user: {
+          id: '1',
+          username: 'testuser',
+          email: 'test@test.com',
+          avatarUrl: null,
+        },
+        logout: vi.fn(),
+      });
+
+      const Wrapper = createTestWrapper();
+      const { container } = render(<Navbar />, { wrapper: Wrapper });
+
+      // Open profile menu
+      const buttons = screen.getAllByRole('button');
+      const profileButton = buttons.find((btn) => btn.classList.contains('rounded-full'));
+      fireEvent.click(profileButton!);
+
+      // Profile menu should be open
+      expect(screen.getByText('Profile')).toBeInTheDocument();
+
+      // Click outside the profile menu (on the header)
+      const header = container.querySelector('header');
+      fireEvent.mouseDown(header!);
+
+      // Profile menu should be closed
+      expect(screen.queryByText('View profile')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('search submit', () => {
+    it('submits search form with query', () => {
+      // Mock window.location.href
+      const originalLocation = window.location;
+      Object.defineProperty(window, 'location', {
+        writable: true,
+        value: { href: '' },
+      });
+
+      const Wrapper = createTestWrapper();
+      render(<Navbar />, { wrapper: Wrapper });
+
+      // Open search
+      const searchButton = screen.getByLabelText('Search');
+      fireEvent.click(searchButton);
+
+      // Type something
+      const searchInput = screen.getByPlaceholderText('Search films...');
+      fireEvent.change(searchInput, { target: { value: 'Matrix' } });
+
+      // Submit the form
+      const form = searchInput.closest('form');
+      fireEvent.submit(form!);
+
+      expect(window.location.href).toBe('/films?q=Matrix');
+
+      // Restore
+      Object.defineProperty(window, 'location', {
+        writable: true,
+        value: originalLocation,
+      });
+    });
+
+    it('does not submit search with empty query', () => {
+      const originalLocation = window.location;
+      Object.defineProperty(window, 'location', {
+        writable: true,
+        value: { href: '' },
+      });
+
+      const Wrapper = createTestWrapper();
+      render(<Navbar />, { wrapper: Wrapper });
+
+      // Open search
+      const searchButton = screen.getByLabelText('Search');
+      fireEvent.click(searchButton);
+
+      // Leave it empty or with whitespace
+      const searchInput = screen.getByPlaceholderText('Search films...');
+      fireEvent.change(searchInput, { target: { value: '   ' } });
+
+      // Submit the form
+      const form = searchInput.closest('form');
+      fireEvent.submit(form!);
+
+      // Should not navigate
+      expect(window.location.href).toBe('');
+
+      // Restore
+      Object.defineProperty(window, 'location', {
+        writable: true,
+        value: originalLocation,
+      });
     });
   });
 });

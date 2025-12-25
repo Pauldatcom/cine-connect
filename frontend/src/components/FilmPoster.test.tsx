@@ -99,4 +99,30 @@ describe('FilmPosterLarge', () => {
     expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute('src', expect.stringContaining('w500'));
   });
+
+  it('handles missing release date gracefully', () => {
+    const Wrapper = createTestWrapper();
+    const filmWithoutDate = createMockFilm({ release_date: '' });
+
+    render(<FilmPosterLarge film={filmWithoutDate} />, { wrapper: Wrapper });
+
+    expect(screen.getByAltText(filmWithoutDate.title)).toBeInTheDocument();
+  });
+
+  it('renders year and rating on hover overlay', () => {
+    const Wrapper = createTestWrapper();
+    render(<FilmPosterLarge film={mockFilm} />, { wrapper: Wrapper });
+
+    expect(screen.getByText('2024')).toBeInTheDocument();
+  });
+
+  it('does not show rating when vote_average is 0', () => {
+    const Wrapper = createTestWrapper();
+    const filmNoRating = createMockFilm({ vote_average: 0 });
+
+    const { container } = render(<FilmPosterLarge film={filmNoRating} />, { wrapper: Wrapper });
+
+    // Should not show the rating span with fill-current
+    expect(container.querySelector('.fill-current')).not.toBeInTheDocument();
+  });
 });

@@ -207,6 +207,27 @@ describe('AuthContext', () => {
         expect(screen.getByTestId('error')).toHaveTextContent('Login failed. Please try again.');
       });
     });
+
+    it('shows fallback error when ApiError has no error message', async () => {
+      const user = userEvent.setup();
+      mockAuthApi.login.mockRejectedValueOnce(new ApiError(401, 'Unauthorized', {}));
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Login' }));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('error')).toHaveTextContent('Invalid credentials');
+      });
+    });
   });
 
   describe('register', () => {
@@ -279,6 +300,27 @@ describe('AuthContext', () => {
         expect(screen.getByTestId('error')).toHaveTextContent(
           'Registration failed. Please try again.'
         );
+      });
+    });
+
+    it('shows fallback error when ApiError has no error message', async () => {
+      const user = userEvent.setup();
+      mockAuthApi.register.mockRejectedValueOnce(new ApiError(409, 'Conflict', {}));
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Register' }));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('error')).toHaveTextContent('Registration failed');
       });
     });
   });
