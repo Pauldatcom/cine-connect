@@ -12,8 +12,19 @@ const uuidParamSchema = z.object({
   id: z.string().uuid(),
 });
 
-const imdbIdParamSchema = z.object({
-  imdbId: z.string().regex(/^tt\d{7,}$/, 'Invalid IMDb ID format'),
+const tmdbIdParamSchema = z.object({
+  tmdbId: z.string().regex(/^\d+$/, 'Invalid TMDb ID format'),
+});
+
+const registerFilmSchema = z.object({
+  tmdbId: z.number().int().positive(),
+  title: z.string().min(1).max(500),
+  year: z.string().max(10).optional().nullable(),
+  poster: z.string().optional().nullable(),
+  plot: z.string().optional().nullable(),
+  director: z.string().max(500).optional().nullable(),
+  genre: z.string().max(500).optional().nullable(),
+  runtime: z.string().max(50).optional().nullable(),
 });
 
 /**
@@ -138,32 +149,30 @@ filmsRouter.get('/:id', optionalAuth, async (req, res, next) => {
 
 /**
  * @swagger
- * /api/v1/films/imdb/{imdbId}:
+ * /api/v1/films/tmdb/{tmdbId}:
  *   get:
  *     tags: [Films]
- *     summary: Get or create film by IMDb ID
+ *     summary: Get film by TMDb ID
  *     parameters:
  *       - in: path
- *         name: imdbId
+ *         name: tmdbId
  *         required: true
  *         schema:
  *           type: string
- *           pattern: ^tt\d{7,}$
+ *           pattern: ^\d+$
  *     responses:
  *       200:
  *         description: Film details
- *       400:
- *         description: Invalid IMDb ID format
  *       404:
  *         description: Film not found
  */
-filmsRouter.get('/imdb/:imdbId', optionalAuth, async (req, res, next) => {
+filmsRouter.get('/tmdb/:tmdbId', optionalAuth, async (req, res, next) => {
   try {
-    const { imdbId } = imdbIdParamSchema.parse(req.params);
+    const { tmdbId } = tmdbIdParamSchema.parse(req.params);
+    const tmdbIdNum = parseInt(tmdbId, 10);
 
-    // Check if film exists in our database
     const film = await db.query.films.findFirst({
-      where: eq(schema.films.imdbId, imdbId),
+      where: eq(schema.films.tmdbId, tmdbIdNum),
     });
 
     if (!film) {
@@ -173,6 +182,86 @@ filmsRouter.get('/imdb/:imdbId', optionalAuth, async (req, res, next) => {
     res.json({
       success: true,
       data: film,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
+ * /api/v1/films/tmdb:
+ *   post:
+ *     tags: [Films]
+ *     summary: Register a film from TMDb (get or create)
+ *     description: Creates a film record if it doesn't exist, or returns existing one
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [tmdbId, title]
+ *             properties:
+ *               tmdbId:
+ *                 type: integer
+ *               title:
+ *                 type: string
+ *               year:
+ *                 type: string
+ *               poster:
+ *                 type: string
+ *               plot:
+ *                 type: string
+ *               director:
+ *                 type: string
+ *               genre:
+ *                 type: string
+ *               runtime:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Existing film returned
+ *       201:
+ *         description: New film created
+ */
+filmsRouter.post('/tmdb', async (req, res, next) => {
+  try {
+    const data = registerFilmSchema.parse(req.body);
+
+    // Check if film already exists
+    const existingFilm = await db.query.films.findFirst({
+      where: eq(schema.films.tmdbId, data.tmdbId),
+    });
+
+    if (existingFilm) {
+      res.json({
+        success: true,
+        data: existingFilm,
+        created: false,
+      });
+      return;
+    }
+
+    // Create new film
+    const [newFilm] = await db
+      .insert(schema.films)
+      .values({
+        tmdbId: data.tmdbId,
+        title: data.title,
+        year: data.year ?? null,
+        poster: data.poster ?? null,
+        plot: data.plot ?? null,
+        director: data.director ?? null,
+        genre: data.genre ?? null,
+        runtime: data.runtime ?? null,
+      })
+      .returning();
+
+    res.status(201).json({
+      success: true,
+      data: newFilm,
+      created: true,
     });
   } catch (error) {
     next(error);

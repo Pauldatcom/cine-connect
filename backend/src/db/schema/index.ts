@@ -37,7 +37,7 @@ export const films = pgTable(
   'films',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    imdbId: varchar('imdb_id', { length: 20 }).notNull().unique(),
+    tmdbId: integer('tmdb_id').unique().notNull(),
     title: varchar('title', { length: 500 }).notNull(),
     year: varchar('year', { length: 10 }),
     poster: text('poster'),
@@ -46,11 +46,11 @@ export const films = pgTable(
     actors: text('actors'),
     genre: varchar('genre', { length: 500 }),
     runtime: varchar('runtime', { length: 50 }),
-    imdbRating: varchar('imdb_rating', { length: 10 }),
+    tmdbRating: varchar('tmdb_rating', { length: 10 }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
-  (table) => [index('films_imdb_id_idx').on(table.imdbId), index('films_title_idx').on(table.title)]
+  (table) => [index('films_tmdb_id_idx').on(table.tmdbId), index('films_title_idx').on(table.title)]
 );
 
 export const filmCategories = pgTable('film_categories', {
@@ -80,6 +80,44 @@ export const reviews = pgTable(
   (table) => [
     index('reviews_user_id_idx').on(table.userId),
     index('reviews_film_id_idx').on(table.filmId),
+  ]
+);
+
+export const reviewLikes = pgTable(
+  'review_likes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    reviewId: uuid('review_id')
+      .notNull()
+      .references(() => reviews.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('review_likes_user_id_idx').on(table.userId),
+    index('review_likes_review_id_idx').on(table.reviewId),
+  ]
+);
+
+export const reviewComments = pgTable(
+  'review_comments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    reviewId: uuid('review_id')
+      .notNull()
+      .references(() => reviews.id, { onDelete: 'cascade' }),
+    content: text('content').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('review_comments_user_id_idx').on(table.userId),
+    index('review_comments_review_id_idx').on(table.reviewId),
   ]
 );
 
@@ -126,6 +164,8 @@ export const friends = pgTable(
 
 export const usersRelations = relations(users, ({ many }) => ({
   reviews: many(reviews),
+  reviewLikes: many(reviewLikes),
+  reviewComments: many(reviewComments),
   sentMessages: many(messages, { relationName: 'sender' }),
   receivedMessages: many(messages, { relationName: 'receiver' }),
   sentFriendRequests: many(friends, { relationName: 'sender' }),
@@ -141,7 +181,7 @@ export const categoriesRelations = relations(categories, ({ many }) => ({
   films: many(filmCategories),
 }));
 
-export const reviewsRelations = relations(reviews, ({ one }) => ({
+export const reviewsRelations = relations(reviews, ({ one, many }) => ({
   user: one(users, {
     fields: [reviews.userId],
     references: [users.id],
@@ -149,6 +189,30 @@ export const reviewsRelations = relations(reviews, ({ one }) => ({
   film: one(films, {
     fields: [reviews.filmId],
     references: [films.id],
+  }),
+  likes: many(reviewLikes),
+  comments: many(reviewComments),
+}));
+
+export const reviewLikesRelations = relations(reviewLikes, ({ one }) => ({
+  user: one(users, {
+    fields: [reviewLikes.userId],
+    references: [users.id],
+  }),
+  review: one(reviews, {
+    fields: [reviewLikes.reviewId],
+    references: [reviews.id],
+  }),
+}));
+
+export const reviewCommentsRelations = relations(reviewComments, ({ one }) => ({
+  user: one(users, {
+    fields: [reviewComments.userId],
+    references: [users.id],
+  }),
+  review: one(reviews, {
+    fields: [reviewComments.reviewId],
+    references: [reviews.id],
   }),
 }));
 

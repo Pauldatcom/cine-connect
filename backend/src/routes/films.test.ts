@@ -2,6 +2,9 @@
  * Films Routes Unit Tests
  */
 
+// Must import reflect-metadata FIRST before any tsyringe usage
+import 'reflect-metadata';
+
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../app.js';
@@ -14,7 +17,7 @@ const NONEXISTENT_ID = '99999999-9999-9999-9999-999999999999';
 vi.mock('../db/index.js', () => {
   const mockFilms = {
     id: 'id',
-    imdbId: 'imdbId',
+    tmdbId: 'tmdbId',
     title: 'title',
     year: 'year',
     poster: 'poster',
@@ -23,7 +26,7 @@ vi.mock('../db/index.js', () => {
     actors: 'actors',
     genre: 'genre',
     runtime: 'runtime',
-    imdbRating: 'imdbRating',
+    tmdbRating: 'tmdbRating',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt',
   };
@@ -57,7 +60,7 @@ describe('Films Routes', () => {
 
   const mockFilm = {
     id: FILM_ID,
-    imdbId: 'tt1234567',
+    tmdbId: 12345,
     title: 'Test Movie',
     year: '2024',
     poster: 'https://example.com/poster.jpg',
@@ -66,7 +69,7 @@ describe('Films Routes', () => {
     actors: 'Actor 1, Actor 2',
     genre: 'Action, Drama',
     runtime: '120 min',
-    imdbRating: '8.5',
+    tmdbRating: '8.5',
     createdAt: new Date(),
     updatedAt: new Date(),
     reviews: [],
@@ -185,26 +188,26 @@ describe('Films Routes', () => {
     });
   });
 
-  describe('GET /api/v1/films/imdb/:imdbId', () => {
-    it('should return film by IMDb ID', async () => {
+  describe('GET /api/v1/films/tmdb/:tmdbId', () => {
+    it('should return film by TMDb ID', async () => {
       (db.query.films.findFirst as Mock).mockResolvedValue(mockFilm);
 
-      const response = await request(app).get('/api/v1/films/imdb/tt1234567').expect(200);
+      const response = await request(app).get('/api/v1/films/tmdb/12345').expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.data.imdbId).toBe('tt1234567');
+      expect(response.body.data.tmdbId).toBe(12345);
     });
 
     it('should return 404 if film not in database', async () => {
       (db.query.films.findFirst as Mock).mockResolvedValue(null);
 
-      const response = await request(app).get('/api/v1/films/imdb/tt9999999').expect(404);
+      const response = await request(app).get('/api/v1/films/tmdb/99999').expect(404);
 
       expect(response.body.success).toBe(false);
     });
 
-    it('should return 400 for invalid IMDb ID format', async () => {
-      const response = await request(app).get('/api/v1/films/imdb/invalid-id').expect(400);
+    it('should return 400 for invalid TMDb ID format', async () => {
+      const response = await request(app).get('/api/v1/films/tmdb/not-a-number').expect(400);
 
       expect(response.body.success).toBe(false);
     });

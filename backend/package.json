@@ -26,9 +26,11 @@
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.13.1",
+    "reflect-metadata": "^0.2.2",
     "socket.io": "^4.8.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
+    "tsyringe": "^4.10.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
@@ -38,15 +40,15 @@
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^22.10.2",
     "@types/pg": "^8.11.10",
+    "@types/supertest": "^6.0.2",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.7",
+    "@vitest/coverage-v8": "^2.1.8",
     "drizzle-kit": "^0.30.1",
+    "socket.io-client": "^4.8.1",
+    "supertest": "^7.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "@vitest/coverage-v8": "^2.1.8",
-    "supertest": "^7.0.0",
-    "@types/supertest": "^6.0.2",
-    "vitest": "^2.1.8",
-    "socket.io-client": "^4.8.1"
+    "vitest": "^2.1.8"
   }
 }

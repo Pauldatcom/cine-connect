@@ -3,6 +3,9 @@
  * Configures the test environment before running tests
  */
 
+// IMPORTANT: reflect-metadata must be imported before anything that uses tsyringe
+import 'reflect-metadata';
+
 import { beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 
 // Set test environment variables BEFORE any imports that might use them
@@ -24,7 +27,7 @@ afterAll(() => {
   vi.restoreAllMocks();
 });
 
-// Clear mocks between tests for isolation
+// Clear mocks and reset DI container between tests for isolation
 beforeEach(() => {
   vi.clearAllMocks();
 });

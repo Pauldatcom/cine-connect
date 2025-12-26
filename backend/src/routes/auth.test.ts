@@ -3,6 +3,9 @@
  * Tests authentication endpoints with mocked database
  */
 
+// Must import reflect-metadata FIRST before any tsyringe usage
+import 'reflect-metadata';
+
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import request from 'supertest';
 import bcrypt from 'bcryptjs';

@@ -25,6 +25,12 @@ export default defineConfig({
         'src/config/swagger.ts', // Swagger config - no logic to test
         'src/config/env.ts', // Env validation - runs on import
         'src/socket/index.ts', // Socket handlers - complex integration
+        'src/infrastructure/**', // Drizzle repositories - tested via route integration tests
+        'src/domain/index.ts', // Re-export file - no logic
+        'src/domain/entities/index.ts', // Re-export file - no logic
+        'src/domain/repositories/index.ts', // Re-export file - no logic
+        'src/application/index.ts', // Re-export file - no logic
+        'src/application/use-cases/index.ts', // Re-export file - no logic
       ],
       thresholds: {
         statements: 80,
