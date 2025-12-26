@@ -5,6 +5,8 @@ import { getImageUrl, type TMDbMovie } from '@/lib/api/tmdb';
 import { StarRatingDisplay } from './StarRating';
 
 interface ReviewCardProps {
+  /** Review ID for API calls */
+  id?: string;
   /** The film being reviewed */
   film?: TMDbMovie;
   /** Reviewer info */
@@ -33,12 +35,15 @@ interface ReviewCardProps {
   showFilm?: boolean;
   /** Compact mode */
   compact?: boolean;
+  /** Callback when like button is clicked */
+  onLike?: (reviewId: string) => void;
 }
 
 /**
  * Review Card Component - Letterboxd style
  */
 export function ReviewCard({
+  id,
   film,
   user,
   rating,
@@ -51,14 +56,21 @@ export function ReviewCard({
   isLiked = false,
   showFilm = true,
   compact = false,
+  onLike,
 }: ReviewCardProps) {
   const [spoilerRevealed, setSpoilerRevealed] = useState(false);
   const [liked, setLiked] = useState(isLiked);
   const [likeCount, setLikeCount] = useState(likes);
 
   const handleLike = () => {
+    // Optimistic update
     setLiked(!liked);
     setLikeCount((prev) => (liked ? prev - 1 : prev + 1));
+
+    // Call API if callback provided
+    if (onLike && id) {
+      onLike(id);
+    }
   };
 
   const shouldHideContent = hasSpoilers && !spoilerRevealed;

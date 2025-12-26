@@ -4,3 +4,4 @@ export { FilmStrip, FilmStripMini } from './FilmStrip';
 export { FilmActivityCard, FilmRow } from './FilmCard';
 export { FilterPanel, defaultFilters, type FilmFilters } from './FilterPanel';
 export { ReviewCard, ReviewList } from './ReviewCard';
+export { ReviewForm } from './ReviewForm';
