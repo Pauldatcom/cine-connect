@@ -18,6 +18,14 @@ export function getAuthUser(req: Request): JwtPayload {
   return req.user;
 }
 
+/**
+ * Try to get authenticated user from request - returns undefined if not authenticated
+ * Use this in routes that use optionalAuth middleware
+ */
+export function tryGetAuthUser(req: Request): JwtPayload | undefined {
+  return req.user;
+}
+
 // Extend Express Request to include user
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace

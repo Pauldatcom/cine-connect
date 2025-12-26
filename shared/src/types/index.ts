@@ -27,7 +27,7 @@ export interface UserPublic {
 
 export interface Film {
   id: string;
-  imdbId: string;
+  tmdbId: number;
   title: string;
   year: string;
   poster: string;
@@ -36,19 +36,19 @@ export interface Film {
   actors: string;
   genre: string;
   runtime: string;
-  imdbRating: string;
+  tmdbRating: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface FilmCard {
   id: string;
-  imdbId: string;
+  tmdbId: number;
   title: string;
   year: string;
   poster: string;
   genre: string;
-  imdbRating: string;
+  tmdbRating: string;
 }
 
 // ============================================

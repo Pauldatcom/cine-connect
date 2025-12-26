@@ -3,15 +3,22 @@
  * Initializes and starts the HTTP server with Socket.IO support
  */
 
+// IMPORTANT: reflect-metadata must be imported before anything that uses decorators
+import 'reflect-metadata';
+
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { config } from 'dotenv';
 
 import { createApp } from './app.js';
 import { setupSocketHandlers } from './socket/index.js';
+import { registerDependencies } from './infrastructure/container.js';
 
 // Load environment variables
 config();
+
+// Register DI container dependencies
+registerDependencies();
 
 const app = createApp();
 const httpServer = createServer(app);
@@ -32,8 +39,8 @@ setupSocketHandlers(io);
 const PORT = process.env.PORT || 3000;
 
 httpServer.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📚 API Docs available at http://localhost:${PORT}/api-docs`);
+  console.log(`[Server] Running on http://localhost:${PORT}`);
+  console.log(`[Docs] API Docs available at http://localhost:${PORT}/api-docs`);
 });
 
 export { app, io };

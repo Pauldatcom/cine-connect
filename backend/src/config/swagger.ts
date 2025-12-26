@@ -44,7 +44,7 @@ const options: swaggerJsdoc.Options = {
           type: 'object',
           properties: {
             id: { type: 'string', format: 'uuid' },
-            imdbId: { type: 'string' },
+            tmdbId: { type: 'integer' },
             title: { type: 'string' },
             year: { type: 'string' },
             poster: { type: 'string' },
@@ -53,7 +53,7 @@ const options: swaggerJsdoc.Options = {
             actors: { type: 'string' },
             genre: { type: 'string' },
             runtime: { type: 'string' },
-            imdbRating: { type: 'string' },
+            tmdbRating: { type: 'string' },
           },
         },
         Review: {
