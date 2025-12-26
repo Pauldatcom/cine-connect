@@ -1,32 +1,37 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { FilmPoster } from '@/components/FilmPoster';
+import { ReviewCard } from '@/components/ui/ReviewCard';
+import { ReviewForm } from '@/components/ui/ReviewForm';
+import { StarRating } from '@/components/ui/StarRating';
+import { useAuth } from '@/contexts/AuthContext';
+import { registerFilm } from '@/lib/api/films';
+import { createReview, getFilmReviews, likeReview, type Review } from '@/lib/api/reviews';
 import {
-  ArrowLeft,
-  Star,
-  Clock,
-  Calendar,
-  Play,
-  Heart,
-  Eye,
-  List,
-  Share2,
-  ExternalLink,
-  Film,
-  Users,
-  Info,
-  MessageSquare,
-} from 'lucide-react';
-import {
-  getMovieDetails,
+  getImageUrl,
   getMovieCredits,
+  getMovieDetails,
   getMovieVideos,
   getSimilarMovies,
-  getImageUrl,
 } from '@/lib/api/tmdb';
-import { FilmPoster } from '@/components/FilmPoster';
-import { StarRating } from '@/components/ui/StarRating';
-import { ReviewCard } from '@/components/ui/ReviewCard';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import {
+  ArrowLeft,
+  Calendar,
+  Clock,
+  ExternalLink,
+  Eye,
+  Film,
+  Heart,
+  Info,
+  List,
+  Loader2,
+  MessageSquare,
+  Play,
+  Share2,
+  Star,
+  Users,
+} from 'lucide-react';
+import { useState } from 'react';
 
 type TabId = 'cast' | 'crew' | 'details' | 'genres' | 'releases';
 
@@ -39,9 +44,15 @@ export const Route = createFileRoute('/film/$id')({
 
 function FilmDetailPage() {
   const { id } = Route.useParams();
+  const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
+
   const [activeTab, setActiveTab] = useState<TabId>('cast');
   const [userRating, setUserRating] = useState<number>(0);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
 
+  // Fetch film details from TMDb
   const {
     data: film,
     isLoading,
@@ -68,6 +79,80 @@ function FilmDetailPage() {
     queryFn: () => getSimilarMovies(id),
     enabled: !!film,
   });
+
+  // Register film in our backend to get internal UUID
+  // This creates the film record if it doesn't exist
+  const { data: backendFilm } = useQuery({
+    queryKey: ['backend-film', id],
+    queryFn: () =>
+      registerFilm({
+        tmdbId: parseInt(id, 10),
+        title: film!.title,
+        year: film!.release_date?.split('-')[0] ?? null,
+        poster: film!.poster_path ?? null,
+        plot: film!.overview ?? null,
+        genre: film!.genres?.map((g) => g.name).join(', ') ?? null,
+        runtime: film!.runtime ? `${film!.runtime} min` : null,
+      }),
+    enabled: !!film,
+    staleTime: Infinity, // Film data doesn't change
+    retry: 1,
+  });
+
+  // Fetch reviews from our backend using internal UUID
+  const { data: reviewsData, isLoading: reviewsLoading } = useQuery({
+    queryKey: ['reviews', 'film', backendFilm?.id],
+    queryFn: () => getFilmReviews(backendFilm!.id),
+    enabled: !!backendFilm?.id,
+  });
+
+  // Create review mutation
+  const createReviewMutation = useMutation({
+    mutationFn: createReview,
+    onSuccess: () => {
+      setShowReviewForm(false);
+      setReviewError(null);
+      queryClient.invalidateQueries({ queryKey: ['reviews', 'film', backendFilm?.id] });
+    },
+    onError: (error: Error) => {
+      setReviewError(error.message || 'Failed to submit review');
+    },
+  });
+
+  // Like review mutation
+  const likeReviewMutation = useMutation({
+    mutationFn: (reviewId: string) => likeReview(reviewId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reviews', 'film', backendFilm?.id] });
+    },
+  });
+
+  const handleSubmitReview = (data: { rating: number; comment: string }) => {
+    if (!backendFilm?.id) {
+      setReviewError('Film not registered yet, please try again');
+      return;
+    }
+    setReviewError(null);
+    createReviewMutation.mutate({
+      filmId: backendFilm.id,
+      rating: data.rating,
+      comment: data.comment || undefined,
+    });
+  };
+
+  const handleWriteReview = () => {
+    if (!isAuthenticated) {
+      // Redirect to login
+      window.location.href = '/profil?mode=login';
+      return;
+    }
+    setShowReviewForm(true);
+  };
+
+  const handleLikeReview = (reviewId: string) => {
+    if (!isAuthenticated) return;
+    likeReviewMutation.mutate(reviewId);
+  };
 
   if (isLoading) {
     return (
@@ -99,6 +184,7 @@ function FilmDetailPage() {
   const trailer = videos?.results.find((v) => v.type === 'Trailer' && v.site === 'YouTube');
   const topCast = credits?.cast.slice(0, 12) || [];
   const topCrew = credits?.crew.slice(0, 12) || [];
+  const reviews = reviewsData?.items || [];
 
   const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
     { id: 'cast', label: 'Cast', icon: <Users className="h-4 w-4" /> },
@@ -109,6 +195,26 @@ function FilmDetailPage() {
 
   return (
     <div className="animate-fade-in">
+      {/* Review Form Modal */}
+      {showReviewForm && (
+        <ReviewForm
+          film={{
+            id: id,
+            title: film.title,
+            year: year,
+            posterUrl: getImageUrl(film.poster_path, 'poster', 'small'),
+          }}
+          initialRating={userRating}
+          isSubmitting={createReviewMutation.isPending}
+          error={reviewError}
+          onSubmit={handleSubmitReview}
+          onClose={() => {
+            setShowReviewForm(false);
+            setReviewError(null);
+          }}
+        />
+      )}
+
       {/* Backdrop Header */}
       <div className="relative">
         {/* Backdrop Image */}
@@ -187,7 +293,16 @@ function FilmDetailPage() {
               {/* Rate this film */}
               <div className="bg-bg-secondary/80 mx-auto mt-6 max-w-[288px] rounded-lg p-4 backdrop-blur lg:mx-0">
                 <p className="text-text-secondary mb-3 text-sm">Rate this film</p>
-                <StarRating rating={userRating} onRatingChange={setUserRating} size="lg" />
+                <StarRating
+                  rating={userRating}
+                  onRatingChange={(rating) => {
+                    setUserRating(rating);
+                    if (isAuthenticated && rating > 0) {
+                      setShowReviewForm(true);
+                    }
+                  }}
+                  size="lg"
+                />
               </div>
 
               {/* Share */}
@@ -283,7 +398,7 @@ function FilmDetailPage() {
                 <div className="mt-6">
                   <span className="text-text-tertiary">Written by </span>
                   {writers.map((w, i) => (
-                    <span key={w.id}>
+                    <span key={`${w.id}-${i}`}>
                       <span className="text-text-primary">{w.name}</span>
                       {i < writers.length - 1 && <span className="text-text-tertiary">, </span>}
                     </span>
@@ -360,8 +475,8 @@ function FilmDetailPage() {
           <div className="animate-fade-in">
             <h2 className="section-header mb-6">Top Billed Cast</h2>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-              {topCast.map((person) => (
-                <div key={person.id} className="card p-4 text-center">
+              {topCast.map((person, index) => (
+                <div key={`${person.id}-${index}`} className="card p-4 text-center">
                   <div className="bg-bg-tertiary mx-auto mb-3 aspect-square w-24 overflow-hidden rounded-full">
                     {person.profile_path ? (
                       <img
@@ -476,8 +591,8 @@ function FilmDetailPage() {
         <section className="border-border mx-auto max-w-7xl border-t px-4 py-8">
           <h2 className="section-header mb-6">Similar Films</h2>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-            {similar.results.slice(0, 12).map((movie) => (
-              <FilmPoster key={movie.id} film={movie} showTitle />
+            {similar.results.slice(0, 12).map((movie, index) => (
+              <FilmPoster key={`${movie.id}-${index}`} film={movie} showTitle />
             ))}
           </div>
         </section>
@@ -488,31 +603,65 @@ function FilmDetailPage() {
         <div className="mb-6 flex items-center justify-between">
           <h2 className="section-header flex items-center gap-2">
             <MessageSquare className="text-letterboxd-blue h-5 w-5" />
-            Recent Reviews
+            Reviews
+            {reviewsData && reviewsData.total > 0 && (
+              <span className="text-text-tertiary text-base font-normal">
+                ({reviewsData.total})
+              </span>
+            )}
           </h2>
-          <button className="btn-secondary">Write a Review</button>
+          <button onClick={handleWriteReview} className="btn-secondary">
+            Write a Review
+          </button>
         </div>
 
-        {/* Placeholder reviews */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <ReviewCard
-            user={{ id: '1', name: 'MovieBuff42' }}
-            rating={4.5}
-            content="An absolutely stunning film that delivers on every level. The cinematography alone is worth the price of admission."
-            reviewDate="2 days ago"
-            watchedDate="Dec 10, 2024"
-            likes={24}
-            comments={3}
-          />
-          <ReviewCard
-            user={{ id: '2', name: 'CinemaLover' }}
-            rating={4}
-            content="Great performances all around. While the pacing can be slow at times, the payoff is well worth it."
-            reviewDate="1 week ago"
-            likes={15}
-            comments={1}
-          />
-        </div>
+        {/* Loading state */}
+        {reviewsLoading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="text-letterboxd-green h-8 w-8 animate-spin" />
+          </div>
+        )}
+
+        {/* No reviews */}
+        {!reviewsLoading && reviews.length === 0 && (
+          <div className="text-text-tertiary py-12 text-center">
+            <MessageSquare className="mx-auto mb-4 h-12 w-12 opacity-50" />
+            <p className="text-lg">No reviews yet</p>
+            <p className="mt-1 text-sm">Be the first to share your thoughts!</p>
+          </div>
+        )}
+
+        {/* Reviews list */}
+        {!reviewsLoading && reviews.length > 0 && (
+          <div className="grid gap-4 md:grid-cols-2">
+            {reviews.map((review: Review) => (
+              <ReviewCard
+                key={review.id}
+                id={review.id}
+                user={{
+                  id: review.user?.id || review.userId,
+                  name: review.user?.username || 'Anonymous',
+                  avatar: review.user?.avatarUrl || undefined,
+                }}
+                rating={review.rating}
+                content={review.comment || ''}
+                reviewDate={formatRelativeDate(review.createdAt)}
+                likes={review.likesCount || 0}
+                comments={review.commentsCount || 0}
+                isLiked={review.isLikedByCurrentUser || false}
+                showFilm={false}
+                onLike={handleLikeReview}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Load more */}
+        {reviewsData && reviewsData.totalPages > 1 && (
+          <div className="mt-6 text-center">
+            <button className="btn-secondary">Load More Reviews</button>
+          </div>
+        )}
       </section>
     </div>
   );
@@ -552,4 +701,28 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
       <dd className="text-text-primary">{value}</dd>
     </div>
   );
+}
+
+/**
+ * Format a date string to relative time (e.g., "2 days ago")
+ */
+function formatRelativeDate(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  const diffWeeks = Math.floor(diffDays / 7);
+  const diffMonths = Math.floor(diffDays / 30);
+
+  if (diffMinutes < 1) return 'just now';
+  if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+  if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+  if (diffWeeks < 4) return `${diffWeeks} week${diffWeeks === 1 ? '' : 's'} ago`;
+  if (diffMonths < 12) return `${diffMonths} month${diffMonths === 1 ? '' : 's'} ago`;
+
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
