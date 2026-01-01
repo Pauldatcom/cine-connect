@@ -1,5 +1,5 @@
 // Components barrel export
 export * from './ui';
 export * from './layout';
-export { FilmPoster, FilmPosterCompact, FilmPosterLarge } from './FilmPoster';
+export * from './features';
 export { ProtectedRoute } from './ProtectedRoute';

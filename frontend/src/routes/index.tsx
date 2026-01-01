@@ -9,7 +9,7 @@ import {
   getImageUrl,
   type TMDbMovie,
 } from '@/lib/api/tmdb';
-import { FilmPoster } from '@/components/FilmPoster';
+import { FilmPoster } from '@/components/features/FilmPoster';
 import { FilmStrip } from '@/components/ui/FilmStrip';
 import { StarRatingDisplay } from '@/components/ui/StarRating';
 

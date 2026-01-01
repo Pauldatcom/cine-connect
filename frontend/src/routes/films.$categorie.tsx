@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { getMoviesByGenre, getGenres, GENRE_MAP } from '@/lib/api/tmdb';
-import { FilmPoster } from '@/components/FilmPoster';
+import { FilmPoster } from '@/components/features/FilmPoster';
 
 /**
  * Films by genre/category
