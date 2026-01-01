@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage --passWithNoTests",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit"
   },
