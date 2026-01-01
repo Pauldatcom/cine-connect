@@ -1,18 +1,20 @@
-import { FilmPoster } from '@/components/FilmPoster';
-import { ReviewCard } from '@/components/ui/ReviewCard';
-import { ReviewForm } from '@/components/ui/ReviewForm';
+import { FilmPoster } from '@/components/features/FilmPoster';
+import { ReviewCard } from '@/components/features/ReviewCard';
+import { ReviewForm } from '@/components/features/ReviewForm';
 import { StarRating } from '@/components/ui/StarRating';
 import { useAuth } from '@/contexts/AuthContext';
-import { registerFilm } from '@/lib/api/films';
-import { createReview, getFilmReviews, likeReview, type Review } from '@/lib/api/reviews';
 import {
-  getImageUrl,
-  getMovieCredits,
-  getMovieDetails,
-  getMovieVideos,
-  getSimilarMovies,
-} from '@/lib/api/tmdb';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+  useCreateReview,
+  useFilm,
+  useFilmCredits,
+  useFilmReviews,
+  useFilmVideos,
+  useLikeReview,
+  useRegisterFilm,
+  useSimilarFilms,
+  type Review,
+} from '@/hooks';
+import { getImageUrl } from '@/lib/api/tmdb';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import {
   ArrowLeft,
@@ -44,7 +46,6 @@ export const Route = createFileRoute('/film/$id')({
 
 function FilmDetailPage() {
   const { id } = Route.useParams();
-  const queryClient = useQueryClient();
   const { isAuthenticated } = useAuth();
 
   const [activeTab, setActiveTab] = useState<TabId>('cast');
@@ -52,80 +53,25 @@ function FilmDetailPage() {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
 
-  // Fetch film details from TMDb
-  const {
-    data: film,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ['movie', id],
-    queryFn: () => getMovieDetails(id),
-  });
+  // Fetch film details from TMDb using custom hook
+  const { data: film, isLoading, error } = useFilm(id);
 
-  const { data: credits } = useQuery({
-    queryKey: ['movie', id, 'credits'],
-    queryFn: () => getMovieCredits(id),
-    enabled: !!film,
-  });
-
-  const { data: videos } = useQuery({
-    queryKey: ['movie', id, 'videos'],
-    queryFn: () => getMovieVideos(id),
-    enabled: !!film,
-  });
-
-  const { data: similar } = useQuery({
-    queryKey: ['movie', id, 'similar'],
-    queryFn: () => getSimilarMovies(id),
-    enabled: !!film,
-  });
+  // Fetch credits, videos, and similar films using custom hooks
+  const { data: credits } = useFilmCredits(id, !!film);
+  const { data: videos } = useFilmVideos(id, !!film);
+  const { data: similar } = useSimilarFilms(id, !!film);
 
   // Register film in our backend to get internal UUID
-  // This creates the film record if it doesn't exist
-  const { data: backendFilm } = useQuery({
-    queryKey: ['backend-film', id],
-    queryFn: () =>
-      registerFilm({
-        tmdbId: parseInt(id, 10),
-        title: film!.title,
-        year: film!.release_date?.split('-')[0] ?? null,
-        poster: film!.poster_path ?? null,
-        plot: film!.overview ?? null,
-        genre: film!.genres?.map((g) => g.name).join(', ') ?? null,
-        runtime: film!.runtime ? `${film!.runtime} min` : null,
-      }),
-    enabled: !!film,
-    staleTime: Infinity, // Film data doesn't change
-    retry: 1,
-  });
+  const { data: backendFilm } = useRegisterFilm(film, !!film);
 
   // Fetch reviews from our backend using internal UUID
-  const { data: reviewsData, isLoading: reviewsLoading } = useQuery({
-    queryKey: ['reviews', 'film', backendFilm?.id],
-    queryFn: () => getFilmReviews(backendFilm!.id),
-    enabled: !!backendFilm?.id,
-  });
+  const { data: reviewsData, isLoading: reviewsLoading } = useFilmReviews(backendFilm?.id);
 
-  // Create review mutation
-  const createReviewMutation = useMutation({
-    mutationFn: createReview,
-    onSuccess: () => {
-      setShowReviewForm(false);
-      setReviewError(null);
-      queryClient.invalidateQueries({ queryKey: ['reviews', 'film', backendFilm?.id] });
-    },
-    onError: (error: Error) => {
-      setReviewError(error.message || 'Failed to submit review');
-    },
-  });
+  // Create review mutation using custom hook
+  const createReviewMutation = useCreateReview(backendFilm?.id);
 
-  // Like review mutation
-  const likeReviewMutation = useMutation({
-    mutationFn: (reviewId: string) => likeReview(reviewId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reviews', 'film', backendFilm?.id] });
-    },
-  });
+  // Like review mutation using custom hook
+  const likeReviewMutation = useLikeReview(backendFilm?.id);
 
   const handleSubmitReview = (data: { rating: number; comment: string }) => {
     if (!backendFilm?.id) {
@@ -133,11 +79,22 @@ function FilmDetailPage() {
       return;
     }
     setReviewError(null);
-    createReviewMutation.mutate({
-      filmId: backendFilm.id,
-      rating: data.rating,
-      comment: data.comment || undefined,
-    });
+    createReviewMutation.mutate(
+      {
+        filmId: backendFilm.id,
+        rating: data.rating,
+        comment: data.comment || undefined,
+      },
+      {
+        onSuccess: () => {
+          setShowReviewForm(false);
+          setReviewError(null);
+        },
+        onError: (error: Error) => {
+          setReviewError(error.message || 'Failed to submit review');
+        },
+      }
+    );
   };
 
   const handleWriteReview = () => {

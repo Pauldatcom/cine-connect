@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState, useMemo } from 'react';
 import { Search, Loader2, Grid3X3, LayoutList } from 'lucide-react';
 import { searchMovies, getPopular, getTrending, getTopRated, type TMDbMovie } from '@/lib/api/tmdb';
-import { FilmPoster } from '@/components/FilmPoster';
+import { FilmPoster } from '@/components/features/FilmPoster';
 import { FilterPanel, defaultFilters, type FilmFilters } from '@/components/ui/FilterPanel';
 import { FilmStrip } from '@/components/ui/FilmStrip';
 

@@ -324,6 +324,7 @@ function ProfileView() {
         <button
           onClick={logout}
           className="btn-ghost text-red-400 hover:bg-red-500/10 hover:text-red-400"
+          data-testid="sign-out-button"
         >
           <LogOut className="h-4 w-4" />
           Sign Out
