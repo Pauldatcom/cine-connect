@@ -7,7 +7,6 @@ import { ApiError } from '../middleware/errorHandler.js';
 
 export const messagesRouter = Router();
 
-// Validation schemas
 const sendMessageSchema = z.object({
   receiverId: z.string().uuid(),
   content: z.string().min(1).max(2000),
@@ -197,7 +196,6 @@ messagesRouter.post('/', authenticate, async (req, res, next) => {
       throw ApiError.notFound('Receiver not found');
     }
 
-    // Create message
     const [message] = await db
       .insert(schema.messages)
       .values({
