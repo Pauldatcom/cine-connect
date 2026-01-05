@@ -17,7 +17,7 @@
 
 ## TESTING POLICY (MANDATORY)
 
-**100% CODE COVERAGE REQUIRED for frontend AND backend.**
+**100% CODE COVERAGE + E2E TESTS REQUIRED for frontend AND backend.**
 
 ### Rules:
 
@@ -25,8 +25,10 @@
 2. Every new API route MUST have a corresponding `.test.ts` file
 3. Every new utility function MUST have unit tests
 4. Every new hook MUST have tests
-5. NO code is considered complete without tests
-6. Run `pnpm test:coverage` before any PR
+5. Every new **FEATURE** MUST have E2E tests in `e2e/` folder
+6. NO code is considered complete without tests
+7. Run `pnpm test:coverage` before any PR
+8. Run `pnpm test:e2e` before any PR for features
 
 ### Test File Naming:
 
@@ -38,6 +40,42 @@
 
 - Frontend tests: Same folder as component OR `frontend/src/__tests__/`
 - Backend tests: Same folder as module OR `backend/src/__tests__/`
+- E2E tests: `e2e/` folder at project root
+
+### E2E Testing (Playwright)
+
+All user-facing features require E2E tests:
+
+```
+e2e/
+├── auth.spec.ts         # Registration, login, logout, session
+├── films.spec.ts        # Browse, search, film details, categories
+├── reviews.spec.ts      # Create/view reviews, ratings
+├── chat.spec.ts         # Discussion page, messages
+└── user-journey.spec.ts # Full user flow integration
+```
+
+**E2E Commands:**
+
+- `pnpm test:e2e` - Run all E2E tests headless
+- `pnpm test:e2e:headed` - Run with visible browser
+- `pnpm test:e2e:ui` - Interactive Playwright UI
+- `SKIP_WEBSERVER=true pnpm test:e2e` - Use existing dev servers
+
+**When to Add E2E Tests:**
+
+- New user-facing feature (new route, new interaction)
+- Changes to auth flow
+- Changes to critical user journeys
+- New Socket.io features
+
+**E2E Test Best Practices:**
+
+- Use `getByRole`, `getByLabel`, `getByText` for accessibility
+- Use `{ exact: true }` to avoid strict mode violations
+- Use `.first()` when multiple elements match
+- Use timeouts for async operations (15s for auth, 10s for data)
+- Test happy path AND error states
 
 ### Coverage Thresholds (vitest.config.ts):
 
@@ -139,6 +177,76 @@ The backend follows Clean Architecture principles with proper separation of conc
 - Repository interfaces define contracts, implementations handle DB
 - Use tsyringe for dependency injection
 - Domain entities are framework-agnostic
+
+## FRONTEND ARCHITECTURE
+
+### Component Organization
+
+```
+components/
+├── layout/           # App layout (Navbar, Footer)
+├── ui/               # Generic, reusable (StarRating, FilterPanel)
+├── features/         # Domain-specific (FilmCard, ReviewCard, ReviewForm)
+└── ProtectedRoute.tsx
+```
+
+**Rules:**
+
+- `ui/` = Pure presentational, no business logic, highly reusable
+- `features/` = Domain-aware, knows about films/reviews/users
+- Never import from routes into components
+
+### Custom Hooks Pattern
+
+All hooks in `src/hooks/`:
+
+```typescript
+// Naming: use{Domain}{Action}
+useFilm(tmdbId); // Single film
+useFilmCredits(tmdbId); // Film credits
+useFilmReviews(filmId); // Reviews for film
+useCreateReview(); // Mutation hook
+useLikeReview(); // Mutation hook
+```
+
+**Hook Rules:**
+
+- Return `{ data, isLoading, error }` for queries
+- Return `{ mutate, isPending }` for mutations
+- Encapsulate all TanStack Query logic
+- Export from `hooks/index.ts`
+
+### API Layer
+
+All API clients in `src/lib/api/`:
+
+```
+lib/api/
+├── client.ts         # Base fetch wrapper + token handling
+├── auth.ts           # Auth endpoints
+├── films.ts          # Film endpoints (backend)
+├── reviews.ts        # Review endpoints
+└── tmdb.ts           # TMDb API integration
+```
+
+**Rules:**
+
+- Keep API functions pure (just fetch + return)
+- Hooks wrap API functions with TanStack Query
+- Never call API directly from components, use hooks
+
+### Type Centralization
+
+Frontend-specific types in `src/types/index.ts`:
+
+```typescript
+// Re-export shared types
+export type { User, Film, Review } from '@cine-connect/shared';
+
+// Frontend-specific
+export interface FilmWithCredits { ... }
+export interface Conversation { ... }
+```
 
 ## REQUIRED ROUTES (Frontend)
 
@@ -277,10 +385,14 @@ Required events for chat:
 
 ## PRE-COMMIT CHECKLIST (MANDATORY)
 
-**Before ANY commit or push, run ALL three commands:**
+**Before ANY commit or push, run ALL checks:**
 
 ```bash
+# Required for every commit:
 pnpm lint && pnpm typecheck && pnpm test
+
+# Required for feature PRs:
+pnpm test:e2e
 ```
 
 ### Why This Matters:
@@ -382,12 +494,87 @@ import { getMovieDetails } from '@/lib/api/tmdb';
 
 When creating new files:
 
-1. Frontend components → `frontend/src/components/` + `ComponentName.test.tsx`
+1. Frontend components → `frontend/src/components/` (code) + `frontend/src/__tests__/components/` (tests)
 2. Frontend routes → `frontend/src/routes/` (TanStack file-based)
-3. API clients → `frontend/src/lib/api/` + `apiName.test.ts`
-4. Backend routes → `backend/src/routes/` + `routeName.test.ts`
-5. Database schema → `backend/src/db/schema/`
-6. Shared types → `shared/src/types/`
+3. API clients → `frontend/src/lib/api/` (code) + `frontend/src/__tests__/lib/api/` (tests)
+4. Frontend hooks → `frontend/src/hooks/` (code) + `frontend/src/__tests__/hooks/` (tests)
+5. Backend routes → `backend/src/routes/` (code) + `backend/src/__tests__/integration/` (tests)
+6. Backend domain → `backend/src/domain/` (code) + `backend/src/__tests__/unit/domain/` (tests)
+7. Backend use cases → `backend/src/application/` (code) + `backend/src/__tests__/unit/application/` (tests)
+8. Database schema → `backend/src/db/schema/`
+9. Shared types → `shared/src/types/`
+10. E2E tests → `e2e/` (root level, all Playwright tests)
+
+## TEST ARCHITECTURE
+
+**All tests live in `__tests__/` directories that mirror the source structure.**
+
+### Backend Test Structure
+
+```
+backend/src/__tests__/
+├── unit/                      # Unit tests (isolated, mocked dependencies)
+│   ├── domain/entities/       # Domain entity tests
+│   ├── application/use-cases/ # Use case tests
+│   ├── middleware/            # Middleware tests
+│   └── config/                # Config tests
+├── integration/               # Integration tests (API routes, socket)
+├── setup.ts                   # Test setup/config
+└── mocks/                     # Shared mocks and fixtures
+```
+
+### Frontend Test Structure
+
+```
+frontend/src/__tests__/
+├── components/
+│   ├── ui/                    # Generic UI component tests
+│   ├── features/              # Feature component tests
+│   └── layout/                # Layout component tests
+├── hooks/                     # Custom hook tests
+├── contexts/                  # Context tests
+├── lib/api/                   # API client tests
+├── routes/                    # Route component tests
+├── setup.ts                   # Test setup/config
+├── test-utils.tsx             # Custom render, providers
+└── mocks/                     # Shared mocks and fixtures
+```
+
+### E2E Test Structure
+
+```
+e2e/                           # Playwright E2E tests (root level)
+├── auth.spec.ts               # Authentication flows
+├── films.spec.ts              # Film browsing/details
+├── reviews.spec.ts            # Review creation/interaction
+├── chat.spec.ts               # Real-time chat features
+└── user-journey.spec.ts       # Full user journey tests
+```
+
+## E2E TESTING REQUIREMENTS
+
+**Every new feature MUST include E2E tests.**
+
+### E2E Test Best Practices
+
+1. Wait for API responses using `Promise.all` with `waitForResponse`
+2. Use specific selectors (prefer `getByRole`, `getByLabel`, avoid generic text)
+3. Test the happy path AND error cases
+4. Use test helpers for common actions (login, registration)
+5. Add appropriate timeouts for async operations
+
+### Running E2E Tests
+
+```bash
+# Start servers manually first, then:
+SKIP_WEBSERVER=true pnpm test:e2e
+
+# Or let Playwright start servers:
+pnpm test:e2e
+
+# Headed mode for debugging:
+SKIP_WEBSERVER=true pnpm test:e2e:headed
+```
 
 ## RESPONSE LANGUAGE
 
