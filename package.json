@@ -26,6 +26,10 @@
     "format:check": "prettier --check .",
     "typecheck": "pnpm run --parallel typecheck",
     "validate": "pnpm lint && pnpm typecheck && pnpm test",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:report": "playwright show-report e2e-report",
     "db:up": "docker-compose up -d",
     "db:down": "docker-compose down",
     "db:generate": "pnpm --filter @cine-connect/backend db:generate",
@@ -54,6 +58,7 @@
   "packageManager": "pnpm@9.14.2",
   "devDependencies": {
     "@eslint/js": "^9.17.0",
+    "@playwright/test": "^1.57.0",
     "concurrently": "^9.1.0",
     "eslint": "^9.17.0",
     "eslint-plugin-react": "^7.37.2",
@@ -62,6 +67,7 @@
     "lint-staged": "^15.2.11",
     "prettier": "^3.4.2",
     "prettier-plugin-tailwindcss": "^0.6.9",
-    "typescript-eslint": "^8.18.1"
+    "typescript-eslint": "^8.18.1",
+    "wait-on": "^9.0.3"
   }
 }
