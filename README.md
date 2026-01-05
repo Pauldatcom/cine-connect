@@ -19,9 +19,11 @@ cine-connect/
 
 **Frontend:** React 18, TypeScript, TanStack Router, TanStack Query, TailwindCSS, Vite
 
-**Backend:** Node.js, Express, Drizzle ORM, Socket.io, JWT, Swagger
+**Backend:** Node.js, Express, Drizzle ORM, Socket.io, JWT, Swagger, tsyringe (DI), reflect-metadata
 
 **Database:** PostgreSQL 16
+
+**Testing:** Vitest (unit/integration), Playwright (E2E)
 
 ## Architecture
 
@@ -53,12 +55,45 @@ backend/src/
 - Dependency injection via tsyringe enables easy testing and swapping implementations
 - Domain entities are framework-agnostic pure TypeScript classes
 
-### Frontend
+### Frontend Architecture
 
-- File-based routing with TanStack Router
-- API state management with TanStack Query
-- Component-based architecture with React
-- Type-safe API clients in `src/lib/api/`
+```
+frontend/src/
+├── components/
+│   ├── ui/              # Generic UI (Button, Input, Modal, StarRating)
+│   ├── features/        # Feature-specific (FilmCard, ReviewCard, FilmPoster)
+│   └── layout/          # Layout (Navbar, Footer)
+│
+├── contexts/
+│   ├── AuthContext.tsx  # Authentication state
+│   └── SocketContext.tsx # Real-time socket connection
+│
+├── hooks/               # Custom hooks
+│   ├── useFilms.ts      # Film queries (TMDb + backend)
+│   ├── useReviews.ts    # Review queries & mutations
+│   ├── useSocket.ts     # Socket context access
+│   └── useConversations.ts # Chat/messaging hooks
+│
+├── lib/
+│   ├── api/             # Type-safe API clients
+│   │   ├── client.ts    # Axios instance + interceptors
+│   │   ├── auth.ts      # Auth endpoints
+│   │   ├── films.ts     # Film endpoints
+│   │   ├── reviews.ts   # Review endpoints
+│   │   └── tmdb.ts      # TMDb API client
+│   └── utils.ts         # Utility functions
+│
+├── routes/              # TanStack Router file-based routing
+├── types/               # Centralized TypeScript types
+└── styles/              # Global CSS + Tailwind config
+```
+
+**Key Patterns:**
+
+- **Custom Hooks**: Encapsulate TanStack Query logic for reusability
+- **Contexts**: Global state for auth and socket connection
+- **Feature Components**: Domain-specific components (FilmCard, ReviewForm)
+- **UI Components**: Generic, reusable UI primitives
 
 ## Prerequisites
 
@@ -282,6 +317,29 @@ The app uses JWT-based authentication:
 4. API client automatically attaches Bearer token to requests
 5. AuthContext provides `isAuthenticated`, `user`, `login()`, `logout()`
 
+## Security
+
+### Authentication
+
+- JWT tokens with configurable expiration
+- Tokens stored in localStorage (access) and secure refresh mechanism
+- Protected API routes require valid Bearer token
+
+### WebSocket Security
+
+- **JWT Authentication**: All socket connections require valid token
+- **Rate Limiting**: Max 20 messages per 10 seconds per user
+- **Input Sanitization**: Message content is HTML-escaped to prevent XSS
+- **Room Access Control**: Users can only join rooms they're part of
+- **Room ID Validation**: Only valid UUID or conversation patterns accepted
+
+### Best Practices
+
+- Passwords hashed with bcrypt (10 rounds)
+- Environment variables for secrets (never committed)
+- CORS configured for frontend origin only
+- No sensitive data logged in production
+
 ## CI/CD
 
 GitHub Actions runs on every push/PR:
@@ -295,6 +353,8 @@ Branch protection is enabled on `main` - all checks must pass before merge.
 
 ## Testing
 
+### Unit & Integration Tests (Vitest)
+
 ```bash
 pnpm test              # Run all tests
 pnpm test:frontend     # Frontend tests only
@@ -303,6 +363,52 @@ pnpm test:coverage     # Run with coverage report
 ```
 
 **Coverage requirement: 100%** - CI will fail if coverage drops below threshold.
+
+### Test Architecture
+
+Tests are organized in `__tests__/` directories that mirror the source structure:
+
+```
+backend/src/__tests__/
+├── unit/                      # Unit tests (isolated, mocked)
+│   ├── domain/entities/       # Domain entity tests
+│   ├── application/use-cases/ # Use case tests
+│   └── middleware/            # Middleware tests
+├── integration/               # Integration tests (API routes, socket)
+├── setup.ts                   # Test setup
+└── mocks/                     # Shared mocks
+
+frontend/src/__tests__/
+├── components/                # Component tests (ui/, features/, layout/)
+├── hooks/                     # Custom hook tests
+├── contexts/                  # Context tests
+├── lib/api/                   # API client tests
+├── setup.ts                   # Test setup
+└── test-utils.tsx             # Custom render, providers
+```
+
+### E2E Tests (Playwright)
+
+End-to-end tests simulate real user behavior across the entire application.
+
+```bash
+pnpm test:e2e          # Run E2E tests (starts servers automatically)
+pnpm test:e2e:headed   # Run with browser visible
+pnpm test:e2e:ui       # Open Playwright UI
+pnpm test:e2e:report   # View last test report
+```
+
+**E2E Test Files:**
+
+| File                       | Tests                                            |
+| -------------------------- | ------------------------------------------------ |
+| `e2e/auth.spec.ts`         | Registration, login, logout, session persistence |
+| `e2e/films.spec.ts`        | Film browsing, details, categories               |
+| `e2e/reviews.spec.ts`      | Review creation, likes, comments                 |
+| `e2e/chat.spec.ts`         | Real-time messaging, online status               |
+| `e2e/user-journey.spec.ts` | Complete user flow                               |
+
+**Prerequisites:** Docker must be running for E2E tests (PostgreSQL).
 
 ## Routes (Frontend)
 
@@ -335,16 +441,30 @@ The backend has been refactored to follow **Clean Architecture** principles:
 - **Dependency Injection**: tsyringe container manages all dependencies
 - **Separation of Concerns**: Routes only handle HTTP, use cases handle business logic
 
-### New Review System Features
+### Frontend Architecture Refactoring
 
-- **Review Likes**: Users can like/unlike reviews
-- **Review Comments**: Users can comment on reviews and delete their own comments
-- **Enhanced Review API**: New endpoints for interactions and single review retrieval
+- **Custom Hooks**: Encapsulated TanStack Query logic in reusable hooks
+- **Component Organization**: Separated into `ui/`, `features/`, and `layout/`
+- **Socket Context**: Real-time connection management with SocketContext
+- **Type Centralization**: All types in `src/types/`
+
+### Test Architecture Refactoring
+
+- **Mirrored Structure**: Tests in `__tests__/` directories matching source structure
+- **E2E Tests**: Comprehensive Playwright tests for user journeys
+- **100% Coverage**: Required for both frontend and backend
+
+### New Features
+
+- **Review System**: Likes, comments, and enhanced review API
+- **Real-time Chat**: Socket.io with typing indicators and online status
+- **Security Hardening**: Rate limiting, input sanitization, access control
 
 ### Code Quality
 
 - 100% test coverage for frontend and backend
 - Comprehensive unit tests for use cases, routes, and components
+- E2E tests for critical user journeys
 - Proper mocking strategy with repository interfaces
 
 ## License
