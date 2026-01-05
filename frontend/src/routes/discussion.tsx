@@ -1,6 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { MessageCircle, Send, User, Search, MoreVertical, Phone, Video } from 'lucide-react';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { MessageCircle, Send, User, Search, MoreVertical, Phone, Video, LogIn } from 'lucide-react';
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 /**
  * Real-time chat/discussion page
@@ -10,8 +11,42 @@ export const Route = createFileRoute('/discussion')({
 });
 
 function DiscussionPage() {
+  const { isAuthenticated, isLoading } = useAuth();
   const [message, setMessage] = useState('');
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="border-letterboxd-green h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
+      </div>
+    );
+  }
+
+  // Require authentication
+  if (!isAuthenticated) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-16 text-center">
+        <div className="bg-bg-tertiary mx-auto flex h-20 w-20 items-center justify-center rounded-full">
+          <MessageCircle className="text-text-tertiary h-10 w-10" />
+        </div>
+        <h1 className="font-display text-text-primary mt-6 text-2xl font-bold">Sign in to Chat</h1>
+        <p className="text-text-secondary mt-3">
+          Join the conversation! Sign in to chat with other film enthusiasts.
+        </p>
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <Link to="/profil" search={{ mode: 'login' }} className="btn-primary">
+            <LogIn className="mr-2 h-4 w-4" />
+            Sign In
+          </Link>
+          <Link to="/profil" search={{ mode: 'register' }} className="btn-secondary">
+            Create Account
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   // Mock data - will be replaced with Socket.io real-time data
   const conversations = [
