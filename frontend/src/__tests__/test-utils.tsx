@@ -54,7 +54,7 @@ export function renderWithProviders(
  * TanStack Router mock configuration.
  * Use vi.mock('@tanstack/react-router', () => routerMock) in your test file.
  */
-export const routerMock = {
+export const routerMock: Record<string, unknown> = {
   Link: ({
     children,
     to,
