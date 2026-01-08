@@ -1,25 +1,85 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { MessageCircle, Send, User, Search, MoreVertical, Phone, Video, LogIn } from 'lucide-react';
-import { useState } from 'react';
+import {
+  MessageCircle,
+  Send,
+  User,
+  Search,
+  MoreVertical,
+  Phone,
+  Video,
+  LogIn,
+  Loader2,
+} from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import {
+  useConversations,
+  useMessages,
+  useSendMessage,
+  useMarkMessagesRead,
+  useSocket,
+  useOnlineUsers,
+  useTypingUsers,
+} from '@/hooks';
 
 /**
- * Real-time chat/discussion page
+ * Real-time chat/discussion page with Socket.io integration
  */
 export const Route = createFileRoute('/discussion')({
   component: DiscussionPage,
 });
 
 function DiscussionPage() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const [message, setMessage] = useState('');
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Socket.io hooks
+  const { isConnected, setTyping } = useSocket();
+  const onlineUsers = useOnlineUsers();
+  const typingUsers = useTypingUsers();
+
+  // API hooks
+  const { data: conversations, isLoading: conversationsLoading } = useConversations();
+  const { data: messages, isLoading: messagesLoading } = useMessages(
+    selectedConversation ?? undefined
+  );
+  const sendMessageMutation = useSendMessage();
+  const markReadMutation = useMarkMessagesRead();
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Mark messages as read when conversation is selected
+  useEffect(() => {
+    if (selectedConversation) {
+      markReadMutation.mutate(selectedConversation);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mutation object is stable
+  }, [selectedConversation]);
+
+  // Handle typing indicator
+  useEffect(() => {
+    if (selectedConversation && message.length > 0) {
+      setTyping(selectedConversation, true);
+    }
+    const timeout = setTimeout(() => {
+      if (selectedConversation) {
+        setTyping(selectedConversation, false);
+      }
+    }, 1000);
+    return () => clearTimeout(timeout);
+  }, [message, selectedConversation, setTyping]);
 
   // Show loading state
-  if (isLoading) {
+  if (authLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="border-letterboxd-green h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
+        <Loader2 className="text-letterboxd-green h-8 w-8 animate-spin" />
       </div>
     );
   }
@@ -48,82 +108,37 @@ function DiscussionPage() {
     );
   }
 
-  // Mock data - will be replaced with Socket.io real-time data
-  const conversations = [
-    {
-      id: '1',
-      name: 'Alice',
-      lastMessage: 'Have you seen Dune: Part Two?',
-      unread: 2,
-      online: true,
-      avatar: null,
-    },
-    {
-      id: '2',
-      name: 'Bob',
-      lastMessage: 'Great recommendation!',
-      unread: 0,
-      online: false,
-      avatar: null,
-    },
-    {
-      id: '3',
-      name: 'Charlie',
-      lastMessage: 'Let me know what you think',
-      unread: 1,
-      online: true,
-      avatar: null,
-    },
-    { id: '4', name: 'Diana', lastMessage: '⭐⭐⭐⭐⭐', unread: 0, online: false, avatar: null },
-  ];
-
-  const messages = [
-    {
-      id: '1',
-      senderId: '1',
-      content: 'Hey! Have you seen Dune: Part Two yet?',
-      timestamp: '10:30 AM',
-    },
-    { id: '2', senderId: 'me', content: 'Not yet, is it worth it?', timestamp: '10:32 AM' },
-    {
-      id: '3',
-      senderId: '1',
-      content: "It's absolutely incredible! The cinematography is next level.",
-      timestamp: '10:33 AM',
-    },
-    {
-      id: '4',
-      senderId: '1',
-      content: 'Hans Zimmer really outdid himself with the score too 🎵',
-      timestamp: '10:33 AM',
-    },
-    {
-      id: '5',
-      senderId: 'me',
-      content: "Alright, you've convinced me. Watching it this weekend!",
-      timestamp: '10:35 AM',
-    },
-    {
-      id: '6',
-      senderId: '1',
-      content: "You won't regret it! Let me know your thoughts after 🍿",
-      timestamp: '10:36 AM',
-    },
-  ];
-
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (message.trim()) {
-      // TODO: Send via Socket.io
-      // Message will be sent via socket.emit when implemented
-      setMessage('');
+    if (message.trim() && selectedConversation) {
+      sendMessageMutation.mutate(
+        { receiverId: selectedConversation, content: message.trim() },
+        { onSuccess: () => setMessage('') }
+      );
+      // Stop typing indicator
+      setTyping(selectedConversation, false);
     }
   };
 
-  const selectedUser = conversations.find((c) => c.id === selectedConversation);
+  // Filter conversations by search query
+  const filteredConversations = conversations?.filter((conv) =>
+    conv.partner.username.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const selectedUser = conversations?.find((c) => c.partnerId === selectedConversation);
+  const isPartnerOnline = selectedConversation ? onlineUsers.includes(selectedConversation) : false;
+  const isPartnerTyping = selectedConversation ? !!typingUsers[selectedConversation] : false;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6">
+      {/* Connection status indicator */}
+      {!isConnected && (
+        <div className="bg-letterboxd-orange/20 text-letterboxd-orange mb-4 rounded-lg px-4 py-2 text-center text-sm">
+          <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
+          Connecting to chat server...
+        </div>
+      )}
+
       <div className="card h-[calc(100vh-10rem)] overflow-hidden p-0">
         <div className="grid h-full lg:grid-cols-[320px,1fr]">
           {/* Sidebar - Conversations */}
@@ -139,6 +154,8 @@ function DiscussionPage() {
                 <Search className="text-text-tertiary absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
                 <input
                   type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search conversations..."
                   className="input py-2 pl-9 text-sm"
                 />
@@ -147,35 +164,60 @@ function DiscussionPage() {
 
             {/* Conversation List */}
             <div className="scrollbar-thin flex-1 overflow-y-auto">
-              {conversations.map((conv) => (
-                <button
-                  key={conv.id}
-                  onClick={() => setSelectedConversation(conv.id)}
-                  className={`hover:bg-bg-tertiary flex w-full items-center gap-3 p-4 text-left transition-colors ${
-                    selectedConversation === conv.id ? 'bg-bg-tertiary' : ''
-                  }`}
-                >
-                  <div className="relative">
-                    <div className="bg-bg-tertiary border-border flex h-12 w-12 items-center justify-center rounded-full border">
-                      <User className="text-text-tertiary h-6 w-6" />
-                    </div>
-                    {conv.online && (
-                      <div className="border-bg-secondary bg-letterboxd-green absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-text-primary font-medium">{conv.name}</span>
-                      {conv.unread > 0 && (
-                        <span className="bg-letterboxd-green text-bg-primary flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-medium">
-                          {conv.unread}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-text-tertiary truncate text-sm">{conv.lastMessage}</p>
-                  </div>
-                </button>
-              ))}
+              {conversationsLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="text-text-tertiary h-6 w-6 animate-spin" />
+                </div>
+              ) : filteredConversations && filteredConversations.length > 0 ? (
+                filteredConversations.map((conv) => {
+                  const isOnline = onlineUsers.includes(conv.partnerId);
+                  return (
+                    <button
+                      key={conv.partnerId}
+                      onClick={() => setSelectedConversation(conv.partnerId)}
+                      className={`hover:bg-bg-tertiary flex w-full items-center gap-3 p-4 text-left transition-colors ${
+                        selectedConversation === conv.partnerId ? 'bg-bg-tertiary' : ''
+                      }`}
+                    >
+                      <div className="relative">
+                        <div className="bg-bg-tertiary border-border flex h-12 w-12 items-center justify-center rounded-full border">
+                          {conv.partner.avatarUrl ? (
+                            <img
+                              src={conv.partner.avatarUrl}
+                              alt=""
+                              className="h-full w-full rounded-full object-cover"
+                            />
+                          ) : (
+                            <User className="text-text-tertiary h-6 w-6" />
+                          )}
+                        </div>
+                        {isOnline && (
+                          <div className="border-bg-secondary bg-letterboxd-green absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-text-primary font-medium">
+                            {conv.partner.username}
+                          </span>
+                          {conv.unreadCount > 0 && (
+                            <span className="bg-letterboxd-green text-bg-primary flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-medium">
+                              {conv.unreadCount}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-text-tertiary truncate text-sm">
+                          {conv.lastMessage?.content ?? 'No messages yet'}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="text-text-tertiary py-8 text-center text-sm">
+                  {searchQuery ? 'No conversations found' : 'No conversations yet'}
+                </div>
+              )}
             </div>
           </div>
 
@@ -187,18 +229,34 @@ function DiscussionPage() {
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <div className="bg-bg-tertiary border-border flex h-10 w-10 items-center justify-center rounded-full border">
-                      <User className="text-text-tertiary h-5 w-5" />
+                      {selectedUser.partner.avatarUrl ? (
+                        <img
+                          src={selectedUser.partner.avatarUrl}
+                          alt=""
+                          className="h-full w-full rounded-full object-cover"
+                        />
+                      ) : (
+                        <User className="text-text-tertiary h-5 w-5" />
+                      )}
                     </div>
-                    {selectedUser.online && (
+                    {isPartnerOnline && (
                       <div className="border-bg-secondary bg-letterboxd-green absolute bottom-0 right-0 h-3 w-3 rounded-full border-2" />
                     )}
                   </div>
                   <div>
-                    <h2 className="text-text-primary font-medium">{selectedUser.name}</h2>
+                    <h2 className="text-text-primary font-medium">
+                      {selectedUser.partner.username}
+                    </h2>
                     <p
-                      className={`text-xs ${selectedUser.online ? 'text-letterboxd-green' : 'text-text-tertiary'}`}
+                      className={`text-xs ${
+                        isPartnerTyping
+                          ? 'text-letterboxd-green'
+                          : isPartnerOnline
+                            ? 'text-letterboxd-green'
+                            : 'text-text-tertiary'
+                      }`}
                     >
-                      {selectedUser.online ? 'Online' : 'Offline'}
+                      {isPartnerTyping ? 'Typing...' : isPartnerOnline ? 'Online' : 'Offline'}
                     </p>
                   </div>
                 </div>
@@ -217,32 +275,56 @@ function DiscussionPage() {
 
               {/* Messages */}
               <div className="scrollbar-thin flex-1 overflow-y-auto p-6">
-                <div className="space-y-4">
-                  {messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={`flex ${msg.senderId === 'me' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
-                          msg.senderId === 'me'
-                            ? 'bg-letterboxd-green text-bg-primary'
-                            : 'bg-bg-tertiary text-text-primary'
-                        }`}
-                      >
-                        <p>{msg.content}</p>
-                        <p
-                          className={`mt-1 text-xs ${
-                            msg.senderId === 'me' ? 'text-bg-primary/70' : 'text-text-tertiary'
-                          }`}
+                {messagesLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="text-text-tertiary h-6 w-6 animate-spin" />
+                  </div>
+                ) : messages && messages.length > 0 ? (
+                  <div className="space-y-4">
+                    {messages.map((msg) => {
+                      const isMe = msg.senderId === user?.id;
+                      return (
+                        <div
+                          key={msg.id}
+                          className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
                         >
-                          {msg.timestamp}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                          <div
+                            className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
+                              isMe
+                                ? 'bg-letterboxd-green text-bg-primary'
+                                : 'bg-bg-tertiary text-text-primary'
+                            }`}
+                          >
+                            <p>{msg.content}</p>
+                            <p
+                              className={`mt-1 text-xs ${
+                                isMe ? 'text-bg-primary/70' : 'text-text-tertiary'
+                              }`}
+                            >
+                              {new Date(msg.createdAt).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div ref={messagesEndRef} />
+                  </div>
+                ) : (
+                  <div className="text-text-tertiary py-8 text-center text-sm">
+                    No messages yet. Start the conversation!
+                  </div>
+                )}
               </div>
+
+              {/* Typing Indicator */}
+              {isPartnerTyping && (
+                <div className="text-text-tertiary px-6 pb-2 text-sm">
+                  {selectedUser.partner.username} is typing...
+                </div>
+              )}
 
               {/* Input */}
               <form onSubmit={handleSend} className="border-border border-t p-4">
@@ -253,9 +335,18 @@ function DiscussionPage() {
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="Type a message..."
                     className="input flex-1"
+                    disabled={sendMessageMutation.isPending}
                   />
-                  <button type="submit" className="btn-primary px-4" disabled={!message.trim()}>
-                    <Send className="h-5 w-5" />
+                  <button
+                    type="submit"
+                    className="btn-primary px-4"
+                    disabled={!message.trim() || sendMessageMutation.isPending}
+                  >
+                    {sendMessageMutation.isPending ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Send className="h-5 w-5" />
+                    )}
                   </button>
                 </div>
               </form>

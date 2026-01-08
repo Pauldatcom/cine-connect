@@ -2,9 +2,9 @@
  * ReviewCard Component Tests
  */
 
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
 import { createTestWrapper, mockFilm, mockUser } from '@/__tests__/test-utils';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
 // Mock TanStack Router - spread props to preserve className
 vi.mock('@tanstack/react-router', () => ({
@@ -21,6 +21,35 @@ vi.mock('@tanstack/react-router', () => ({
       {children}
     </a>
   ),
+}));
+
+// Mock hooks
+const mockMutate = vi.fn();
+vi.mock('@/hooks', () => ({
+  useReviewComments: vi.fn((reviewId?: string) => ({
+    data: reviewId
+      ? {
+          items: [
+            {
+              id: 'comment-1',
+              userId: 'user-1',
+              content: 'Great review!',
+              createdAt: '2024-01-15T10:00:00Z',
+              user: { username: 'TestUser' },
+            },
+          ],
+        }
+      : undefined,
+    isLoading: false,
+  })),
+  useAddComment: vi.fn(() => ({
+    mutate: mockMutate,
+    isPending: false,
+  })),
+  useDeleteComment: vi.fn(() => ({
+    mutate: vi.fn(),
+    isPending: false,
+  })),
 }));
 
 import { ReviewCard, ReviewList } from '@/components/features/ReviewCard';
@@ -155,10 +184,104 @@ describe('ReviewCard', () => {
   });
 
   describe('comments', () => {
-    it('renders comment count', () => {
+    it('renders comment button', () => {
       const Wrapper = createTestWrapper();
-      render(<ReviewCard {...defaultReviewProps} comments={5} />, { wrapper: Wrapper });
-      expect(screen.getByText('5')).toBeInTheDocument();
+      const { container } = render(<ReviewCard {...defaultReviewProps} comments={5} />, {
+        wrapper: Wrapper,
+      });
+      // Should render comment button with MessageSquare icon
+      const commentButton = container.querySelector('button svg');
+      expect(commentButton).toBeInTheDocument();
+    });
+
+    it('toggles comments section when comment button clicked', async () => {
+      const Wrapper = createTestWrapper();
+      const { container } = render(
+        <ReviewCard {...defaultReviewProps} id="review-1" comments={1} />,
+        { wrapper: Wrapper }
+      );
+
+      // Find comment button by looking for MessageSquare icon parent
+      const commentButtons = container.querySelectorAll('button');
+      const commentButton = Array.from(commentButtons).find(
+        (btn) => btn.textContent?.includes('1') && btn.querySelector('svg')
+      );
+      fireEvent.click(commentButton!);
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Add a comment...')).toBeInTheDocument();
+      });
+    });
+
+    it('shows comments when section is open', async () => {
+      const Wrapper = createTestWrapper();
+      const { container } = render(
+        <ReviewCard {...defaultReviewProps} id="review-1" comments={1} />,
+        { wrapper: Wrapper }
+      );
+
+      const commentButtons = container.querySelectorAll('button');
+      const commentButton = Array.from(commentButtons).find(
+        (btn) => btn.textContent?.includes('1') && btn.querySelector('svg')
+      );
+      fireEvent.click(commentButton!);
+
+      await waitFor(() => {
+        expect(screen.getByText('Great review!')).toBeInTheDocument();
+        expect(screen.getByText('TestUser')).toBeInTheDocument();
+      });
+    });
+
+    it('allows adding a comment', async () => {
+      const Wrapper = createTestWrapper();
+      const { container } = render(
+        <ReviewCard {...defaultReviewProps} id="review-1" comments={1} />,
+        { wrapper: Wrapper }
+      );
+
+      const commentButtons = container.querySelectorAll('button');
+      const commentButton = Array.from(commentButtons).find(
+        (btn) => btn.textContent?.includes('1') && btn.querySelector('svg')
+      );
+      fireEvent.click(commentButton!);
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Add a comment...')).toBeInTheDocument();
+      });
+
+      const input = screen.getByPlaceholderText('Add a comment...');
+      fireEvent.change(input, { target: { value: 'My new comment' } });
+
+      // Find the submit button by type="submit"
+      const form = input.closest('form');
+      const submitButton = form?.querySelector('button[type="submit"]');
+      if (submitButton) {
+        fireEvent.click(submitButton);
+      }
+
+      expect(mockMutate).toHaveBeenCalledWith('My new comment', expect.any(Object));
+    });
+
+    it('shows delete button for own comments', async () => {
+      const Wrapper = createTestWrapper();
+      const { container } = render(
+        <ReviewCard {...defaultReviewProps} id="review-1" comments={1} currentUserId="user-1" />,
+        { wrapper: Wrapper }
+      );
+
+      const commentButtons = container.querySelectorAll('button');
+      const commentButton = Array.from(commentButtons).find(
+        (btn) => btn.textContent?.includes('1') && btn.querySelector('svg')
+      );
+      fireEvent.click(commentButton!);
+
+      await waitFor(() => {
+        // Should show delete button (trash icon) for own comment
+        expect(screen.getByText('Great review!')).toBeInTheDocument();
+        // Check that trash button exists for own comment
+        const trashButton = container.querySelector('button[class*="hover:text-red"]');
+        expect(trashButton).toBeInTheDocument();
+      });
     });
   });
 

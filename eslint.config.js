@@ -23,6 +23,8 @@ export default tseslint.config(
       '**/coverage/**',
       '**/.turbo/**',
       '**/drizzle/**',
+      '**/e2e-report/**',
+      '**/playwright-report/**',
     ],
   },
 
