@@ -1,8 +1,18 @@
 import { Link } from '@tanstack/react-router';
 import { useState } from 'react';
-import { Heart, MessageSquare, AlertTriangle, Calendar, MoreHorizontal } from 'lucide-react';
+import {
+  Heart,
+  MessageSquare,
+  AlertTriangle,
+  Calendar,
+  MoreHorizontal,
+  Send,
+  Loader2,
+  Trash2,
+} from 'lucide-react';
 import { getImageUrl, type TMDbMovie } from '@/lib/api/tmdb';
 import { StarRatingDisplay } from '../ui/StarRating';
+import { useReviewComments, useAddComment, useDeleteComment, type ReviewComment } from '@/hooks';
 
 interface ReviewCardProps {
   /** Review ID for API calls */
@@ -37,6 +47,8 @@ interface ReviewCardProps {
   compact?: boolean;
   /** Callback when like button is clicked */
   onLike?: (reviewId: string) => void;
+  /** Current user ID for comment ownership */
+  currentUserId?: string;
 }
 
 /**
@@ -57,10 +69,20 @@ export function ReviewCard({
   showFilm = true,
   compact = false,
   onLike,
+  currentUserId,
 }: ReviewCardProps) {
   const [spoilerRevealed, setSpoilerRevealed] = useState(false);
   const [liked, setLiked] = useState(isLiked);
   const [likeCount, setLikeCount] = useState(likes);
+  const [showComments, setShowComments] = useState(false);
+  const [newComment, setNewComment] = useState('');
+
+  // Comments hooks - only fetch when comments section is open
+  const { data: reviewComments, isLoading: commentsLoading } = useReviewComments(
+    showComments ? id : undefined
+  );
+  const addCommentMutation = useAddComment(id);
+  const deleteCommentMutation = useDeleteComment(id);
 
   const handleLike = () => {
     // Optimistic update
@@ -71,6 +93,20 @@ export function ReviewCard({
     if (onLike && id) {
       onLike(id);
     }
+  };
+
+  const handleAddComment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newComment.trim() || !id) return;
+
+    addCommentMutation.mutate(newComment.trim(), {
+      onSuccess: () => setNewComment(''),
+    });
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    if (!id) return;
+    deleteCommentMutation.mutate(commentId);
   };
 
   const shouldHideContent = hasSpoilers && !spoilerRevealed;
@@ -211,15 +247,93 @@ export function ReviewCard({
             <Heart className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} />
             {likeCount > 0 && <span>{likeCount}</span>}
           </button>
-          <button className="text-text-tertiary hover:text-text-secondary flex items-center gap-1.5 text-sm transition-colors">
+          <button
+            onClick={() => setShowComments(!showComments)}
+            className={`flex items-center gap-1.5 text-sm transition-colors ${
+              showComments
+                ? 'text-letterboxd-green'
+                : 'text-text-tertiary hover:text-text-secondary'
+            }`}
+          >
             <MessageSquare className="h-4 w-4" />
-            {comments > 0 && <span>{comments}</span>}
+            {(reviewComments?.items?.length ?? comments) > 0 && (
+              <span>{reviewComments?.items?.length ?? comments}</span>
+            )}
           </button>
         </div>
 
         {/* Review date */}
         <span className="text-text-tertiary text-xs">{reviewDate}</span>
       </div>
+
+      {/* Comments Section */}
+      {showComments && id && (
+        <div className="border-border mt-4 border-t pt-4">
+          {/* Comment Input */}
+          <form onSubmit={handleAddComment} className="mb-4 flex gap-2">
+            <input
+              type="text"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Add a comment..."
+              className="input flex-1 text-sm"
+              disabled={addCommentMutation.isPending}
+            />
+            <button
+              type="submit"
+              disabled={!newComment.trim() || addCommentMutation.isPending}
+              className="btn-primary px-3"
+            >
+              {addCommentMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </button>
+          </form>
+
+          {/* Comments List */}
+          {commentsLoading ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="text-text-tertiary h-5 w-5 animate-spin" />
+            </div>
+          ) : reviewComments?.items && reviewComments.items.length > 0 ? (
+            <div className="space-y-3">
+              {reviewComments.items.map((comment: ReviewComment) => (
+                <div key={comment.id} className="bg-bg-tertiary rounded-lg p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-bg-secondary flex h-6 w-6 items-center justify-center rounded-full">
+                        <span className="text-text-secondary text-xs font-medium">
+                          {comment.user?.username?.[0]?.toUpperCase() ?? '?'}
+                        </span>
+                      </div>
+                      <span className="text-text-primary text-sm font-medium">
+                        {comment.user?.username ?? 'Unknown'}
+                      </span>
+                      <span className="text-text-tertiary text-xs">
+                        {new Date(comment.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    {currentUserId === comment.userId && (
+                      <button
+                        onClick={() => handleDeleteComment(comment.id)}
+                        disabled={deleteCommentMutation.isPending}
+                        className="text-text-tertiary p-1 transition-colors hover:text-red-500"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-text-secondary mt-2 text-sm">{comment.content}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-text-tertiary py-2 text-center text-sm">No comments yet</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

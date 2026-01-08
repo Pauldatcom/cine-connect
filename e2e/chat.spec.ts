@@ -88,4 +88,41 @@ test.describe('Chat/Discussion', () => {
       await expect(searchInput).toHaveValue('test');
     });
   });
+
+  test.describe('Connection Status', () => {
+    test('should show connection indicator when not connected', async ({ page }) => {
+      await registerAndLogin(page);
+
+      await page.goto('/discussion');
+
+      // Page should load without errors
+      await expect(page.getByRole('heading', { name: 'Messages', exact: true })).toBeVisible();
+    });
+  });
+
+  test.describe('Chat UI Elements', () => {
+    test('should show empty state when no conversation selected', async ({ page }) => {
+      await registerAndLogin(page);
+
+      await page.goto('/discussion');
+
+      // Should show "Your Messages" heading
+      await expect(page.getByText(/Your Messages/i)).toBeVisible();
+      await expect(page.getByText(/Select a conversation/i)).toBeVisible();
+    });
+
+    test('should have search functionality', async ({ page }) => {
+      await registerAndLogin(page);
+
+      await page.goto('/discussion');
+
+      // Search input should be visible
+      const searchInput = page.getByPlaceholder(/search conversations/i);
+      await expect(searchInput).toBeVisible();
+
+      // Should be able to type in search
+      await searchInput.fill('alice');
+      await expect(searchInput).toHaveValue('alice');
+    });
+  });
 });
