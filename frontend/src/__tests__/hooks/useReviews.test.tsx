@@ -212,6 +212,18 @@ describe('useReviews hooks', () => {
 
       expect(mockReviewsApi.likeReview).toHaveBeenCalledWith('review-1');
     });
+
+    it('should work without filmId', async () => {
+      mockReviewsApi.likeReview.mockResolvedValue({ liked: true, likesCount: 1 });
+
+      const { result } = renderHook(() => useLikeReview(), { wrapper: createWrapper() });
+
+      result.current.mutate('review-1');
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(mockReviewsApi.likeReview).toHaveBeenCalledWith('review-1');
+    });
   });
 
   describe('useReviewLikes', () => {
@@ -230,6 +242,19 @@ describe('useReviews hooks', () => {
       renderHook(() => useReviewLikes(undefined), { wrapper: createWrapper() });
 
       expect(mockReviewsApi.getReviewLikes).not.toHaveBeenCalled();
+    });
+
+    it('should support custom limit', async () => {
+      const mockLikes = { users: [], count: 5 };
+      mockReviewsApi.getReviewLikes.mockResolvedValue(mockLikes);
+
+      const { result } = renderHook(() => useReviewLikes('review-1', 50), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(mockReviewsApi.getReviewLikes).toHaveBeenCalledWith('review-1', 50);
     });
   });
 
@@ -252,6 +277,19 @@ describe('useReviews hooks', () => {
 
       expect(mockReviewsApi.getReviewComments).not.toHaveBeenCalled();
     });
+
+    it('should support custom pagination', async () => {
+      const mockComments = { items: [], total: 0, page: 2, pageSize: 10, totalPages: 0 };
+      mockReviewsApi.getReviewComments.mockResolvedValue(mockComments);
+
+      const { result } = renderHook(() => useReviewComments('review-1', 2, 10), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(mockReviewsApi.getReviewComments).toHaveBeenCalledWith('review-1', 2, 10);
+    });
   });
 
   describe('useAddComment', () => {
@@ -265,6 +303,16 @@ describe('useReviews hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(mockReviewsApi.commentOnReview).toHaveBeenCalledWith('review-1', 'Nice review!');
+    });
+
+    it('should throw error when reviewId is undefined', async () => {
+      const { result } = renderHook(() => useAddComment(undefined), { wrapper: createWrapper() });
+
+      result.current.mutate('Nice review!');
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+
+      expect(result.current.error?.message).toBe('reviewId is required');
     });
   });
 
@@ -281,6 +329,18 @@ describe('useReviews hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(mockReviewsApi.deleteComment).toHaveBeenCalledWith('review-1', 'comment-1');
+    });
+
+    it('should throw error when reviewId is undefined', async () => {
+      const { result } = renderHook(() => useDeleteComment(undefined), {
+        wrapper: createWrapper(),
+      });
+
+      result.current.mutate('comment-1');
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+
+      expect(result.current.error?.message).toBe('reviewId is required');
     });
   });
 });
