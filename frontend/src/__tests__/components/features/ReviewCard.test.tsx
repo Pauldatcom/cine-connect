@@ -24,7 +24,13 @@ vi.mock('@tanstack/react-router', () => ({
 }));
 
 // Mock hooks
-const mockMutate = vi.fn();
+const mockAddCommentMutate = vi.fn((_content: string, options?: { onSuccess?: () => void }) => {
+  // Simulate successful mutation by calling onSuccess
+  if (options?.onSuccess) {
+    options.onSuccess();
+  }
+});
+const mockDeleteCommentMutate = vi.fn();
 vi.mock('@/hooks', () => ({
   useReviewComments: vi.fn((reviewId?: string) => ({
     data: reviewId
@@ -43,11 +49,11 @@ vi.mock('@/hooks', () => ({
     isLoading: false,
   })),
   useAddComment: vi.fn(() => ({
-    mutate: mockMutate,
+    mutate: mockAddCommentMutate,
     isPending: false,
   })),
   useDeleteComment: vi.fn(() => ({
-    mutate: vi.fn(),
+    mutate: mockDeleteCommentMutate,
     isPending: false,
   })),
 }));
@@ -259,7 +265,7 @@ describe('ReviewCard', () => {
         fireEvent.click(submitButton);
       }
 
-      expect(mockMutate).toHaveBeenCalledWith('My new comment', expect.any(Object));
+      expect(mockAddCommentMutate).toHaveBeenCalledWith('My new comment', expect.any(Object));
     });
 
     it('shows delete button for own comments', async () => {
@@ -282,6 +288,93 @@ describe('ReviewCard', () => {
         const trashButton = container.querySelector('button[class*="hover:text-red"]');
         expect(trashButton).toBeInTheDocument();
       });
+    });
+
+    it('calls delete mutation when clicking delete button', async () => {
+      const Wrapper = createTestWrapper();
+      const { container } = render(
+        <ReviewCard {...defaultReviewProps} id="review-1" comments={1} currentUserId="user-1" />,
+        { wrapper: Wrapper }
+      );
+
+      // Open comments section
+      const commentButtons = container.querySelectorAll('button');
+      const commentButton = Array.from(commentButtons).find(
+        (btn) => btn.textContent?.includes('1') && btn.querySelector('svg')
+      );
+      fireEvent.click(commentButton!);
+
+      await waitFor(() => {
+        expect(screen.getByText('Great review!')).toBeInTheDocument();
+      });
+
+      // Click the delete button
+      const trashButton = container.querySelector('button[class*="hover:text-red"]');
+      expect(trashButton).toBeInTheDocument();
+      fireEvent.click(trashButton!);
+
+      expect(mockDeleteCommentMutate).toHaveBeenCalledWith('comment-1');
+    });
+
+    it('clears input after successful comment submission', async () => {
+      const Wrapper = createTestWrapper();
+      const { container } = render(
+        <ReviewCard {...defaultReviewProps} id="review-1" comments={1} />,
+        { wrapper: Wrapper }
+      );
+
+      // Open comments section
+      const commentButtons = container.querySelectorAll('button');
+      const commentButton = Array.from(commentButtons).find(
+        (btn) => btn.textContent?.includes('1') && btn.querySelector('svg')
+      );
+      fireEvent.click(commentButton!);
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Add a comment...')).toBeInTheDocument();
+      });
+
+      // Type a comment
+      const input = screen.getByPlaceholderText('Add a comment...');
+      fireEvent.change(input, { target: { value: 'Test comment' } });
+      expect(input).toHaveValue('Test comment');
+
+      // Submit the form
+      const form = input.closest('form');
+      const submitButton = form?.querySelector('button[type="submit"]');
+      fireEvent.click(submitButton!);
+
+      // Input should be cleared after successful submission (onSuccess callback)
+      await waitFor(() => {
+        expect(input).toHaveValue('');
+      });
+    });
+
+    it('does not submit empty comments', async () => {
+      mockAddCommentMutate.mockClear();
+      const Wrapper = createTestWrapper();
+      const { container } = render(
+        <ReviewCard {...defaultReviewProps} id="review-1" comments={1} />,
+        { wrapper: Wrapper }
+      );
+
+      // Open comments section
+      const commentButtons = container.querySelectorAll('button');
+      const commentButton = Array.from(commentButtons).find(
+        (btn) => btn.textContent?.includes('1') && btn.querySelector('svg')
+      );
+      fireEvent.click(commentButton!);
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Add a comment...')).toBeInTheDocument();
+      });
+
+      // Leave input empty and submit
+      const input = screen.getByPlaceholderText('Add a comment...');
+      const form = input.closest('form');
+      fireEvent.submit(form!);
+
+      expect(mockAddCommentMutate).not.toHaveBeenCalled();
     });
   });
 

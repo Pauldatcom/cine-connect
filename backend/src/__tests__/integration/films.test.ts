@@ -41,6 +41,11 @@ vi.mock('@/db/index.js', () => {
           offset: vi.fn().mockResolvedValue([]),
         }),
       }),
+      insert: vi.fn().mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([]),
+        }),
+      }),
       query: {
         films: {
           findFirst: vi.fn(),
@@ -211,6 +216,213 @@ describe('Films Routes', () => {
 
     it('should return 400 for invalid TMDb ID format', async () => {
       const response = await request(app).get('/api/v1/films/tmdb/not-a-number').expect(400);
+
+      expect(response.body.success).toBe(false);
+    });
+  });
+
+  describe('POST /api/v1/films/tmdb', () => {
+    const validFilmData = {
+      tmdbId: 550,
+      title: 'Fight Club',
+      year: '1999',
+      poster: '/poster.jpg',
+      plot: 'An insomniac office worker...',
+      director: 'David Fincher',
+      genre: 'Drama',
+      runtime: '139 min',
+    };
+
+    it('should return existing film if already registered', async () => {
+      (db.query.films.findFirst as Mock).mockResolvedValue({
+        id: FILM_ID,
+        ...validFilmData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const response = await request(app)
+        .post('/api/v1/films/tmdb')
+        .send(validFilmData)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.created).toBe(false);
+      expect(response.body.data.tmdbId).toBe(550);
+    });
+
+    it('should create new film if not exists', async () => {
+      (db.query.films.findFirst as Mock).mockResolvedValue(null);
+
+      const newFilm = {
+        id: FILM_ID,
+        ...validFilmData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      (db.insert as Mock).mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([newFilm]),
+        }),
+      });
+
+      const response = await request(app)
+        .post('/api/v1/films/tmdb')
+        .send(validFilmData)
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.created).toBe(true);
+      expect(response.body.data.title).toBe('Fight Club');
+    });
+
+    it('should create film with minimal required fields', async () => {
+      (db.query.films.findFirst as Mock).mockResolvedValue(null);
+
+      const minimalFilm = {
+        id: FILM_ID,
+        tmdbId: 123,
+        title: 'Minimal Film',
+        year: null,
+        poster: null,
+        plot: null,
+        director: null,
+        genre: null,
+        runtime: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      (db.insert as Mock).mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([minimalFilm]),
+        }),
+      });
+
+      const response = await request(app)
+        .post('/api/v1/films/tmdb')
+        .send({ tmdbId: 123, title: 'Minimal Film' })
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.created).toBe(true);
+    });
+
+    it('should return 400 for missing tmdbId', async () => {
+      const response = await request(app)
+        .post('/api/v1/films/tmdb')
+        .send({ title: 'No TMDb ID' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should return 400 for missing title', async () => {
+      const response = await request(app)
+        .post('/api/v1/films/tmdb')
+        .send({ tmdbId: 123 })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should return 400 for invalid tmdbId type', async () => {
+      const response = await request(app)
+        .post('/api/v1/films/tmdb')
+        .send({ tmdbId: 'not-a-number', title: 'Test' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should return 400 for negative tmdbId', async () => {
+      const response = await request(app)
+        .post('/api/v1/films/tmdb')
+        .send({ tmdbId: -1, title: 'Test' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should return 400 for empty title', async () => {
+      const response = await request(app)
+        .post('/api/v1/films/tmdb')
+        .send({ tmdbId: 123, title: '' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should handle optional null fields', async () => {
+      (db.query.films.findFirst as Mock).mockResolvedValue(null);
+
+      const filmWithNulls = {
+        id: FILM_ID,
+        tmdbId: 999,
+        title: 'Nullable Film',
+        year: null,
+        poster: null,
+        plot: null,
+        director: null,
+        genre: null,
+        runtime: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      (db.insert as Mock).mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([filmWithNulls]),
+        }),
+      });
+
+      const response = await request(app)
+        .post('/api/v1/films/tmdb')
+        .send({
+          tmdbId: 999,
+          title: 'Nullable Film',
+          year: null,
+          poster: null,
+          plot: null,
+        })
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+    });
+  });
+
+  describe('Error handling', () => {
+    it('should handle database errors in GET /films', async () => {
+      (db.select as Mock).mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnThis(),
+          orderBy: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          offset: vi.fn().mockRejectedValue(new Error('Database error')),
+        }),
+      });
+
+      const response = await request(app).get('/api/v1/films').expect(500);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should handle database errors in GET /films/:id', async () => {
+      (db.query.films.findFirst as Mock).mockRejectedValue(new Error('Database error'));
+
+      const response = await request(app).get(`/api/v1/films/${FILM_ID}`).expect(500);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should handle database errors in POST /films/tmdb', async () => {
+      (db.query.films.findFirst as Mock).mockRejectedValue(new Error('Database error'));
+
+      const response = await request(app)
+        .post('/api/v1/films/tmdb')
+        .send({ tmdbId: 123, title: 'Test' })
+        .expect(500);
 
       expect(response.body.success).toBe(false);
     });
