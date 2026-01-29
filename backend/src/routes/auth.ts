@@ -1,12 +1,42 @@
-import { Router } from 'express';
+import { Router, type Response } from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '../db/index.js';
-import { generateTokens } from '../middleware/auth.js';
+import { generateTokens, type JwtPayload } from '../middleware/auth.js';
 import { ApiError } from '../middleware/errorHandler.js';
 
 export const authRouter = Router();
+
+// Cookie configuration for refresh token
+const REFRESH_TOKEN_COOKIE = 'cineconnect_refresh';
+const COOKIE_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days in ms
+
+/**
+ * Set refresh token as httpOnly cookie
+ */
+function setRefreshTokenCookie(res: Response, refreshToken: string): void {
+  res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: COOKIE_MAX_AGE,
+    path: '/',
+  });
+}
+
+/**
+ * Clear refresh token cookie
+ */
+function clearRefreshTokenCookie(res: Response): void {
+  res.clearCookie(REFRESH_TOKEN_COOKIE, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+  });
+}
 
 // Validation schemas
 const registerSchema = z.object({
@@ -93,13 +123,17 @@ authRouter.post('/register', async (req, res, next) => {
     }
 
     // Generate tokens
-    const tokens = generateTokens({ userId: user.id, email: user.email });
+    const { accessToken, refreshToken } = generateTokens({ userId: user.id, email: user.email });
+
+    // Set refresh token as httpOnly cookie
+    setRefreshTokenCookie(res, refreshToken);
 
     res.status(201).json({
       success: true,
       data: {
         user,
-        ...tokens,
+        accessToken,
+        // Note: refreshToken is now in httpOnly cookie, not in response body
       },
     });
   } catch (error) {
@@ -153,7 +187,10 @@ authRouter.post('/login', async (req, res, next) => {
     }
 
     // Generate tokens
-    const tokens = generateTokens({ userId: user.id, email: user.email });
+    const { accessToken, refreshToken } = generateTokens({ userId: user.id, email: user.email });
+
+    // Set refresh token as httpOnly cookie
+    setRefreshTokenCookie(res, refreshToken);
 
     res.json({
       success: true,
@@ -166,7 +203,8 @@ authRouter.post('/login', async (req, res, next) => {
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
         },
-        ...tokens,
+        accessToken,
+        // Note: refreshToken is now in httpOnly cookie, not in response body
       },
     });
   } catch (error) {
@@ -179,31 +217,90 @@ authRouter.post('/login', async (req, res, next) => {
  * /api/v1/auth/refresh:
  *   post:
  *     tags: [Auth]
- *     summary: Refresh access token
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [refreshToken]
- *             properties:
- *               refreshToken:
- *                 type: string
+ *     summary: Refresh access token using httpOnly cookie
  *     responses:
  *       200:
  *         description: Token refreshed successfully
  *       401:
- *         description: Invalid refresh token
+ *         description: Invalid or expired refresh token
  */
-authRouter.post('/refresh', async (_req, res, next) => {
+authRouter.post('/refresh', async (req, res, next) => {
   try {
-    // TODO: Implement token refresh logic
+    // Get refresh token from httpOnly cookie
+    const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE];
+
+    if (!refreshToken) {
+      throw ApiError.unauthorized('No refresh token provided');
+    }
+
+    // Verify refresh token
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error('JWT_SECRET environment variable is required');
+    }
+
+    let decoded: JwtPayload;
+    try {
+      decoded = jwt.verify(refreshToken, secret) as unknown as JwtPayload;
+    } catch (error) {
+      // Clear invalid cookie
+      clearRefreshTokenCookie(res);
+      if (error instanceof jwt.TokenExpiredError) {
+        throw ApiError.unauthorized('Refresh token expired');
+      }
+      throw ApiError.unauthorized('Invalid refresh token');
+    }
+
+    // Verify user still exists
+    const user = await db.query.users.findFirst({
+      where: eq(schema.users.id, decoded.userId),
+    });
+
+    if (!user) {
+      clearRefreshTokenCookie(res);
+      throw ApiError.unauthorized('User not found');
+    }
+
+    // Generate new tokens
+    const { accessToken, refreshToken: newRefreshToken } = generateTokens({
+      userId: user.id,
+      email: user.email,
+    });
+
+    // Update refresh token cookie
+    setRefreshTokenCookie(res, newRefreshToken);
+
     res.json({
       success: true,
-      message: 'Token refresh not yet implemented',
+      data: {
+        accessToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          avatarUrl: user.avatarUrl,
+        },
+      },
     });
   } catch (error) {
     next(error);
   }
+});
+
+/**
+ * @swagger
+ * /api/v1/auth/logout:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Logout and clear refresh token cookie
+ *     responses:
+ *       200:
+ *         description: Logged out successfully
+ */
+authRouter.post('/logout', (_req, res) => {
+  clearRefreshTokenCookie(res);
+  res.json({
+    success: true,
+    message: 'Logged out successfully',
+  });
 });

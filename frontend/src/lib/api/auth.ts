@@ -1,5 +1,7 @@
 /**
  * Auth API - Authentication endpoints
+ *
+ * Security: Access token stored in memory, refresh token in httpOnly cookie
  */
 
 import { api, tokenStorage } from './client';
@@ -17,7 +19,6 @@ export interface User {
 export interface AuthResponse {
   user: User;
   accessToken: string;
-  refreshToken: string;
 }
 
 export interface LoginCredentials {
@@ -39,8 +40,8 @@ export async function register(credentials: RegisterCredentials): Promise<AuthRe
     skipAuth: true,
   });
 
-  // Store tokens
-  tokenStorage.setTokens(response.accessToken, response.refreshToken);
+  // Store access token in memory (refresh token is in httpOnly cookie)
+  tokenStorage.setAccessToken(response.accessToken);
 
   return response;
 }
@@ -53,16 +54,22 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
     skipAuth: true,
   });
 
-  // Store tokens
-  tokenStorage.setTokens(response.accessToken, response.refreshToken);
+  // Store access token in memory (refresh token is in httpOnly cookie)
+  tokenStorage.setAccessToken(response.accessToken);
 
   return response;
 }
 
 /**
- * Logout - clear stored tokens
+ * Logout - clear tokens and call backend to clear cookie
  */
-export function logout(): void {
+export async function logout(): Promise<void> {
+  try {
+    // Call backend to clear the httpOnly cookie
+    await api.post('/api/v1/auth/logout', undefined, { skipAuth: true });
+  } catch {
+    // Ignore errors during logout
+  }
   tokenStorage.clearTokens();
 }
 
@@ -81,23 +88,17 @@ export function isAuthenticated(): boolean {
 }
 
 /**
- * Refresh access token
+ * Refresh access token using httpOnly cookie
+ * Called on page load to restore session
  */
 export async function refreshToken(): Promise<AuthResponse> {
-  const refreshToken = tokenStorage.getRefreshToken();
+  // No need to send refresh token - it's in the httpOnly cookie
+  const response = await api.post<AuthResponse>('/api/v1/auth/refresh', undefined, {
+    skipAuth: true,
+  });
 
-  if (!refreshToken) {
-    throw new Error('No refresh token available');
-  }
-
-  const response = await api.post<AuthResponse>(
-    '/api/v1/auth/refresh',
-    { refreshToken },
-    { skipAuth: true }
-  );
-
-  // Store new tokens
-  tokenStorage.setTokens(response.accessToken, response.refreshToken);
+  // Store new access token in memory
+  tokenStorage.setAccessToken(response.accessToken);
 
   return response;
 }

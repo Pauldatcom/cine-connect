@@ -2,19 +2,18 @@
  * Tests for Auth API
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
-  login,
-  register,
-  logout,
+  authApi,
   getCurrentUser,
   isAuthenticated,
+  login,
+  logout,
   refreshToken,
-  authApi,
+  register,
 } from '@/lib/api/auth';
-import { tokenStorage } from '@/lib/api/client';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock the client module
+// Mock the client module - tokenStorage uses setAccessToken (in-memory), not setTokens/localStorage
 vi.mock('@/lib/api/client', () => ({
   api: {
     get: vi.fn(),
@@ -22,14 +21,15 @@ vi.mock('@/lib/api/client', () => ({
   },
   tokenStorage: {
     getAccessToken: vi.fn(),
-    getRefreshToken: vi.fn(),
-    setTokens: vi.fn(),
+    setAccessToken: vi.fn(),
     clearTokens: vi.fn(),
     hasTokens: vi.fn(),
+    setTokens: vi.fn(),
+    getRefreshToken: vi.fn(),
   },
 }));
 
-import { api } from '@/lib/api/client';
+import { api, tokenStorage } from '@/lib/api/client';
 
 const mockApi = api as unknown as {
   get: ReturnType<typeof vi.fn>;
@@ -38,10 +38,11 @@ const mockApi = api as unknown as {
 
 const mockTokenStorage = tokenStorage as unknown as {
   getAccessToken: ReturnType<typeof vi.fn>;
-  getRefreshToken: ReturnType<typeof vi.fn>;
-  setTokens: ReturnType<typeof vi.fn>;
+  setAccessToken: ReturnType<typeof vi.fn>;
   clearTokens: ReturnType<typeof vi.fn>;
   hasTokens: ReturnType<typeof vi.fn>;
+  setTokens: ReturnType<typeof vi.fn>;
+  getRefreshToken: ReturnType<typeof vi.fn>;
 };
 
 describe('Auth API', () => {
@@ -54,7 +55,6 @@ describe('Auth API', () => {
       const mockResponse = {
         user: { id: '1', email: 'test@test.com', username: 'testuser' },
         accessToken: 'access-token-123',
-        refreshToken: 'refresh-token-456',
       };
       mockApi.post.mockResolvedValueOnce(mockResponse);
 
@@ -69,10 +69,7 @@ describe('Auth API', () => {
         { email: 'test@test.com', username: 'testuser', password: 'password123' },
         { skipAuth: true }
       );
-      expect(mockTokenStorage.setTokens).toHaveBeenCalledWith(
-        'access-token-123',
-        'refresh-token-456'
-      );
+      expect(mockTokenStorage.setAccessToken).toHaveBeenCalledWith('access-token-123');
       expect(result).toEqual(mockResponse);
     });
   });
@@ -82,7 +79,6 @@ describe('Auth API', () => {
       const mockResponse = {
         user: { id: '1', email: 'test@test.com', username: 'testuser' },
         accessToken: 'access-token-789',
-        refreshToken: 'refresh-token-012',
       };
       mockApi.post.mockResolvedValueOnce(mockResponse);
 
@@ -96,17 +92,17 @@ describe('Auth API', () => {
         { email: 'test@test.com', password: 'password123' },
         { skipAuth: true }
       );
-      expect(mockTokenStorage.setTokens).toHaveBeenCalledWith(
-        'access-token-789',
-        'refresh-token-012'
-      );
+      expect(mockTokenStorage.setAccessToken).toHaveBeenCalledWith('access-token-789');
       expect(result).toEqual(mockResponse);
     });
   });
 
   describe('logout', () => {
-    it('clears stored tokens', () => {
-      logout();
+    it('clears stored tokens', async () => {
+      mockApi.post.mockResolvedValueOnce(undefined);
+
+      await logout();
+
       expect(mockTokenStorage.clearTokens).toHaveBeenCalled();
     });
   });
@@ -143,32 +139,25 @@ describe('Auth API', () => {
   });
 
   describe('refreshToken', () => {
-    it('throws error when no refresh token available', async () => {
-      mockTokenStorage.getRefreshToken.mockReturnValueOnce(null);
+    it('rejects when refresh API fails (e.g. no cookie)', async () => {
+      mockApi.post.mockRejectedValueOnce(new Error('Unauthorized'));
 
-      await expect(refreshToken()).rejects.toThrow('No refresh token available');
+      await expect(refreshToken()).rejects.toThrow();
     });
 
-    it('calls refresh endpoint and stores new tokens', async () => {
-      mockTokenStorage.getRefreshToken.mockReturnValueOnce('old-refresh-token');
+    it('calls refresh endpoint and stores new access token', async () => {
       const mockResponse = {
         user: { id: '1', email: 'test@test.com', username: 'testuser' },
         accessToken: 'new-access-token',
-        refreshToken: 'new-refresh-token',
       };
       mockApi.post.mockResolvedValueOnce(mockResponse);
 
       const result = await refreshToken();
 
-      expect(mockApi.post).toHaveBeenCalledWith(
-        '/api/v1/auth/refresh',
-        { refreshToken: 'old-refresh-token' },
-        { skipAuth: true }
-      );
-      expect(mockTokenStorage.setTokens).toHaveBeenCalledWith(
-        'new-access-token',
-        'new-refresh-token'
-      );
+      expect(mockApi.post).toHaveBeenCalledWith('/api/v1/auth/refresh', undefined, {
+        skipAuth: true,
+      });
+      expect(mockTokenStorage.setAccessToken).toHaveBeenCalledWith('new-access-token');
       expect(result).toEqual(mockResponse);
     });
   });

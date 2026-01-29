@@ -9,7 +9,7 @@ import {
   type LoginCredentials,
   type RegisterCredentials,
 } from '@/lib/api/auth';
-import { tokenStorage, ApiError } from '@/lib/api/client';
+import { ApiError, tokenStorage } from '@/lib/api/client';
 
 // Context state type
 interface AuthState {
@@ -23,7 +23,7 @@ interface AuthState {
 interface AuthActions {
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (credentials: RegisterCredentials) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -49,26 +49,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
     error: null,
   });
 
-  // Initialize auth state on mount
+  // Initialize auth state on mount by attempting to refresh the session
   useEffect(() => {
     const initAuth = async () => {
-      // Check if we have tokens stored
-      if (!tokenStorage.hasTokens()) {
-        setState((prev) => ({ ...prev, isLoading: false }));
-        return;
-      }
-
       try {
-        // Try to get current user
-        const user = await authApi.getCurrentUser();
+        // Try to refresh token using httpOnly cookie
+        // This will fail if there's no valid refresh token cookie
+        const response = await authApi.refreshToken();
         setState({
-          user,
+          user: response.user,
           isLoading: false,
           isAuthenticated: true,
           error: null,
         });
       } catch {
-        // Token invalid or expired - clear everything
+        // No valid session - user needs to login
         tokenStorage.clearTokens();
         setState({
           user: null,
@@ -137,8 +132,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   // Logout action
-  const logout = useCallback(() => {
-    authApi.logout();
+  const logout = useCallback(async () => {
+    await authApi.logout();
     setState({
       user: null,
       isLoading: false,

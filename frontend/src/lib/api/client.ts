@@ -1,31 +1,43 @@
 /**
  * API Client - Base HTTP client for backend communication
  * Handles auth tokens, refresh, and error handling
+ *
+ * Security: Access token is stored in memory only (not localStorage)
+ * Refresh token is stored as httpOnly cookie by the backend
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-// Token storage keys
-const ACCESS_TOKEN_KEY = 'cineconnect_access_token';
-const REFRESH_TOKEN_KEY = 'cineconnect_refresh_token';
+// In-memory token storage (more secure than localStorage)
+let accessToken: string | null = null;
 
 // Token management
 export const tokenStorage = {
-  getAccessToken: (): string | null => localStorage.getItem(ACCESS_TOKEN_KEY),
-  getRefreshToken: (): string | null => localStorage.getItem(REFRESH_TOKEN_KEY),
+  getAccessToken: (): string | null => {
+    return accessToken;
+  },
 
-  setTokens: (accessToken: string, refreshToken: string): void => {
-    localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  setAccessToken: (token: string): void => {
+    accessToken = token;
   },
 
   clearTokens: (): void => {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    accessToken = null;
   },
 
   hasTokens: (): boolean => {
-    return !!localStorage.getItem(ACCESS_TOKEN_KEY);
+    return !!accessToken;
+  },
+
+  // Legacy methods for backward compatibility during migration
+  setTokens: (token: string, _refreshToken?: string): void => {
+    accessToken = token;
+    // Refresh token is now handled by httpOnly cookie, ignore it here
+  },
+
+  getRefreshToken: (): string | null => {
+    // Refresh token is now in httpOnly cookie, not accessible from JS
+    return null;
   },
 };
 
@@ -67,40 +79,46 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   };
 
   // Add auth header if we have a token and auth isn't skipped
-  if (!skipAuth) {
-    const token = tokenStorage.getAccessToken();
-    if (token) {
-      (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
-    }
+  const token = !skipAuth ? tokenStorage.getAccessToken() : null;
+  if (token) {
+    (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   }
 
   const config: RequestInit = {
     ...fetchOptions,
     headers,
+    credentials: 'include', // Send cookies with requests for refresh token
   };
 
   if (body) {
     config.body = JSON.stringify(body);
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
-  // Handle non-JSON responses
-  const contentType = response.headers.get('content-type');
-  if (!contentType?.includes('application/json')) {
-    if (!response.ok) {
-      throw new ApiError(response.status, response.statusText);
+    // Handle non-JSON responses
+    const contentType = response.headers.get('content-type');
+    if (!contentType?.includes('application/json')) {
+      if (!response.ok) {
+        console.error('[API] Non-JSON error:', response.status, response.statusText);
+        throw new ApiError(response.status, response.statusText);
+      }
+      return {} as T;
     }
-    return {} as T;
+
+    const data: ApiResponse<T> = await response.json();
+
+    if (!response.ok) {
+      console.error('[API] Error response:', response.status, data);
+      throw new ApiError(response.status, response.statusText, data);
+    }
+
+    return data.data as T;
+  } catch (error) {
+    console.error('[API] Request failed:', endpoint, error);
+    throw error;
   }
-
-  const data: ApiResponse<T> = await response.json();
-
-  if (!response.ok) {
-    throw new ApiError(response.status, response.statusText, data);
-  }
-
-  return data.data as T;
 }
 
 // HTTP method shortcuts
