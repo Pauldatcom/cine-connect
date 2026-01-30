@@ -71,6 +71,23 @@ export function useUserReviews(userId: string | undefined) {
 }
 
 /**
+ * Find user's existing review for a specific film
+ * Returns the review if user has already reviewed this film, undefined otherwise
+ */
+export function useUserFilmReview(userId: string | undefined, filmId: string | undefined) {
+  const { data: userReviews, isLoading, error } = useUserReviews(userId);
+
+  const existingReview = userReviews?.find((review) => review.filmId === filmId);
+
+  return {
+    existingReview,
+    hasReviewed: !!existingReview,
+    isLoading,
+    error,
+  };
+}
+
+/**
  * Create a new review mutation
  */
 export function useCreateReview(filmId?: string) {
@@ -79,10 +96,12 @@ export function useCreateReview(filmId?: string) {
   return useMutation({
     mutationFn: (input: CreateReviewInput) => createReview(input),
     onSuccess: () => {
-      // Invalidate film reviews to refetch
+      // Invalidate film reviews and user reviews to refetch
       if (filmId) {
         queryClient.invalidateQueries({ queryKey: ['reviews', 'film', filmId] });
       }
+      // Invalidate all user reviews to update hasReviewed status
+      queryClient.invalidateQueries({ queryKey: ['reviews', 'user'] });
     },
   });
 }
@@ -97,11 +116,13 @@ export function useUpdateReview(filmId?: string) {
     mutationFn: ({ reviewId, input }: { reviewId: string; input: UpdateReviewInput }) =>
       updateReview(reviewId, input),
     onSuccess: (_, { reviewId }) => {
-      // Invalidate specific review and film reviews
+      // Invalidate specific review, film reviews, and user reviews
       queryClient.invalidateQueries({ queryKey: ['review', reviewId] });
       if (filmId) {
         queryClient.invalidateQueries({ queryKey: ['reviews', 'film', filmId] });
       }
+      // Invalidate all user reviews to update cached data
+      queryClient.invalidateQueries({ queryKey: ['reviews', 'user'] });
     },
   });
 }

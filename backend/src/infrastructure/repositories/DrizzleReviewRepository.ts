@@ -2,26 +2,26 @@
  * Drizzle Review Repository Implementation
  */
 
+import { and, count, desc, eq } from 'drizzle-orm';
 import { injectable } from 'tsyringe';
-import { eq, and, desc, count } from 'drizzle-orm';
 
 import { db, schema } from '../../db/index.js';
-import type {
-  IReviewRepository,
-  PaginatedResult,
-} from '../../domain/repositories/IReviewRepository.js';
 import {
   Review,
   type CreateReviewProps,
-  type UpdateReviewProps,
   type ReviewWithRelations,
+  type UpdateReviewProps,
 } from '../../domain/entities/Review.js';
-import { ReviewLike, type CreateReviewLikeProps } from '../../domain/entities/ReviewLike.js';
 import {
   ReviewComment,
   type CreateReviewCommentProps,
   type ReviewCommentWithUser,
 } from '../../domain/entities/ReviewComment.js';
+import { ReviewLike, type CreateReviewLikeProps } from '../../domain/entities/ReviewLike.js';
+import type {
+  IReviewRepository,
+  PaginatedResult,
+} from '../../domain/repositories/IReviewRepository.js';
 
 @injectable()
 export class DrizzleReviewRepository implements IReviewRepository {
@@ -46,7 +46,7 @@ export class DrizzleReviewRepository implements IReviewRepository {
           columns: { id: true, username: true, avatarUrl: true },
         },
         film: {
-          columns: { id: true, title: true, poster: true, year: true },
+          columns: { id: true, tmdbId: true, title: true, poster: true, year: true },
         },
       },
     });
@@ -135,7 +135,7 @@ export class DrizzleReviewRepository implements IReviewRepository {
       where: eq(schema.reviews.userId, userId),
       with: {
         film: {
-          columns: { id: true, title: true, poster: true, year: true },
+          columns: { id: true, tmdbId: true, title: true, poster: true, year: true },
         },
       },
       orderBy: [desc(schema.reviews.createdAt)],

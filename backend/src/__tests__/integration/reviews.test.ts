@@ -5,10 +5,6 @@
 // Must import reflect-metadata FIRST before any tsyringe usage
 import 'reflect-metadata';
 
-import jwt from 'jsonwebtoken';
-import request from 'supertest';
-import { container } from 'tsyringe';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '@/app';
 import { Film } from '@/domain/entities/Film.js';
 import { Review } from '@/domain/entities/Review.js';
@@ -16,6 +12,10 @@ import { ReviewComment } from '@/domain/entities/ReviewComment.js';
 import { ReviewLike } from '@/domain/entities/ReviewLike.js';
 import { IFilmRepository } from '@/domain/repositories/IFilmRepository.js';
 import { IReviewRepository } from '@/domain/repositories/IReviewRepository.js';
+import jwt from 'jsonwebtoken';
+import request from 'supertest';
+import { container } from 'tsyringe';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Valid UUIDs for testing
 const USER_ID = '11111111-1111-1111-1111-111111111111';
@@ -430,7 +430,7 @@ describe('Reviews Routes', () => {
       vi.mocked(mockReviewRepository.findByIdWithRelations).mockResolvedValue({
         ...mockReviewData,
         user: { id: USER_ID, username: 'testuser', avatarUrl: null },
-        film: { id: FILM_ID, title: 'Test Movie', poster: null, year: '2024' },
+        film: { id: FILM_ID, tmdbId: 550, title: 'Test Movie', poster: null, year: '2024' },
         likesCount: 5,
         commentsCount: 2,
         isLikedByCurrentUser: false,
@@ -456,7 +456,7 @@ describe('Reviews Routes', () => {
       vi.mocked(mockReviewRepository.findByIdWithRelations).mockResolvedValue({
         ...mockReviewData,
         user: { id: USER_ID, username: 'testuser', avatarUrl: null },
-        film: { id: FILM_ID, title: 'Test Movie', poster: null, year: '2024' },
+        film: { id: FILM_ID, tmdbId: 550, title: 'Test Movie', poster: null, year: '2024' },
         likesCount: 5,
         commentsCount: 2,
         isLikedByCurrentUser: true,

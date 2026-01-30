@@ -12,6 +12,7 @@ import {
   useLikeReview,
   useRegisterFilm,
   useSimilarFilms,
+  useUpdateReview,
   type Review,
 } from '@/hooks';
 import { getImageUrl } from '@/lib/api/tmdb';
@@ -21,9 +22,7 @@ import {
   Calendar,
   Clock,
   ExternalLink,
-  Eye,
   Film,
-  Heart,
   Info,
   List,
   Loader2,
@@ -46,7 +45,7 @@ export const Route = createFileRoute('/film/$id')({
 
 function FilmDetailPage() {
   const { id } = Route.useParams();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const [activeTab, setActiveTab] = useState<TabId>('cast');
   const [userRating, setUserRating] = useState<number>(0);
@@ -67,8 +66,13 @@ function FilmDetailPage() {
   // Fetch reviews from our backend using internal UUID
   const { data: reviewsData, isLoading: reviewsLoading } = useFilmReviews(backendFilm?.id);
 
-  // Create review mutation using custom hook
+  // Derive user's existing review from film reviews list (reviews-only branch: no useUserFilmReview)
+  const existingReview = reviewsData?.items?.find((r) => r.userId === user?.id);
+  const hasReviewed = !!existingReview;
+
+  // Create and update review mutations
   const createReviewMutation = useCreateReview(backendFilm?.id);
+  const updateReviewMutation = useUpdateReview(backendFilm?.id);
 
   // Like review mutation using custom hook
   const likeReviewMutation = useLikeReview(backendFilm?.id);
@@ -79,22 +83,45 @@ function FilmDetailPage() {
       return;
     }
     setReviewError(null);
-    createReviewMutation.mutate(
-      {
-        filmId: backendFilm.id,
-        rating: data.rating,
-        comment: data.comment || undefined,
-      },
-      {
-        onSuccess: () => {
-          setShowReviewForm(false);
-          setReviewError(null);
+
+    // If user already has a review, update it instead of creating
+    if (hasReviewed && existingReview) {
+      updateReviewMutation.mutate(
+        {
+          reviewId: existingReview.id,
+          input: {
+            rating: data.rating,
+            comment: data.comment || undefined,
+          },
         },
-        onError: (error: Error) => {
-          setReviewError(error.message || 'Failed to submit review');
+        {
+          onSuccess: () => {
+            setShowReviewForm(false);
+            setReviewError(null);
+          },
+          onError: (error: Error) => {
+            setReviewError(error.message || 'Failed to update review');
+          },
+        }
+      );
+    } else {
+      createReviewMutation.mutate(
+        {
+          filmId: backendFilm.id,
+          rating: data.rating,
+          comment: data.comment || undefined,
         },
-      }
-    );
+        {
+          onSuccess: () => {
+            setShowReviewForm(false);
+            setReviewError(null);
+          },
+          onError: (error: Error) => {
+            setReviewError(error.message || 'Failed to submit review');
+          },
+        }
+      );
+    }
   };
 
   const handleWriteReview = () => {
@@ -102,6 +129,10 @@ function FilmDetailPage() {
       // Redirect to login
       window.location.href = '/profil?mode=login';
       return;
+    }
+    // Pre-fill rating if editing existing review
+    if (hasReviewed && existingReview) {
+      setUserRating(existingReview.rating);
     }
     setShowReviewForm(true);
   };
@@ -162,7 +193,8 @@ function FilmDetailPage() {
             posterUrl: getImageUrl(film.poster_path, 'poster', 'small'),
           }}
           initialRating={userRating}
-          isSubmitting={createReviewMutation.isPending}
+          initialComment={existingReview?.comment || ''}
+          isSubmitting={createReviewMutation.isPending || updateReviewMutation.isPending}
           error={reviewError}
           onSubmit={handleSubmitReview}
           onClose={() => {
@@ -223,28 +255,6 @@ function FilmDetailPage() {
                     </div>
                   </a>
                 )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="mx-auto mt-6 grid max-w-[288px] grid-cols-3 gap-2 lg:mx-0">
-                <ActionButton
-                  icon={<Eye className="h-5 w-5" />}
-                  label="Watch"
-                  active={false}
-                  activeColor="text-letterboxd-green"
-                />
-                <ActionButton
-                  icon={<Heart className="h-5 w-5" />}
-                  label="Like"
-                  active={false}
-                  activeColor="text-letterboxd-orange"
-                />
-                <ActionButton
-                  icon={<List className="h-5 w-5" />}
-                  label="Watchlist"
-                  active={false}
-                  activeColor="text-letterboxd-blue"
-                />
               </div>
 
               {/* Rate this film */}
@@ -568,7 +578,7 @@ function FilmDetailPage() {
             )}
           </h2>
           <button onClick={handleWriteReview} className="btn-secondary">
-            Write a Review
+            {hasReviewed ? 'Edit Your Review' : 'Write a Review'}
           </button>
         </div>
 
@@ -595,6 +605,8 @@ function FilmDetailPage() {
               <ReviewCard
                 key={review.id}
                 id={review.id}
+                film={film ?? undefined}
+                showFilm={true}
                 user={{
                   id: review.user?.id || review.userId,
                   name: review.user?.username || 'Anonymous',
@@ -606,7 +618,6 @@ function FilmDetailPage() {
                 likes={review.likesCount || 0}
                 comments={review.commentsCount || 0}
                 isLiked={review.isLikedByCurrentUser || false}
-                showFilm={false}
                 onLike={handleLikeReview}
               />
             ))}
@@ -621,32 +632,6 @@ function FilmDetailPage() {
         )}
       </section>
     </div>
-  );
-}
-
-function ActionButton({
-  icon,
-  label,
-  active,
-  activeColor,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  active: boolean;
-  activeColor: string;
-}) {
-  return (
-    <button
-      className={`flex flex-col items-center gap-1.5 rounded-lg px-2 py-3 transition-colors ${
-        active
-          ? `bg-bg-tertiary ${activeColor}`
-          : 'bg-bg-secondary hover:bg-bg-tertiary text-text-secondary hover:text-text-primary'
-      }`}
-      title={label}
-    >
-      {icon}
-      <span className="text-xs font-medium">{label}</span>
-    </button>
   );
 }
 

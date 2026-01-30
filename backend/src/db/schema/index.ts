@@ -1,14 +1,14 @@
+import { relations } from 'drizzle-orm';
 import {
-  pgTable,
-  uuid,
-  varchar,
-  text,
-  timestamp,
-  integer,
   boolean,
   index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  varchar,
 } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
 
 export const users = pgTable(
   'users',
@@ -162,6 +162,24 @@ export const friends = pgTable(
   ]
 );
 
+export const watchlists = pgTable(
+  'watchlists',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    filmId: uuid('film_id')
+      .notNull()
+      .references(() => films.id, { onDelete: 'cascade' }),
+    addedAt: timestamp('added_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('watchlists_user_id_idx').on(table.userId),
+    index('watchlists_film_id_idx').on(table.filmId),
+  ]
+);
+
 export const usersRelations = relations(users, ({ many }) => ({
   reviews: many(reviews),
   reviewLikes: many(reviewLikes),
@@ -170,11 +188,24 @@ export const usersRelations = relations(users, ({ many }) => ({
   receivedMessages: many(messages, { relationName: 'receiver' }),
   sentFriendRequests: many(friends, { relationName: 'sender' }),
   receivedFriendRequests: many(friends, { relationName: 'receiver' }),
+  watchlist: many(watchlists),
 }));
 
 export const filmsRelations = relations(films, ({ many }) => ({
   reviews: many(reviews),
   categories: many(filmCategories),
+  watchlistEntries: many(watchlists),
+}));
+
+export const watchlistsRelations = relations(watchlists, ({ one }) => ({
+  user: one(users, {
+    fields: [watchlists.userId],
+    references: [users.id],
+  }),
+  film: one(films, {
+    fields: [watchlists.filmId],
+    references: [films.id],
+  }),
 }));
 
 export const categoriesRelations = relations(categories, ({ many }) => ({

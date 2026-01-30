@@ -5,13 +5,13 @@
 
 import { container } from 'tsyringe';
 
-import { IUserRepository } from '../domain/repositories/IUserRepository.js';
 import { IFilmRepository } from '../domain/repositories/IFilmRepository.js';
 import { IReviewRepository } from '../domain/repositories/IReviewRepository.js';
+import { IUserRepository } from '../domain/repositories/IUserRepository.js';
 
-import { DrizzleUserRepository } from './repositories/DrizzleUserRepository.js';
 import { DrizzleFilmRepository } from './repositories/DrizzleFilmRepository.js';
 import { DrizzleReviewRepository } from './repositories/DrizzleReviewRepository.js';
+import { DrizzleUserRepository } from './repositories/DrizzleUserRepository.js';
 
 /**
  * Register all dependencies
