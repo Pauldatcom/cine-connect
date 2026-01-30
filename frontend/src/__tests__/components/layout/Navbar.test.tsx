@@ -233,6 +233,106 @@ describe('Navbar', () => {
       const remainingHomeLinks = screen.getAllByText('Home');
       expect(remainingHomeLinks.length).toBe(1);
     });
+
+    it('closes mobile menu when clicking Films link', () => {
+      const Wrapper = createTestWrapper();
+      render(<Navbar />, { wrapper: Wrapper });
+
+      // Open mobile menu
+      const buttons = screen.getAllByRole('button');
+      const menuButton = buttons[buttons.length - 1]!;
+      fireEvent.click(menuButton);
+
+      // Click Films link in mobile menu
+      const filmsLinks = screen.getAllByText('Films');
+      const mobileFilmsLink = filmsLinks[filmsLinks.length - 1];
+      fireEvent.click(mobileFilmsLink!);
+
+      // Mobile menu should be closed
+      const remainingFilmsLinks = screen.getAllByText('Films');
+      expect(remainingFilmsLinks.length).toBe(1);
+    });
+
+    it('closes mobile menu when clicking Discussion link', () => {
+      const Wrapper = createTestWrapper();
+      render(<Navbar />, { wrapper: Wrapper });
+
+      // Open mobile menu
+      const buttons = screen.getAllByRole('button');
+      const menuButton = buttons[buttons.length - 1]!;
+      fireEvent.click(menuButton);
+
+      // Click Discussion link in mobile menu
+      const discussionLinks = screen.getAllByText('Discussion');
+      const mobileDiscussionLink = discussionLinks[discussionLinks.length - 1];
+      fireEvent.click(mobileDiscussionLink!);
+
+      // Mobile menu should be closed
+      const remainingDiscussionLinks = screen.getAllByText('Discussion');
+      expect(remainingDiscussionLinks.length).toBe(1);
+    });
+
+    it('closes mobile menu when clicking Lists link (authenticated)', () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+        user: {
+          id: '1',
+          username: 'testuser',
+          email: 'test@test.com',
+          avatarUrl: null,
+        },
+        logout: vi.fn(),
+      });
+
+      const Wrapper = createTestWrapper();
+      render(<Navbar />, { wrapper: Wrapper });
+
+      // Open mobile menu
+      const buttons = screen.getAllByRole('button');
+      const menuButton = buttons[buttons.length - 1]!;
+      fireEvent.click(menuButton);
+
+      // Click Lists link in mobile menu
+      const listsLinks = screen.getAllByText('Lists');
+      const mobileListsLink = listsLinks[listsLinks.length - 1];
+      fireEvent.click(mobileListsLink!);
+
+      // Mobile menu should be closed
+      const remainingListsLinks = screen.getAllByText('Lists');
+      expect(remainingListsLinks.length).toBe(1);
+    });
+
+    it('closes mobile menu when clicking Members link (authenticated)', () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+        user: {
+          id: '1',
+          username: 'testuser',
+          email: 'test@test.com',
+          avatarUrl: null,
+        },
+        logout: vi.fn(),
+      });
+
+      const Wrapper = createTestWrapper();
+      render(<Navbar />, { wrapper: Wrapper });
+
+      // Open mobile menu
+      const buttons = screen.getAllByRole('button');
+      const menuButton = buttons[buttons.length - 1]!;
+      fireEvent.click(menuButton);
+
+      // Click Members link in mobile menu
+      const membersLinks = screen.getAllByText('Members');
+      const mobileMembersLink = membersLinks[membersLinks.length - 1];
+      fireEvent.click(mobileMembersLink!);
+
+      // Mobile menu should be closed
+      const remainingMembersLinks = screen.getAllByText('Members');
+      expect(remainingMembersLinks.length).toBe(1);
+    });
   });
 
   describe('accessibility', () => {
