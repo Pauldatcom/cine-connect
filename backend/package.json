@@ -19,6 +19,7 @@
   "dependencies": {
     "@cine-connect/shared": "workspace:*",
     "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.38.2",

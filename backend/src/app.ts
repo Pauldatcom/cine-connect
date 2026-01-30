@@ -3,19 +3,20 @@
  * Separated from index.ts for testability
  */
 
-import express from 'express';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
+import express from 'express';
 import helmet from 'helmet';
 
 import { setupSwagger } from './config/swagger.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { authRouter } from './routes/auth.js';
-import { usersRouter } from './routes/users.js';
 import { filmsRouter } from './routes/films.js';
-import { reviewsRouter } from './routes/reviews.js';
-import { messagesRouter } from './routes/messages.js';
 import { friendsRouter } from './routes/friends.js';
+import { messagesRouter } from './routes/messages.js';
+import { reviewsRouter } from './routes/reviews.js';
+import { usersRouter } from './routes/users.js';
 
 export function createApp() {
   const app = express();
@@ -29,6 +30,7 @@ export function createApp() {
     })
   );
   app.use(express.json());
+  app.use(cookieParser());
 
   // Only log in non-test environment
   if (process.env.NODE_ENV !== 'test') {
