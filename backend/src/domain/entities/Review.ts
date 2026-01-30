@@ -3,7 +3,7 @@
  * Pure domain model - no framework dependencies
  */
 
-import { MIN_RATING, MAX_RATING } from '@cine-connect/shared';
+import { MAX_RATING, MIN_RATING } from '@cine-connect/shared';
 
 export interface ReviewProps {
   id: string;
@@ -35,6 +35,7 @@ export interface ReviewWithRelations extends ReviewProps {
   };
   film?: {
     id: string;
+    tmdbId: number;
     title: string;
     poster: string | null;
     year: string | null;
