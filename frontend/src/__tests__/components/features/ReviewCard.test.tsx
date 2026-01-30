@@ -92,6 +92,20 @@ describe('ReviewCard', () => {
       render(<ReviewCard {...defaultReviewProps} showFilm />, { wrapper: Wrapper });
       expect(screen.getByText('Test Movie')).toBeInTheDocument();
     });
+
+    it('renders link to film page when showFilm and film are provided', () => {
+      const Wrapper = createTestWrapper();
+      render(<ReviewCard {...defaultReviewProps} showFilm />, { wrapper: Wrapper });
+      const filmLinks = screen.getAllByRole('link', { name: /Test Movie/ });
+      expect(filmLinks.length).toBeGreaterThanOrEqual(1);
+      expect(filmLinks[0]).toHaveAttribute('href', expect.stringMatching(/\/film\//));
+    });
+
+    it('does not render film link when showFilm is false', () => {
+      const Wrapper = createTestWrapper();
+      render(<ReviewCard {...defaultReviewProps} showFilm={false} />, { wrapper: Wrapper });
+      expect(screen.queryByRole('link', { name: /Test Movie/ })).not.toBeInTheDocument();
+    });
   });
 
   describe('rating', () => {
