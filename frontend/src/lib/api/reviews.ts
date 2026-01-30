@@ -13,6 +13,7 @@ export interface ReviewUser {
 
 export interface ReviewFilm {
   id: string;
+  tmdbId?: number;
   title: string;
   poster: string | null;
   year: string | null;
