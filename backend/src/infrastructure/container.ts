@@ -5,13 +5,15 @@
 
 import { container } from 'tsyringe';
 
-import { IUserRepository } from '../domain/repositories/IUserRepository.js';
 import { IFilmRepository } from '../domain/repositories/IFilmRepository.js';
 import { IReviewRepository } from '../domain/repositories/IReviewRepository.js';
+import { IUserRepository } from '../domain/repositories/IUserRepository.js';
+import { IWatchlistRepository } from '../domain/repositories/IWatchlistRepository.js';
 
-import { DrizzleUserRepository } from './repositories/DrizzleUserRepository.js';
 import { DrizzleFilmRepository } from './repositories/DrizzleFilmRepository.js';
 import { DrizzleReviewRepository } from './repositories/DrizzleReviewRepository.js';
+import { DrizzleUserRepository } from './repositories/DrizzleUserRepository.js';
+import { DrizzleWatchlistRepository } from './repositories/DrizzleWatchlistRepository.js';
 
 /**
  * Register all dependencies
@@ -24,6 +26,10 @@ export function registerDependencies(): void {
   container.registerSingleton<IReviewRepository>(
     IReviewRepository as symbol,
     DrizzleReviewRepository
+  );
+  container.registerSingleton<IWatchlistRepository>(
+    IWatchlistRepository as symbol,
+    DrizzleWatchlistRepository
   );
 
   console.log('[DI] Dependencies registered');
