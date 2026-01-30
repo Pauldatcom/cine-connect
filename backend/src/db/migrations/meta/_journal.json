@@ -8,6 +8,13 @@
       "when": 1766696657728,
       "tag": "0000_nasty_hiroim",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1768810994988,
+      "tag": "0001_fuzzy_onslaught",
+      "breakpoints": true
     }
   ]
 }
