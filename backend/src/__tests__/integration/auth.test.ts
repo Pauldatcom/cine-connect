@@ -6,10 +6,10 @@
 // Must import reflect-metadata FIRST before any tsyringe usage
 import 'reflect-metadata';
 
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import request from 'supertest';
-import bcrypt from 'bcryptjs';
 import { createApp } from '@/app';
+import bcrypt from 'bcryptjs';
+import request from 'supertest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 // Mock the database module
 vi.mock('@/db/index.js', () => ({
@@ -92,7 +92,10 @@ describe('Auth Routes', () => {
       expect(response.body.data.user).toBeDefined();
       expect(response.body.data.user.email).toBe('newuser@example.com');
       expect(response.body.data.accessToken).toBeDefined();
-      expect(response.body.data.refreshToken).toBeDefined();
+      // refreshToken is set as httpOnly cookie, not in response body
+      const setCookie = response.headers['set-cookie'];
+      const cookieArr = Array.isArray(setCookie) ? setCookie : setCookie ? [setCookie] : [];
+      expect(cookieArr.some((c) => c.startsWith('cineconnect_refresh='))).toBe(true);
       // Password should NOT be in response
       expect(response.body.data.user.password).toBeUndefined();
       expect(response.body.data.user.passwordHash).toBeUndefined();
@@ -197,7 +200,10 @@ describe('Auth Routes', () => {
       expect(response.body.data.user).toBeDefined();
       expect(response.body.data.user.email).toBe('test@example.com');
       expect(response.body.data.accessToken).toBeDefined();
-      expect(response.body.data.refreshToken).toBeDefined();
+      // refreshToken is set as httpOnly cookie, not in response body
+      const setCookie = response.headers['set-cookie'];
+      const cookieArr = Array.isArray(setCookie) ? setCookie : setCookie ? [setCookie] : [];
+      expect(cookieArr.some((c) => c.startsWith('cineconnect_refresh='))).toBe(true);
     });
 
     it('should return 401 for invalid email', async () => {
@@ -268,17 +274,43 @@ describe('Auth Routes', () => {
   });
 
   describe('POST /api/v1/auth/refresh', () => {
-    // todo implement this features and added to the E2E
-    it('should return placeholder response (not yet implemented)', async () => {
-      const response = await request(app)
-        .post('/api/v1/auth/refresh')
+    it('should return 401 when no refresh cookie is sent', async () => {
+      await request(app).post('/api/v1/auth/refresh').expect(401);
+    });
+
+    it('should return 200 and new accessToken when valid refresh cookie is sent', async () => {
+      // Login to get refresh token cookie
+      (db.query.users.findFirst as Mock).mockResolvedValue(mockUser);
+      const loginResponse = await request(app)
+        .post('/api/v1/auth/login')
         .send({
-          refreshToken: 'some-refresh-token',
+          email: 'test@example.com',
+          password: 'password123',
         })
         .expect(200);
 
+      const cookieHeader = loginResponse.headers['set-cookie'] as string | string[] | undefined;
+      expect(cookieHeader).toBeDefined();
+      // Cookie header must be only name=value (no Path, HttpOnly, etc.)
+      const rawCookies: string[] = Array.isArray(cookieHeader)
+        ? cookieHeader.filter((c): c is string => typeof c === 'string')
+        : cookieHeader
+          ? [cookieHeader]
+          : [];
+      const cookieValue = rawCookies
+        .map((c) => c.split(';')[0]?.trim() ?? '')
+        .filter(Boolean)
+        .join('; ');
+      expect(cookieValue).toBeTruthy();
+
+      const response = await request(app)
+        .post('/api/v1/auth/refresh')
+        .set('Cookie', cookieValue)
+        .expect(200);
+
       expect(response.body.success).toBe(true);
-      expect(response.body.message).toContain('not yet implemented');
+      expect(response.body.data.accessToken).toBeDefined();
+      expect(response.body.data.user.email).toBe('test@example.com');
     });
   });
   // don't no it's realy usefull to have health check in test, use it before register,

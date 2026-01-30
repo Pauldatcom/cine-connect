@@ -2,18 +2,19 @@
  * Tests for AuthContext
  */
 
-import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
-// Mock the auth API and client
+// Mock the auth API and client (AuthContext calls refreshToken on mount, not getCurrentUser)
 vi.mock('@/lib/api/auth', () => ({
   authApi: {
     login: vi.fn(),
     register: vi.fn(),
     logout: vi.fn(),
     getCurrentUser: vi.fn(),
+    refreshToken: vi.fn(),
   },
 }));
 
@@ -35,13 +36,14 @@ vi.mock('@/lib/api/client', () => ({
 }));
 
 import { authApi } from '@/lib/api/auth';
-import { tokenStorage, ApiError } from '@/lib/api/client';
+import { ApiError, tokenStorage } from '@/lib/api/client';
 
 const mockAuthApi = authApi as unknown as {
   login: Mock;
   register: Mock;
   logout: Mock;
   getCurrentUser: Mock;
+  refreshToken: Mock;
 };
 
 const mockTokenStorage = tokenStorage as unknown as {
@@ -72,37 +74,40 @@ function TestComponent() {
   );
 }
 
+const mockUser = {
+  id: '1',
+  email: 'test@test.com',
+  username: 'testuser',
+  avatarUrl: null,
+  createdAt: '2024-01-01',
+  updatedAt: '2024-01-01',
+};
+
 describe('AuthContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockTokenStorage.hasTokens.mockReturnValue(false);
+    // AuthContext calls refreshToken() on mount; default = no session
+    mockAuthApi.refreshToken.mockRejectedValue(new Error('No session'));
   });
 
   describe('initial state', () => {
     it('shows loading state initially', async () => {
-      mockTokenStorage.hasTokens.mockReturnValue(false);
-
       render(
         <AuthProvider>
           <TestComponent />
         </AuthProvider>
       );
 
-      // Should show ready when no tokens (quick path)
       await waitFor(() => {
         expect(screen.getByTestId('loading')).toHaveTextContent('ready');
       });
     });
 
-    it('loads user when tokens exist', async () => {
-      mockTokenStorage.hasTokens.mockReturnValue(true);
-      mockAuthApi.getCurrentUser.mockResolvedValueOnce({
-        id: '1',
-        email: 'test@test.com',
-        username: 'testuser',
-        avatarUrl: null,
-        createdAt: '2024-01-01',
-        updatedAt: '2024-01-01',
+    it('loads user when refreshToken succeeds (session from cookie)', async () => {
+      mockAuthApi.refreshToken.mockResolvedValueOnce({
+        user: mockUser,
+        accessToken: 'x',
       });
 
       render(
@@ -118,9 +123,8 @@ describe('AuthContext', () => {
       });
     });
 
-    it('clears tokens when getCurrentUser fails', async () => {
-      mockTokenStorage.hasTokens.mockReturnValue(true);
-      mockAuthApi.getCurrentUser.mockRejectedValueOnce(new Error('Token expired'));
+    it('clears tokens when refreshToken fails', async () => {
+      mockAuthApi.refreshToken.mockRejectedValueOnce(new Error('Token expired'));
 
       render(
         <AuthProvider>
@@ -328,15 +332,11 @@ describe('AuthContext', () => {
   describe('logout', () => {
     it('clears user state on logout', async () => {
       const user = userEvent.setup();
-      mockTokenStorage.hasTokens.mockReturnValue(true);
-      mockAuthApi.getCurrentUser.mockResolvedValueOnce({
-        id: '1',
-        email: 'test@test.com',
-        username: 'testuser',
-        avatarUrl: null,
-        createdAt: '2024-01-01',
-        updatedAt: '2024-01-01',
+      mockAuthApi.refreshToken.mockResolvedValueOnce({
+        user: mockUser,
+        accessToken: 'x',
       });
+      mockAuthApi.logout.mockResolvedValueOnce(undefined);
 
       render(
         <AuthProvider>
@@ -350,8 +350,10 @@ describe('AuthContext', () => {
 
       await user.click(screen.getByRole('button', { name: 'Logout' }));
 
-      expect(screen.getByTestId('authenticated')).toHaveTextContent('no');
-      expect(screen.getByTestId('user')).toHaveTextContent('none');
+      await waitFor(() => {
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('no');
+        expect(screen.getByTestId('user')).toHaveTextContent('none');
+      });
       expect(mockAuthApi.logout).toHaveBeenCalled();
     });
   });

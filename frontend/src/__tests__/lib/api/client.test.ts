@@ -2,16 +2,8 @@
  * Tests for API Client
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
-import { api, tokenStorage, ApiError } from '@/lib/api/client';
-
-// Get the mocked localStorage from setup.ts
-const mockLocalStorage = window.localStorage as unknown as {
-  getItem: Mock;
-  setItem: Mock;
-  removeItem: Mock;
-  clear: Mock;
-};
+import { api, ApiError, tokenStorage } from '@/lib/api/client';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -19,65 +11,57 @@ global.fetch = mockFetch;
 
 describe('tokenStorage', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    tokenStorage.clearTokens();
   });
 
   describe('getAccessToken', () => {
     it('returns null when no token is stored', () => {
-      mockLocalStorage.getItem.mockReturnValue(null);
       expect(tokenStorage.getAccessToken()).toBeNull();
     });
 
-    it('returns the stored access token', () => {
-      mockLocalStorage.getItem.mockReturnValue('test-token');
+    it('returns the stored access token after setAccessToken', () => {
+      tokenStorage.setAccessToken('test-token');
       expect(tokenStorage.getAccessToken()).toBe('test-token');
-      expect(mockLocalStorage.getItem).toHaveBeenCalledWith('cineconnect_access_token');
+    });
+  });
+
+  describe('setAccessToken', () => {
+    it('stores the access token', () => {
+      tokenStorage.setAccessToken('access-123');
+      expect(tokenStorage.getAccessToken()).toBe('access-123');
+    });
+  });
+
+  describe('setTokens (legacy)', () => {
+    it('stores access token (refresh ignored, now in cookie)', () => {
+      tokenStorage.setTokens('access-123', 'refresh-456');
+      expect(tokenStorage.getAccessToken()).toBe('access-123');
+      expect(tokenStorage.getRefreshToken()).toBeNull();
     });
   });
 
   describe('getRefreshToken', () => {
-    it('returns null when no token is stored', () => {
-      mockLocalStorage.getItem.mockReturnValue(null);
+    it('returns null (refresh token is in httpOnly cookie)', () => {
       expect(tokenStorage.getRefreshToken()).toBeNull();
-    });
-
-    it('returns the stored refresh token', () => {
-      mockLocalStorage.getItem.mockReturnValue('refresh-token');
-      expect(tokenStorage.getRefreshToken()).toBe('refresh-token');
-      expect(mockLocalStorage.getItem).toHaveBeenCalledWith('cineconnect_refresh_token');
-    });
-  });
-
-  describe('setTokens', () => {
-    it('stores both access and refresh tokens', () => {
-      tokenStorage.setTokens('access-123', 'refresh-456');
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
-        'cineconnect_access_token',
-        'access-123'
-      );
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
-        'cineconnect_refresh_token',
-        'refresh-456'
-      );
     });
   });
 
   describe('clearTokens', () => {
-    it('removes both tokens from storage', () => {
+    it('removes access token', () => {
+      tokenStorage.setAccessToken('x');
       tokenStorage.clearTokens();
-      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith('cineconnect_access_token');
-      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith('cineconnect_refresh_token');
+      expect(tokenStorage.getAccessToken()).toBeNull();
+      expect(tokenStorage.hasTokens()).toBe(false);
     });
   });
 
   describe('hasTokens', () => {
-    it('returns false when no tokens are stored', () => {
-      mockLocalStorage.getItem.mockReturnValue(null);
+    it('returns false when no token is stored', () => {
       expect(tokenStorage.hasTokens()).toBe(false);
     });
 
     it('returns true when access token is stored', () => {
-      mockLocalStorage.getItem.mockReturnValue('test-token');
+      tokenStorage.setAccessToken('test-token');
       expect(tokenStorage.hasTokens()).toBe(true);
     });
   });
@@ -101,16 +85,16 @@ describe('ApiError', () => {
 describe('api', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockLocalStorage.getItem.mockReturnValue(null);
+    tokenStorage.clearTokens();
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    tokenStorage.clearTokens();
   });
 
   describe('request with authentication', () => {
     it('adds Authorization header when token exists', async () => {
-      mockLocalStorage.getItem.mockReturnValue('my-access-token');
+      tokenStorage.setAccessToken('my-access-token');
       mockFetch.mockResolvedValueOnce({
         ok: true,
         headers: new Headers({ 'content-type': 'application/json' }),
@@ -130,7 +114,7 @@ describe('api', () => {
     });
 
     it('skips auth header when skipAuth is true', async () => {
-      mockLocalStorage.getItem.mockReturnValue('my-access-token');
+      tokenStorage.setAccessToken('my-access-token');
       mockFetch.mockResolvedValueOnce({
         ok: true,
         headers: new Headers({ 'content-type': 'application/json' }),
@@ -141,11 +125,10 @@ describe('api', () => {
 
       const callArgs = mockFetch.mock.calls[0] as [string, RequestInit];
       const headers = callArgs[1].headers as Record<string, string>;
-      expect(headers['Authorization']).toBeUndefined();
+      expect(headers?.Authorization).toBeUndefined();
     });
 
     it('does not add auth header when no token exists', async () => {
-      mockLocalStorage.getItem.mockReturnValue(null);
       mockFetch.mockResolvedValueOnce({
         ok: true,
         headers: new Headers({ 'content-type': 'application/json' }),
@@ -156,7 +139,7 @@ describe('api', () => {
 
       const callArgs = mockFetch.mock.calls[0] as [string, RequestInit];
       const headers = callArgs[1].headers as Record<string, string>;
-      expect(headers['Authorization']).toBeUndefined();
+      expect(headers?.Authorization).toBeUndefined();
     });
   });
 

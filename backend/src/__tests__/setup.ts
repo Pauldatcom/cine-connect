@@ -6,7 +6,16 @@
 // IMPORTANT: reflect-metadata must be imported before anything that uses tsyringe
 import 'reflect-metadata';
 
-import { beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
+
+// Mock bcryptjs so Vite never loads the real module (avoids pnpm resolution issues).
+// Use plain functions so vi.resetAllMocks() / clearAllMocks() don't wipe the implementation.
+vi.mock('bcryptjs', () => ({
+  default: {
+    hash: (plain: string) => Promise.resolve('mock_hash_' + plain),
+    compare: (plain: string, hash: string) => Promise.resolve(hash === 'mock_hash_' + plain),
+  },
+}));
 
 // Set test environment variables BEFORE any imports that might use them
 process.env.NODE_ENV = 'test';
