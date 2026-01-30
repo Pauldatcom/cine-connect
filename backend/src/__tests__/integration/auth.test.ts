@@ -292,9 +292,13 @@ describe('Auth Routes', () => {
       const cookieHeader = loginResponse.headers['set-cookie'] as string | string[] | undefined;
       expect(cookieHeader).toBeDefined();
       // Cookie header must be only name=value (no Path, HttpOnly, etc.)
-      const rawCookies = Array.isArray(cookieHeader) ? cookieHeader : [cookieHeader];
+      const rawCookies: string[] = Array.isArray(cookieHeader)
+        ? cookieHeader.filter((c): c is string => typeof c === 'string')
+        : cookieHeader
+          ? [cookieHeader]
+          : [];
       const cookieValue = rawCookies
-        .map((c: string) => c.split(';')[0].trim())
+        .map((c) => c.split(';')[0]?.trim() ?? '')
         .filter(Boolean)
         .join('; ');
       expect(cookieValue).toBeTruthy();
