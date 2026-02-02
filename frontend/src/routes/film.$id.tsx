@@ -9,10 +9,13 @@ import {
   useFilmCredits,
   useFilmReviews,
   useFilmVideos,
+  useIsInWatchlist,
   useLikeReview,
   useRegisterFilm,
   useSimilarFilms,
+  useToggleWatchlist,
   useUpdateReview,
+  useUserFilmReview,
   type Review,
 } from '@/hooks';
 import { getImageUrl } from '@/lib/api/tmdb';
@@ -66,9 +69,11 @@ function FilmDetailPage() {
   // Fetch reviews from our backend using internal UUID
   const { data: reviewsData, isLoading: reviewsLoading } = useFilmReviews(backendFilm?.id);
 
-  // Derive user's existing review from film reviews list (reviews-only branch: no useUserFilmReview)
-  const existingReview = reviewsData?.items?.find((r) => r.userId === user?.id);
-  const hasReviewed = !!existingReview;
+  // Check if user has already reviewed this film
+  const { existingReview, hasReviewed } = useUserFilmReview(
+    isAuthenticated ? user?.id : undefined,
+    backendFilm?.id
+  );
 
   // Create and update review mutations
   const createReviewMutation = useCreateReview(backendFilm?.id);
@@ -76,6 +81,20 @@ function FilmDetailPage() {
 
   // Like review mutation using custom hook
   const likeReviewMutation = useLikeReview(backendFilm?.id);
+
+  // To Watch (watchlist)
+  const { data: watchlistStatus } = useIsInWatchlist(isAuthenticated ? backendFilm?.id : undefined);
+  const { toggleWatchlist, isLoading: watchlistLoading } = useToggleWatchlist();
+  const isInWatchlist = watchlistStatus?.isInWatchlist ?? false;
+
+  const handleToggleWatchlist = async () => {
+    if (!backendFilm?.id || !isAuthenticated) return;
+    try {
+      await toggleWatchlist(backendFilm.id, isInWatchlist);
+    } catch (error) {
+      console.error('[Watchlist] Failed to toggle:', error);
+    }
+  };
 
   const handleSubmitReview = (data: { rating: number; comment: string }) => {
     if (!backendFilm?.id) {
@@ -255,6 +274,19 @@ function FilmDetailPage() {
                     </div>
                   </a>
                 )}
+              </div>
+
+              {/* To Watch (watchlist) */}
+              <div className="mx-auto mt-6 max-w-[288px] lg:mx-0">
+                <ActionButton
+                  icon={<List className="h-5 w-5" />}
+                  label={watchlistLoading ? '...' : isInWatchlist ? 'In list' : 'To Watch'}
+                  active={isInWatchlist}
+                  activeColor="text-letterboxd-blue"
+                  onClick={handleToggleWatchlist}
+                  disabled={watchlistLoading || !isAuthenticated || !backendFilm?.id}
+                  dataTestId="watchlist-button"
+                />
               </div>
 
               {/* Rate this film */}
@@ -632,6 +664,41 @@ function FilmDetailPage() {
         )}
       </section>
     </div>
+  );
+}
+
+function ActionButton({
+  icon,
+  label,
+  active,
+  activeColor,
+  onClick,
+  disabled,
+  dataTestId,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  active: boolean;
+  activeColor: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  dataTestId?: string;
+}) {
+  return (
+    <button
+      data-testid={dataTestId}
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex flex-col items-center gap-1.5 rounded-lg px-2 py-3 transition-colors ${
+        active
+          ? `bg-bg-tertiary ${activeColor}`
+          : 'bg-bg-secondary hover:bg-bg-tertiary text-text-secondary hover:text-text-primary'
+      } ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
+      title={label}
+    >
+      {icon}
+      <span className="text-xs font-medium">{label}</span>
+    </button>
   );
 }
 
