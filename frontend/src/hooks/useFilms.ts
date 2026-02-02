@@ -5,25 +5,26 @@
  * TMDb API and our backend.
  */
 
-import { useQuery } from '@tanstack/react-query';
-import {
-  getMovieDetails,
-  getMovieCredits,
-  getMovieVideos,
-  getSimilarMovies,
-  getPopular,
-  searchMovies,
-  getTrending,
-  getTopRated,
-  getUpcoming,
-  getNowPlaying,
-  getMoviesByGenre,
-  type TMDbMovieDetails,
-  type TMDbCredits,
-  type TMDbVideo,
-  type TMDbSearchResponse,
-} from '@/lib/api/tmdb';
 import { registerFilm, type BackendFilm } from '@/lib/api/films';
+import {
+  getMovieCredits,
+  getMovieDetails,
+  getMoviesByGenre,
+  getMovieVideos,
+  getNowPlaying,
+  getPopular,
+  getSimilarMovies,
+  getTopRated,
+  getTrending,
+  getUpcoming,
+  searchMovies,
+  type TMDbCredits,
+  type TMDbMovie,
+  type TMDbMovieDetails,
+  type TMDbSearchResponse,
+  type TMDbVideo,
+} from '@/lib/api/tmdb';
+import { useQuery } from '@tanstack/react-query';
 
 /**
  * Fetch film details from TMDb
@@ -70,22 +71,32 @@ export function useSimilarFilms(tmdbId: string | number, enabled = true) {
 }
 
 /**
+ * Film type accepted by useRegisterFilm (list item or full details).
+ * Accepts TMDbMovie (e.g. from trending) or TMDbMovieDetails (from film detail).
+ */
+export type TMDbFilmForRegister = TMDbMovie | TMDbMovieDetails;
+
+/**
  * Register a film in our backend (get or create)
  * Returns the internal UUID for use with reviews
  */
-export function useRegisterFilm(film: TMDbMovieDetails | undefined, enabled = true) {
+export function useRegisterFilm(film: TMDbFilmForRegister | undefined, enabled = true) {
   return useQuery({
     queryKey: ['backend-film', film?.id],
     queryFn: () => {
       if (!film) throw new Error('Film is required');
+      const details = film as TMDbMovieDetails;
       return registerFilm({
         tmdbId: film.id,
         title: film.title,
         year: film.release_date?.split('-')[0] ?? null,
         poster: film.poster_path ?? null,
         plot: film.overview ?? null,
-        genre: film.genres?.map((g) => g.name).join(', ') ?? null,
-        runtime: film.runtime ? `${film.runtime} min` : null,
+        genre:
+          'genres' in details && details.genres
+            ? details.genres.map((g) => g.name).join(', ')
+            : null,
+        runtime: 'runtime' in details && details.runtime ? `${details.runtime} min` : null,
       });
     },
     enabled: enabled && !!film,
@@ -167,4 +178,4 @@ export function useFilmsByGenre(genreId: number, page = 1) {
 }
 
 // Type exports for convenience
-export type { TMDbMovieDetails, TMDbCredits, TMDbVideo, TMDbSearchResponse, BackendFilm };
+export type { BackendFilm, TMDbCredits, TMDbMovieDetails, TMDbSearchResponse, TMDbVideo };
