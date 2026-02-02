@@ -5,8 +5,8 @@
  * They provide access to conversations and message history.
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api/client';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 // Types for chat messages and conversations
 export interface ChatMessage {
@@ -32,11 +32,6 @@ export interface Conversation {
 }
 
 // Backend response types
-interface ConversationsApiResponse {
-  success: boolean;
-  data: Conversation[];
-}
-
 interface MessagesApiResponse {
   success: boolean;
   data: {
@@ -58,8 +53,8 @@ export function useConversations() {
   return useQuery({
     queryKey: ['conversations'],
     queryFn: async () => {
-      const response = await api.get<ConversationsApiResponse>('/api/v1/messages');
-      return response.data;
+      const data = await api.get<Conversation[]>('/api/v1/messages');
+      return data ?? [];
     },
   });
 }

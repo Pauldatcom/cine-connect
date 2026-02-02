@@ -78,7 +78,7 @@ describe('useConversations hooks', () => {
 
   describe('useConversations', () => {
     it('should fetch conversations', async () => {
-      mockApi.get.mockResolvedValue({ success: true, data: [mockConversation] });
+      mockApi.get.mockResolvedValue([mockConversation]);
 
       const { result } = renderHook(() => useConversations(), { wrapper: createWrapper() });
 
@@ -86,6 +86,16 @@ describe('useConversations hooks', () => {
 
       expect(mockApi.get).toHaveBeenCalledWith('/api/v1/messages');
       expect(result.current.data).toEqual([mockConversation]);
+    });
+
+    it('should return empty array when API returns undefined', async () => {
+      mockApi.get.mockResolvedValue(undefined);
+
+      const { result } = renderHook(() => useConversations(), { wrapper: createWrapper() });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(result.current.data).toEqual([]);
     });
   });
 
