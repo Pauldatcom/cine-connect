@@ -1,18 +1,19 @@
-import { createFileRoute, useSearch } from '@tanstack/react-router';
+import { useAuth } from '@/contexts/AuthContext';
+import { useUserReviews, useWatchlist } from '@/hooks';
+import { createFileRoute, Link, useSearch } from '@tanstack/react-router';
 import {
-  User,
-  Mail,
-  Film,
-  Star,
-  Settings,
-  LogOut,
+  AlertCircle,
   Eye,
+  Film,
   Heart,
   Loader2,
-  AlertCircle,
+  LogOut,
+  Mail,
+  Settings,
+  Star,
+  User,
 } from 'lucide-react';
-import { useState, useEffect, type FormEvent } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useEffect, useState, type FormEvent } from 'react';
 import { z } from 'zod';
 
 // Search params schema
@@ -252,12 +253,21 @@ function AuthForm() {
 function ProfileView() {
   const { user, logout } = useAuth();
 
+  // Fetch user's reviews and watchlist
+  const { data: userReviews, isLoading: reviewsLoading } = useUserReviews(user?.id);
+  const { data: watchlistData, isLoading: watchlistLoading } = useWatchlist();
+
   if (!user) return null;
 
   const memberSince = new Date(user.createdAt).toLocaleDateString('en-US', {
     month: 'long',
     year: 'numeric',
   });
+
+  // Calculate stats from real data
+  const reviewsCount = userReviews?.length ?? 0;
+  const watchlistCount = watchlistData?.count ?? 0;
+  const isLoading = reviewsLoading || watchlistLoading;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -294,29 +304,113 @@ function ProfileView() {
 
       {/* Stats */}
       <div className="mt-6 grid gap-4 sm:grid-cols-4">
-        <StatCard icon={<Film className="h-5 w-5" />} label="Films" value="0" color="green" />
+        <StatCard
+          icon={<Film className="h-5 w-5" />}
+          label="Watchlist"
+          value={isLoading ? '...' : String(watchlistCount)}
+          color="green"
+        />
         <StatCard icon={<Eye className="h-5 w-5" />} label="This Year" value="0" color="blue" />
         <StatCard icon={<Heart className="h-5 w-5" />} label="Liked" value="0" color="orange" />
-        <StatCard icon={<Star className="h-5 w-5" />} label="Reviews" value="0" color="green" />
+        <StatCard
+          icon={<Star className="h-5 w-5" />}
+          label="Reviews"
+          value={isLoading ? '...' : String(reviewsCount)}
+          color="green"
+        />
       </div>
 
-      {/* Recent Activity */}
+      {/* Recent Reviews */}
       <div className="card mt-6">
-        <h2 className="section-header mb-4">Recent Activity</h2>
-        <div className="text-text-tertiary py-8 text-center">
-          Your recent film activity will appear here
-        </div>
+        <h2 className="section-header mb-4">Recent Reviews</h2>
+        {reviewsLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="text-letterboxd-green h-6 w-6 animate-spin" />
+          </div>
+        ) : userReviews && userReviews.length > 0 ? (
+          <div className="space-y-4">
+            {userReviews.slice(0, 3).map((review) => {
+              const content = (
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-letterboxd-green font-bold">{review.rating}/10</span>
+                    <Star className="text-letterboxd-green h-4 w-4 fill-current" />
+                  </div>
+                  {review.film && (
+                    <p className="text-letterboxd-green mt-1 font-medium">{review.film.title}</p>
+                  )}
+                  {review.comment && (
+                    <p className="text-text-secondary mt-2 line-clamp-2">{review.comment}</p>
+                  )}
+                  <p className="text-text-tertiary mt-2 text-xs">
+                    {new Date(review.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              );
+              const filmTmdbId = review.film?.tmdbId;
+              return (filmTmdbId ?? null) !== null ? (
+                <Link
+                  key={review.id}
+                  to="/film/$id"
+                  params={{ id: String(filmTmdbId) }}
+                  className="bg-bg-tertiary block flex items-start gap-4 rounded-lg p-4 transition-opacity hover:opacity-90"
+                >
+                  {content}
+                </Link>
+              ) : (
+                <div
+                  key={review.id}
+                  className="bg-bg-tertiary flex items-start gap-4 rounded-lg p-4"
+                >
+                  {content}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-text-tertiary py-8 text-center">
+            You haven&apos;t written any reviews yet
+          </div>
+        )}
       </div>
 
-      {/* Favorite Films */}
-      <div className="card mt-6">
-        <h2 className="section-header mb-4">Favorite Films</h2>
-        <div className="grid grid-cols-4 gap-2">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="aspect-poster bg-bg-tertiary rounded" />
-          ))}
-        </div>
-        <p className="text-text-tertiary mt-4 text-center text-sm">Add your four favorite films</p>
+      {/* Watchlist Preview */}
+      <div className="card mt-6" data-testid="profile-watchlist">
+        <h2 className="section-header mb-4">Your Watchlist</h2>
+        {watchlistLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="text-letterboxd-green h-6 w-6 animate-spin" />
+          </div>
+        ) : watchlistData && watchlistData.items.length > 0 ? (
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+            {watchlistData.items.slice(0, 6).map((item) => (
+              <Link
+                key={item.id}
+                to="/film/$id"
+                params={{ id: String(item.film.tmdbId) }}
+                className="aspect-poster bg-bg-tertiary block overflow-hidden rounded transition-opacity hover:opacity-90"
+                data-testid="profile-watchlist-item"
+                title={item.film.title}
+              >
+                {item.film.poster ? (
+                  <img
+                    src={`https://image.tmdb.org/t/p/w200${item.film.poster}`}
+                    alt={item.film.title}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="text-text-tertiary flex h-full items-center justify-center text-xs">
+                    {item.film.title}
+                  </div>
+                )}
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="text-text-tertiary py-8 text-center">
+            Your watchlist is empty. Add some films!
+          </div>
+        )}
       </div>
 
       {/* Logout */}

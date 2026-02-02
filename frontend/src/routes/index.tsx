@@ -1,17 +1,19 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
-import { Star, TrendingUp, Clock, Sparkles, Film, Users, ArrowRight } from 'lucide-react';
-import {
-  getTrending,
-  getPopular,
-  getNowPlaying,
-  getTopRated,
-  getImageUrl,
-  type TMDbMovie,
-} from '@/lib/api/tmdb';
 import { FilmPoster } from '@/components/features/FilmPoster';
 import { FilmStrip } from '@/components/ui/FilmStrip';
 import { StarRatingDisplay } from '@/components/ui/StarRating';
+import { useAuth } from '@/contexts/AuthContext';
+import { useIsInWatchlist, useRegisterFilm, useToggleWatchlist } from '@/hooks';
+import {
+  getImageUrl,
+  getNowPlaying,
+  getPopular,
+  getTopRated,
+  getTrending,
+  type TMDbMovie,
+} from '@/lib/api/tmdb';
+import { useQuery } from '@tanstack/react-query';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { ArrowRight, Clock, Film, Sparkles, Star, TrendingUp, Users } from 'lucide-react';
 
 /**
  * Home page - Letterboxd-inspired design with hero, sections, and film strip
@@ -101,6 +103,21 @@ function HomePage() {
 }
 
 function HeroSection({ film }: { film: TMDbMovie }) {
+  const { isAuthenticated } = useAuth();
+  const { data: backendFilm } = useRegisterFilm(film, !!film);
+  const { data: watchlistStatus } = useIsInWatchlist(isAuthenticated ? backendFilm?.id : undefined);
+  const { toggleWatchlist, isLoading: watchlistLoading } = useToggleWatchlist();
+  const isInWatchlist = watchlistStatus?.isInWatchlist ?? false;
+
+  const handleToggleWatchlist = async () => {
+    if (!backendFilm?.id || !isAuthenticated) return;
+    try {
+      await toggleWatchlist(backendFilm.id, isInWatchlist);
+    } catch (err) {
+      console.error('[Watchlist] Failed to toggle:', err);
+    }
+  };
+
   return (
     <section className="relative h-[75vh] min-h-[550px] overflow-hidden">
       {/* Backdrop Image */}
@@ -172,7 +189,15 @@ function HeroSection({ film }: { film: TMDbMovie }) {
                 View Details
                 <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
-              <button className="btn-secondary px-6 py-3 text-base">Add to Watchlist</button>
+              <button
+                type="button"
+                onClick={handleToggleWatchlist}
+                disabled={watchlistLoading || !isAuthenticated || !backendFilm?.id}
+                className="btn-secondary px-6 py-3 text-base"
+                data-testid="watchlist-button"
+              >
+                {watchlistLoading ? '...' : isInWatchlist ? 'In list' : 'To Watch'}
+              </button>
             </div>
           </div>
         </div>
@@ -182,6 +207,8 @@ function HeroSection({ film }: { film: TMDbMovie }) {
 }
 
 function WelcomeSection() {
+  const { isAuthenticated, user } = useAuth();
+
   return (
     <section className="from-bg-primary to-bg-secondary bg-gradient-to-b py-16">
       <div className="mx-auto max-w-4xl px-4 text-center">
@@ -197,21 +224,43 @@ function WelcomeSection() {
           </div>
         </div>
         <h2 className="font-display text-text-primary mb-4 text-3xl font-bold md:text-4xl">
-          Track films you&apos;ve watched.
-          <br />
-          <span className="text-letterboxd-green">Tell your friends what&apos;s good.</span>
+          {isAuthenticated ? (
+            <>
+              Welcome back, <span className="text-letterboxd-green">{user?.username}</span>!
+            </>
+          ) : (
+            <>
+              Track films you&apos;ve watched.
+              <br />
+              <span className="text-letterboxd-green">Tell your friends what&apos;s good.</span>
+            </>
+          )}
         </h2>
         <p className="text-text-secondary mx-auto max-w-2xl text-lg">
-          The social network for film lovers. Rate, review, and discover your next favorite movie
-          with friends.
+          {isAuthenticated
+            ? 'Ready to discover your next favorite film? Browse our collection or check what your friends are watching.'
+            : 'The social network for film lovers. Rate, review, and discover your next favorite movie with friends.'}
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-4">
-          <Link to="/profil" className="btn-primary px-8 py-3 text-base">
-            Get Started — It&apos;s Free
-          </Link>
-          <Link to="/films" className="btn-ghost px-8 py-3 text-base">
-            Browse Films
-          </Link>
+          {isAuthenticated ? (
+            <>
+              <Link to="/films" className="btn-primary px-8 py-3 text-base">
+                Browse Films
+              </Link>
+              <Link to="/lists" className="btn-ghost px-8 py-3 text-base">
+                My Watchlist
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link to="/profil" className="btn-primary px-8 py-3 text-base">
+                Get Started — It&apos;s Free
+              </Link>
+              <Link to="/films" className="btn-ghost px-8 py-3 text-base">
+                Browse Films
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </section>
@@ -261,6 +310,32 @@ function FilmSection({
 }
 
 function BottomCTA() {
+  const { isAuthenticated } = useAuth();
+
+  // Don't show signup CTA to authenticated users
+  if (isAuthenticated) {
+    return (
+      <section className="bg-bg-secondary border-border border-t py-20">
+        <div className="mx-auto max-w-4xl px-4 text-center">
+          <h2 className="font-display text-text-primary mb-4 text-3xl font-bold">
+            Keep exploring!
+          </h2>
+          <p className="text-text-secondary mx-auto mb-8 max-w-lg">
+            Discover new films, share your reviews, and connect with fellow film enthusiasts.
+          </p>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Link to="/films" className="btn-primary px-10 py-4 text-lg">
+              Browse Films
+            </Link>
+            <Link to="/discussion" className="btn-secondary px-10 py-4 text-lg">
+              Join Discussion
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="bg-bg-secondary border-border border-t py-20">
       <div className="mx-auto max-w-4xl px-4 text-center">
