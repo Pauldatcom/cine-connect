@@ -4,7 +4,7 @@
  * Tests real-time messaging, online status, and typing indicators.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 // Helper to register and login a test user
 async function registerAndLogin(page: import('@playwright/test').Page, suffix: string = '') {
@@ -71,6 +71,26 @@ test.describe('Chat/Discussion', () => {
 
       // New user should see placeholder message
       await expect(page.getByText(/Select a conversation/i)).toBeVisible();
+    });
+
+    test('should load conversations without undefined error', async ({ page }) => {
+      await registerAndLogin(page);
+
+      await page.goto('/discussion');
+
+      // Wait for conversations API to be called (useConversations fix: data must not be undefined)
+      await page
+        .waitForResponse(
+          (res) => res.url().includes('/api/v1/messages') && res.request().method() === 'GET',
+          { timeout: 15000 }
+        )
+        .catch(() => {});
+
+      await page.waitForTimeout(500);
+
+      // Page should show Messages UI, not crash with "undefined" or "null"
+      await expect(page.getByRole('heading', { name: 'Messages', exact: true })).toBeVisible();
+      await expect(page.getByText(/undefined|Query data cannot be undefined/i)).not.toBeVisible();
     });
   });
 

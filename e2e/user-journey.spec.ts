@@ -50,6 +50,23 @@ test.describe('Complete User Journey', () => {
     });
 
     // ========================================
+    // STEP 2b: Homepage featured film "Add to Watchlist"
+    // ========================================
+    await test.step('Add featured film to watchlist from homepage', async () => {
+      await page.goto('/');
+      await page.waitForSelector('img', { timeout: 10000 });
+
+      const watchlistButton = page.getByTestId('watchlist-button');
+      await expect(watchlistButton).toBeVisible({ timeout: 10000 });
+      await expect(watchlistButton).toBeEnabled({ timeout: 15000 });
+      await expect(watchlistButton).toContainText(/To Watch|In list/);
+      if ((await watchlistButton.textContent())?.includes('To Watch')) {
+        await watchlistButton.click();
+        await expect(watchlistButton.getByText('In list')).toBeVisible({ timeout: 10000 });
+      }
+    });
+
+    // ========================================
     // STEP 3: Browse films
     // ========================================
     await test.step('Browse films catalog', async () => {
@@ -95,8 +112,8 @@ test.describe('Complete User Journey', () => {
     await test.step('View lists page', async () => {
       await page.goto('/lists');
 
-      // Should show lists page heading
-      await expect(page.getByRole('heading', { name: 'Lists' })).toBeVisible();
+      // Page shows "My Watchlist" or "Username's Watchlist", not "Lists"
+      await expect(page.getByRole('heading', { name: /Watchlist/i })).toBeVisible();
     });
 
     // ========================================

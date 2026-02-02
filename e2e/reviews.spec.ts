@@ -4,7 +4,7 @@
  * Tests review creation, editing, deletion, likes, and comments.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 // Helper to register and login a test user
 async function registerAndLogin(page: import('@playwright/test').Page) {
@@ -55,6 +55,18 @@ test.describe('Reviews', () => {
       // Should have a reviews or rating section
       const reviewSection = page.getByText(/reviews|ratings|rate this film/i).first();
       await expect(reviewSection).toBeVisible();
+    });
+
+    test('should navigate to film when clicking review card film link', async ({ page }) => {
+      await page.goto('/film/550');
+      await page.waitForSelector('h1', { timeout: 10000 });
+
+      const reviewCardFilmLink = page.locator('a[href*="/film/550"]').first();
+      if (await reviewCardFilmLink.isVisible()) {
+        await reviewCardFilmLink.click();
+        await expect(page).toHaveURL(/\/film\/550/);
+        await expect(page.locator('h1')).toContainText(/Fight Club/i);
+      }
     });
   });
 
