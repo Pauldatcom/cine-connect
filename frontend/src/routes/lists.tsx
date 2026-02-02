@@ -1,84 +1,71 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { List, Plus, Heart, MessageSquare, User, Clock, TrendingUp, Search } from 'lucide-react';
-import { getPopular, getImageUrl, type TMDbMovie } from '@/lib/api/tmdb';
 import { FilmStrip } from '@/components/ui/FilmStrip';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRemoveFromWatchlist, useWatchlist, type WatchlistItem } from '@/hooks';
+import { getImageUrl } from '@/lib/api/tmdb';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { Bookmark, Clock, Film, Loader2, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
 /**
- * Lists page - Browse and create film lists (Letterboxd style)
+ * Lists/Watchlist page - User's personal watchlist
  */
 export const Route = createFileRoute('/lists')({
   component: ListsPage,
 });
 
-// Mock data for lists (will be replaced with real API data)
-const MOCK_LISTS = [
-  {
-    id: '1',
-    title: 'Best Films of 2024',
-    description: 'My top picks from this year so far. Updated monthly.',
-    user: { id: '1', name: 'FilmBuff42', avatar: null },
-    filmCount: 25,
-    likes: 142,
-    comments: 18,
-    updatedAt: '2 days ago',
-    films: [] as TMDbMovie[],
-  },
-  {
-    id: '2',
-    title: 'Essential Sci-Fi Classics',
-    description: 'The most influential science fiction films that shaped the genre.',
-    user: { id: '2', name: 'CinemaLover', avatar: null },
-    filmCount: 50,
-    likes: 324,
-    comments: 45,
-    updatedAt: '1 week ago',
-    films: [] as TMDbMovie[],
-  },
-  {
-    id: '3',
-    title: 'Hidden Gems You Missed',
-    description: 'Underrated films that deserve more attention.',
-    user: { id: '3', name: 'MovieNerd', avatar: null },
-    filmCount: 30,
-    likes: 89,
-    comments: 12,
-    updatedAt: '3 days ago',
-    films: [] as TMDbMovie[],
-  },
-  {
-    id: '4',
-    title: 'Perfect Date Night Movies',
-    description: 'Romantic films that are actually good.',
-    user: { id: '4', name: 'DateNightPicks', avatar: null },
-    filmCount: 40,
-    likes: 256,
-    comments: 33,
-    updatedAt: '5 days ago',
-    films: [] as TMDbMovie[],
-  },
-];
-
 function ListsPage() {
-  const [view, setView] = useState<'popular' | 'recent' | 'friends'>('popular');
-  const [searchQuery, setSearchQuery] = useState('');
+  const { isAuthenticated, user } = useAuth();
 
-  // Get films to populate list previews
-  const { data: popularFilms } = useQuery({
-    queryKey: ['movies', 'popular'],
-    queryFn: () => getPopular(),
+  if (!isAuthenticated) {
+    return <UnauthenticatedView />;
+  }
+
+  return <WatchlistView username={user?.username} />;
+}
+
+function UnauthenticatedView() {
+  return (
+    <div className="animate-fade-in">
+      <FilmStrip height="md" />
+
+      <div className="mx-auto max-w-4xl px-4 py-16 text-center">
+        <div className="bg-bg-secondary mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full">
+          <Bookmark className="text-letterboxd-green h-10 w-10" />
+        </div>
+        <h1 className="font-display text-text-primary mb-4 text-3xl font-bold">Your Watchlist</h1>
+        <p className="text-text-secondary mx-auto mb-8 max-w-lg">
+          Keep track of films you want to watch. Sign in to create your personal watchlist and never
+          forget a film recommendation again.
+        </p>
+        <div className="flex flex-wrap justify-center gap-4">
+          <Link to="/profil" search={{ mode: 'login' }} className="btn-primary px-8 py-3">
+            Sign In
+          </Link>
+          <Link to="/profil" search={{ mode: 'register' }} className="btn-secondary px-8 py-3">
+            Create Account
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WatchlistView({ username }: { username?: string }) {
+  const { data: watchlistData, isLoading, error } = useWatchlist();
+  const [sortBy, setSortBy] = useState<'added' | 'title'>('added');
+
+  const items = watchlistData?.items ?? [];
+
+  // Sort items
+  const sortedItems = [...items].sort((a, b) => {
+    if (sortBy === 'title') {
+      return a.film.title.localeCompare(b.film.title);
+    }
+    return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime();
   });
-
-  // Enrich mock lists with actual film posters
-  const lists = MOCK_LISTS.map((list, index) => ({
-    ...list,
-    films: popularFilms?.results.slice(index * 5, index * 5 + 5) || [],
-  }));
 
   return (
     <div className="animate-fade-in">
-      {/* Film Strip Header */}
       <FilmStrip height="md" />
 
       <div className="mx-auto max-w-7xl px-4 py-8">
@@ -86,155 +73,171 @@ function ListsPage() {
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="font-display text-text-primary flex items-center gap-3 text-3xl font-bold">
-              <List className="text-letterboxd-green h-8 w-8" />
-              Lists
+              <Bookmark className="text-letterboxd-green h-8 w-8" />
+              {username ? `${username}'s Watchlist` : 'My Watchlist'}
             </h1>
-            <p className="text-text-secondary mt-1">Curated collections from the community</p>
-          </div>
-          <button className="btn-primary w-full md:w-auto">
-            <Plus className="h-4 w-4" />
-            New List
-          </button>
-        </div>
-
-        {/* Search & Filters */}
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row">
-          {/* Search */}
-          <div className="relative flex-1">
-            <Search className="text-text-tertiary absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search lists..."
-              className="input pl-10"
-            />
+            <p className="text-text-secondary mt-1">
+              {items.length} {items.length === 1 ? 'film' : 'films'} to watch
+            </p>
           </div>
 
-          {/* View Toggle */}
-          <div className="bg-bg-secondary flex gap-1 rounded p-1">
-            <button
-              onClick={() => setView('popular')}
-              className={`flex items-center gap-2 rounded px-4 py-2 text-sm font-medium transition-colors ${
-                view === 'popular'
-                  ? 'bg-letterboxd-green text-bg-primary'
-                  : 'text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              <TrendingUp className="h-4 w-4" />
-              Popular
-            </button>
-            <button
-              onClick={() => setView('recent')}
-              className={`flex items-center gap-2 rounded px-4 py-2 text-sm font-medium transition-colors ${
-                view === 'recent'
-                  ? 'bg-letterboxd-green text-bg-primary'
-                  : 'text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              <Clock className="h-4 w-4" />
-              Recent
-            </button>
+          {/* Sort Toggle */}
+          {items.length > 1 && (
+            <div className="bg-bg-secondary flex gap-1 rounded p-1">
+              <button
+                onClick={() => setSortBy('added')}
+                className={`flex items-center gap-2 rounded px-4 py-2 text-sm font-medium transition-colors ${
+                  sortBy === 'added'
+                    ? 'bg-letterboxd-green text-bg-primary'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                <Clock className="h-4 w-4" />
+                Recently Added
+              </button>
+              <button
+                onClick={() => setSortBy('title')}
+                className={`flex items-center gap-2 rounded px-4 py-2 text-sm font-medium transition-colors ${
+                  sortBy === 'title'
+                    ? 'bg-letterboxd-green text-bg-primary'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                <Film className="h-4 w-4" />
+                Title
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="text-letterboxd-green h-8 w-8 animate-spin" />
           </div>
-        </div>
+        )}
 
-        {/* Lists Grid */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {lists.map((list) => (
-            <ListCard key={list.id} list={list} />
-          ))}
-        </div>
+        {/* Error State */}
+        {error && (
+          <div className="py-16 text-center">
+            <p className="text-text-secondary">Failed to load watchlist. Please try again.</p>
+          </div>
+        )}
 
-        {/* Load More */}
-        <div className="mt-8 text-center">
-          <button className="btn-secondary">Load More Lists</button>
-        </div>
+        {/* Empty State */}
+        {!isLoading && !error && items.length === 0 && (
+          <div className="py-16 text-center">
+            <div className="bg-bg-secondary mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full">
+              <Bookmark className="text-text-tertiary h-10 w-10" />
+            </div>
+            <h2 className="text-text-primary mb-2 text-xl font-semibold">
+              Your watchlist is empty
+            </h2>
+            <p className="text-text-secondary mx-auto mb-8 max-w-md">
+              Start adding films to your watchlist by clicking the bookmark icon on any film.
+            </p>
+            <Link to="/films" className="btn-primary px-8 py-3">
+              Browse Films
+            </Link>
+          </div>
+        )}
+
+        {/* Watchlist Grid */}
+        {!isLoading && !error && items.length > 0 && (
+          <div
+            className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+            data-testid="watchlist-grid"
+          >
+            {sortedItems.map((item) => (
+              <WatchlistCard key={item.id} item={item} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-interface ListCardProps {
-  list: {
-    id: string;
-    title: string;
-    description: string;
-    user: { id: string; name: string; avatar: string | null };
-    filmCount: number;
-    likes: number;
-    comments: number;
-    updatedAt: string;
-    films: TMDbMovie[];
+function WatchlistCard({ item }: { item: WatchlistItem }) {
+  const removeMutation = useRemoveFromWatchlist();
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleRemove = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    try {
+      await removeMutation.mutateAsync(item.filmId);
+    } catch (error) {
+      console.error('[Watchlist] Failed to remove:', error);
+    }
   };
-}
 
-function ListCard({ list }: ListCardProps) {
+  // Use TMDb image URL format since poster is stored as path
+  const posterUrl = item.film.poster
+    ? `https://image.tmdb.org/t/p/w342${item.film.poster}`
+    : getImageUrl(null, 'poster', 'medium');
+
   return (
-    <div className="card hover:bg-bg-tertiary/30 overflow-hidden p-0 transition-colors">
-      {/* Film Preview Row */}
-      <div className="bg-bg-tertiary relative h-24 overflow-hidden">
-        <div className="absolute inset-0 flex">
-          {list.films.slice(0, 5).map((film) => (
-            <div key={film.id} className="h-full shrink-0" style={{ width: '20%' }}>
-              <img
-                src={getImageUrl(film.poster_path, 'poster', 'small')}
-                alt=""
-                className="h-full w-full object-cover object-top"
-              />
-            </div>
-          ))}
-        </div>
-        <div className="from-bg-secondary absolute inset-0 bg-gradient-to-t via-transparent to-transparent" />
+    <div
+      className="group relative"
+      data-testid="watchlist-card"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <Link
+        to="/film/$id"
+        params={{ id: String(item.film.tmdbId) }}
+        className="block"
+        aria-label={item.film.title}
+      >
+        <div className="bg-bg-tertiary relative aspect-[2/3] overflow-hidden rounded-lg">
+          <img
+            src={posterUrl}
+            alt={item.film.title}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            loading="lazy"
+          />
 
-        {/* Film count badge */}
-        <div className="bg-bg-primary/80 text-text-primary absolute bottom-2 right-2 rounded px-2 py-1 text-xs font-medium">
-          {list.filmCount} films
-        </div>
-      </div>
+          {/* Hover overlay */}
+          <div
+            className={`absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity ${
+              isHovered ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
 
-      {/* Content */}
-      <div className="p-4">
-        {/* User */}
-        <div className="mb-2 flex items-center gap-2">
-          <div className="bg-bg-tertiary flex h-6 w-6 items-center justify-center rounded-full">
-            {list.user.avatar ? (
-              <img
-                src={list.user.avatar}
-                alt=""
-                className="h-full w-full rounded-full object-cover"
-              />
-            ) : (
-              <User className="text-text-tertiary h-3 w-3" />
-            )}
+          {/* Film info on hover */}
+          <div
+            className={`absolute bottom-0 left-0 right-0 p-3 transition-opacity ${
+              isHovered ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            <h3 className="line-clamp-2 text-sm font-semibold text-white">{item.film.title}</h3>
+            {item.film.year && <p className="text-text-secondary mt-1 text-xs">{item.film.year}</p>}
           </div>
-          <span className="text-text-secondary text-sm">{list.user.name}</span>
+
+          {/* Remove button */}
+          <button
+            onClick={handleRemove}
+            disabled={removeMutation.isPending}
+            className={`absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-500/80 text-white transition-all hover:bg-red-600 ${
+              isHovered ? 'opacity-100' : 'opacity-0'
+            }`}
+            title="Remove from Watchlist"
+          >
+            {removeMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
+          </button>
         </div>
+      </Link>
 
-        {/* Title */}
-        <Link to="/lists" className="group">
-          <h3 className="font-display text-text-primary group-hover:text-letterboxd-green text-lg font-semibold transition-colors">
-            {list.title}
-          </h3>
-        </Link>
-
-        {/* Description */}
-        <p className="text-text-tertiary mt-1 line-clamp-2 text-sm">{list.description}</p>
-
-        {/* Stats */}
-        <div className="text-text-tertiary mt-4 flex items-center gap-4 text-sm">
-          <span className="flex items-center gap-1">
-            <Heart className="h-4 w-4" />
-            {list.likes}
-          </span>
-          <span className="flex items-center gap-1">
-            <MessageSquare className="h-4 w-4" />
-            {list.comments}
-          </span>
-          <span className="ml-auto flex items-center gap-1">
-            <Clock className="h-4 w-4" />
-            {list.updatedAt}
-          </span>
-        </div>
+      {/* Title below poster (always visible) */}
+      <div className="mt-2">
+        <h3 className="text-text-primary line-clamp-1 text-sm font-medium">{item.film.title}</h3>
+        {item.film.year && <p className="text-text-tertiary text-xs">{item.film.year}</p>}
       </div>
     </div>
   );

@@ -9,8 +9,8 @@
 export {
   useFilm,
   useFilmCredits,
-  useFilmsByGenre,
   useFilmVideos,
+  useFilmsByGenre,
   useNowPlayingFilms,
   usePopularFilms,
   useRegisterFilm,
@@ -33,6 +33,7 @@ export {
   useReviewComments,
   useReviewLikes,
   useUpdateReview,
+  useUserFilmReview,
   useUserReviews,
 } from './useReviews';
 
@@ -74,5 +75,17 @@ export {
 } from './useConversations';
 
 // Socket/Chat type exports
-export type { SocketContextValue } from './useSocket';
 export type { ChatMessage, Conversation, SendMessageInput } from './useConversations';
+export type { SocketContextValue } from './useSocket';
+
+// Watchlist hooks
+export {
+  useAddToWatchlist,
+  useIsInWatchlist,
+  useRemoveFromWatchlist,
+  useToggleWatchlist,
+  useWatchlist,
+} from './useWatchlist';
+
+// Watchlist type exports
+export type { WatchlistFilm, WatchlistItem } from './useWatchlist';
