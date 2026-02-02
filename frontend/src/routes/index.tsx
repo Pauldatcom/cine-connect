@@ -10,6 +10,7 @@ import {
   getTopRated,
   getTrending,
   type TMDbMovie,
+  type TMDbMovieDetails,
 } from '@/lib/api/tmdb';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
@@ -104,7 +105,7 @@ function HomePage() {
 
 function HeroSection({ film }: { film: TMDbMovie }) {
   const { isAuthenticated } = useAuth();
-  const { data: backendFilm } = useRegisterFilm(film, !!film);
+  const { data: backendFilm } = useRegisterFilm(film as TMDbMovie | TMDbMovieDetails, !!film);
   const { data: watchlistStatus } = useIsInWatchlist(isAuthenticated ? backendFilm?.id : undefined);
   const { toggleWatchlist, isLoading: watchlistLoading } = useToggleWatchlist();
   const isInWatchlist = watchlistStatus?.isInWatchlist ?? false;
