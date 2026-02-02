@@ -9,8 +9,13 @@ import { AuthProvider } from './contexts/AuthContext';
 import { SocketProvider } from './contexts/SocketContext';
 import './styles/globals.css';
 
-// Create a new router instance
-const router = createRouter({ routeTree });
+// Create a new router instance with scroll restoration
+const router = createRouter({
+  routeTree,
+  // Always scroll to top on navigation
+  defaultPreloadStaleTime: 0,
+  scrollRestoration: true,
+});
 
 // Create a client
 const queryClient = new QueryClient({

@@ -37,6 +37,9 @@ playwright-report/
 *.db
 *.sqlite
 
+# Sensitive (do not commit)
+cookies.txt
+
 # Misc
 *.tsbuildinfo
 .turbo/
