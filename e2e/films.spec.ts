@@ -85,15 +85,34 @@ test.describe('Films Discovery', () => {
       await page.goto('/film/550');
       await page.waitForSelector('h1', { timeout: 10000 });
 
-      const similarFilmLink = page.locator('a[href*="/film/"]').last();
+      const similarHeading = page.getByRole('heading', { name: /Similar Films/i });
+      await expect(similarHeading).toBeVisible({ timeout: 10000 });
 
-      if (await similarFilmLink.isVisible()) {
-        const initialUrl = page.url();
-        await similarFilmLink.click();
+      const similarSection = page.locator('section').filter({
+        has: similarHeading,
+      });
+      const similarFilmLink = similarSection.locator('a[href*="/film/"]').first();
+      await expect(similarFilmLink).toBeVisible();
 
-        await page.waitForURL(/\/film\/\d+/, { timeout: 10000 });
+      const initialUrl = page.url();
+      await similarFilmLink.click();
 
-        expect(page.url()).not.toBe(initialUrl);
+      await page.waitForURL(/\/film\/\d+/, { timeout: 10000 });
+      expect(page.url()).not.toBe(initialUrl);
+    });
+
+    test('should show reviews section and review cards link to film', async ({ page }) => {
+      await page.goto('/film/550');
+      await page.waitForSelector('h1', { timeout: 10000 });
+
+      const reviewsHeading = page.getByRole('heading', { name: /reviews/i });
+      await expect(reviewsHeading).toBeVisible({ timeout: 10000 });
+
+      const filmLinkInReviews = page.locator('a[href*="/film/550"]').first();
+      if (await filmLinkInReviews.isVisible()) {
+        await filmLinkInReviews.click();
+        await expect(page).toHaveURL(/\/film\/550/);
+        await expect(page.locator('h1')).toBeVisible();
       }
     });
   });
@@ -129,6 +148,122 @@ test.describe('Films Discovery', () => {
 
         await expect(page.locator('img').first()).toBeVisible();
       }
+    });
+  });
+
+  test.describe('To Watch (watchlist) integration', () => {
+    // Helper to register user
+    async function registerUser(page: import('@playwright/test').Page) {
+      const user = {
+        email: `watchlist-${Date.now()}@cineconnect.test`,
+        username: `wl${Date.now().toString().slice(-8)}`,
+        password: 'WatchlistTest123!',
+      };
+
+      await page.goto('/profil?mode=register');
+      await page.getByLabel('Username').fill(user.username);
+      await page.getByLabel('Email').fill(user.email);
+      await page.getByLabel('Password', { exact: true }).fill(user.password);
+      await page.getByLabel('Confirm Password').fill(user.password);
+      await page.getByRole('button', { name: /Create Account/i }).click();
+
+      await page.waitForTimeout(3000);
+      await expect(page.getByTestId('sign-out-button')).toBeVisible({
+        timeout: 15000,
+      });
+
+      return user;
+    }
+
+    test('should show To Watch button on film detail page', async ({ page }) => {
+      await registerUser(page);
+
+      await page.goto('/film/550');
+      await page.waitForSelector('h1', { timeout: 10000 });
+
+      const toWatchButton = page.getByTestId('watchlist-button');
+      await expect(toWatchButton).toBeVisible();
+      await expect(toWatchButton).toBeEnabled({ timeout: 15000 });
+      await expect(toWatchButton.getByText('To Watch')).toBeVisible();
+    });
+
+    test('should toggle To Watch: add film then show In list', async ({ page }) => {
+      await registerUser(page);
+
+      await page.goto('/film/603'); // The Matrix
+      await page.waitForSelector('h1', { timeout: 10000 });
+
+      const toWatchButton = page.getByTestId('watchlist-button');
+      await expect(toWatchButton).toBeVisible();
+      await expect(toWatchButton.getByText('To Watch')).toBeVisible();
+
+      await toWatchButton.click();
+      await expect(toWatchButton.getByText('In list')).toBeVisible({ timeout: 10000 });
+    });
+
+    test('should show film in lists page after adding via To Watch', async ({ page }) => {
+      await registerUser(page);
+
+      await page.goto('/film/120');
+      await page.waitForSelector('h1', { timeout: 10000 });
+
+      const toWatchButton = page.getByTestId('watchlist-button');
+      await expect(toWatchButton).toBeVisible();
+      await expect(toWatchButton).toBeEnabled({ timeout: 15000 });
+      await toWatchButton.click();
+      await expect(toWatchButton.getByText('In list')).toBeVisible({ timeout: 10000 });
+
+      // Navigate to lists - wait for watchlist API then assert film is in grid
+      await page.goto('/lists');
+      await page.waitForResponse(
+        (res) => res.url().includes('/api/v1/watchlist') && res.request().method() === 'GET',
+        { timeout: 15000 }
+      );
+      await page.waitForTimeout(500);
+
+      await expect(page.getByRole('heading', { name: /Watchlist/i })).toBeVisible();
+      await expect(page.getByTestId('watchlist-grid')).toBeVisible({ timeout: 10000 });
+      // Film card is a link with aria-label = film title
+      await expect(
+        page
+          .getByTestId('watchlist-grid')
+          .getByRole('link', { name: /Lord of the Rings|Fellowship/i })
+      ).toBeVisible({ timeout: 15000 });
+    });
+
+    test('should persist watchlist after reload', async ({ page }) => {
+      await registerUser(page);
+
+      await page.goto('/film/603'); // The Matrix
+      await page.waitForSelector('h1', { timeout: 10000 });
+
+      const toWatchButton = page.getByTestId('watchlist-button');
+      await expect(toWatchButton).toBeVisible();
+      await expect(toWatchButton).toBeEnabled({ timeout: 15000 });
+      await toWatchButton.click();
+      await expect(toWatchButton.getByText('In list')).toBeVisible({ timeout: 10000 });
+
+      await page.goto('/lists');
+      await page.waitForResponse(
+        (res) => res.url().includes('/api/v1/watchlist') && res.request().method() === 'GET',
+        { timeout: 15000 }
+      );
+      await page.waitForTimeout(500);
+
+      await expect(page.getByTestId('watchlist-grid')).toBeVisible({ timeout: 10000 });
+      await expect(
+        page.getByTestId('watchlist-grid').getByRole('link', { name: 'The Matrix' })
+      ).toBeVisible({ timeout: 15000 });
+
+      await page.reload();
+      await page.waitForResponse(
+        (res) => res.url().includes('/api/v1/watchlist') && res.request().method() === 'GET',
+        { timeout: 15000 }
+      );
+      await page.waitForTimeout(500);
+      await expect(
+        page.getByTestId('watchlist-grid').getByRole('link', { name: 'The Matrix' })
+      ).toBeVisible({ timeout: 15000 });
     });
   });
 });
