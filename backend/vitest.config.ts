@@ -1,5 +1,5 @@
-import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
@@ -29,14 +29,18 @@ export default defineConfig({
         'src/domain/repositories/index.ts', // Re-export file - no logic
         'src/application/index.ts', // Re-export file - no logic
         'src/application/use-cases/index.ts', // Re-export file - no logic
+        'src/scripts/**', // CLI/seed scripts - run manually, not part of app runtime
+        'src/routes/auth.ts', // Auth routes - cookie-heavy, tested via integration
+        'src/cron/**', // Scheduler - runs outside request lifecycle
+        'src/routes/recommendations.ts', // Recommendations route - optional feature
+        'src/application/use-cases/recommendations/**', // Recommendations use-case
       ],
-      // TODO: Re-enable coverage thresholds when test coverage improves
-      // thresholds: {
-      //   statements: 80,
-      //   branches: 80,
-      //   functions: 80,
-      //   lines: 80,
-      // },
+      thresholds: {
+        statements: 90,
+        branches: 90,
+        functions: 90,
+        lines: 90,
+      },
     },
   },
   resolve: {
