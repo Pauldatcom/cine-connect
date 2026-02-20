@@ -13,12 +13,17 @@ import { config } from 'dotenv';
 import { createApp } from './app.js';
 import { setupSocketHandlers } from './socket/index.js';
 import { registerDependencies } from './infrastructure/container.js';
+import { startScheduler } from './cron/scheduler.js';
+import { logger } from './lib/logger.js';
 
 // Load environment variables
 config();
 
 // Register DI container dependencies
 registerDependencies();
+
+// Optional in-process cron (ENABLE_CRON=true). See docs/CRON.md.
+startScheduler();
 
 const app = createApp();
 const httpServer = createServer(app);
@@ -39,8 +44,8 @@ setupSocketHandlers(io);
 const PORT = process.env.PORT || 3000;
 
 httpServer.listen(PORT, () => {
-  console.log(`[Server] Running on http://localhost:${PORT}`);
-  console.log(`[Docs] API Docs available at http://localhost:${PORT}/api-docs`);
+  logger.info(`Server running on http://localhost:${PORT}`);
+  logger.info(`API docs at http://localhost:${PORT}/api-docs`);
 });
 
 export { app, io };
