@@ -14,9 +14,6 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { authRouter } from './routes/auth.js';
 import { filmsRouter } from './routes/films.js';
-import { friendsRouter } from './routes/friends.js';
-import { messagesRouter } from './routes/messages.js';
-import { recommendationsRouter } from './routes/recommendations.js';
 import { reviewsRouter } from './routes/reviews.js';
 import { usersRouter } from './routes/users.js';
 import { watchlistRouter } from './routes/watchlist.js';
@@ -85,10 +82,7 @@ export function createApp() {
   apiRouter.use('/auth', authLimiter, authRouter);
   apiRouter.use('/users', usersRouter);
   apiRouter.use('/films', filmsRouter);
-  apiRouter.use('/recommendations', recommendationsRouter);
   apiRouter.use('/reviews', reviewsRouter);
-  apiRouter.use('/messages', messagesRouter);
-  apiRouter.use('/friends', friendsRouter);
   apiRouter.use('/watchlist', watchlistRouter);
 
   app.use('/api/v1', apiRouter);
