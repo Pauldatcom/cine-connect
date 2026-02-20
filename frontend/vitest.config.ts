@@ -31,13 +31,12 @@ export default defineConfig({
         'src/hooks/index.ts', // Barrel export
         'src/types/**', // Type definitions only
       ],
-      // TODO: Re-enable coverage thresholds when test coverage improves
-      // thresholds: {
-      //   statements: 80,
-      //   branches: 80,
-      //   functions: 70,
-      //   lines: 80,
-      // },
+      thresholds: {
+        statements: 90,
+        branches: 89,
+        functions: 88,
+        lines: 90,
+      },
     },
   },
   resolve: {

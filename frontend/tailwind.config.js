@@ -17,23 +17,23 @@ export default {
           // Blue for links
           blue: '#40bcf4',
         },
-        // Background colors (dark theme)
+        // Background colors (theme via CSS variables)
         bg: {
-          primary: '#14181c', // Main background
-          secondary: '#1c2228', // Cards, elevated surfaces
-          tertiary: '#242c34', // Hover states
-          nav: '#0d1114', // Navigation bar
+          primary: 'var(--color-bg-primary)',
+          secondary: 'var(--color-bg-secondary)',
+          tertiary: 'var(--color-bg-tertiary)',
+          nav: 'var(--color-bg-nav)',
         },
-        // Text colors
+        // Text colors (theme via CSS variables)
         text: {
-          primary: '#ffffff',
-          secondary: '#9ab', // Muted text (Letterboxd's signature gray-blue)
-          tertiary: '#678', // Even more muted
+          primary: 'var(--color-text-primary)',
+          secondary: 'var(--color-text-secondary)',
+          tertiary: 'var(--color-text-tertiary)',
         },
-        // Border colors
+        // Border colors (theme via CSS variables)
         border: {
-          DEFAULT: '#2c3440',
-          light: '#456',
+          DEFAULT: 'var(--color-border)',
+          light: 'var(--color-border-light)',
         },
       },
       fontFamily: {
