@@ -23,8 +23,8 @@ export default defineConfig({
   // Retry failed tests on CI
   retries: process.env.CI ? 2 : 0,
 
-  // Opt out of parallel tests on CI for stability
-  workers: process.env.CI ? 1 : undefined,
+  // CI: 1 worker for stability. Local: max 2 to avoid overloading dev servers
+  workers: process.env.CI ? 1 : 2,
 
   // Reporter configuration
   reporter: [['html', { outputFolder: 'e2e-report' }], ['list']],
@@ -66,6 +66,7 @@ export default defineConfig({
             url: `${BACKEND_URL}/health`,
             reuseExistingServer: true,
             timeout: 120000,
+            env: { ...process.env, E2E: '1' },
           },
           {
             command: 'pnpm dev:frontend',
