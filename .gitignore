@@ -30,6 +30,7 @@ pnpm-debug.log*
 coverage/
 .vitest/
 e2e-report/
+e2e/.auth/
 test-results/
 playwright-report/
 
@@ -39,6 +40,7 @@ playwright-report/
 
 # Sensitive (do not commit)
 cookies.txt
+.sync-films-cursor.json
 
 # Misc
 *.tsbuildinfo

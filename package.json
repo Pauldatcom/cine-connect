@@ -36,6 +36,9 @@
     "db:migrate": "pnpm --filter @cine-connect/backend db:migrate",
     "db:push": "pnpm --filter @cine-connect/backend db:push",
     "db:studio": "pnpm --filter @cine-connect/backend db:studio",
+    "db:sync-films": "pnpm --filter @cine-connect/backend db:sync-films",
+    "db:seed": "pnpm --filter @cine-connect/backend db:seed",
+    "db:chat-bot": "pnpm --filter @cine-connect/backend db:chat-bot",
     "setup": "./scripts/setup-env.sh",
     "clean": "rm -rf node_modules frontend/node_modules backend/node_modules shared/node_modules frontend/dist backend/dist coverage",
     "prepare": "husky"
