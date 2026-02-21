@@ -15,6 +15,8 @@ const envSchema = z.object({
   JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
   FRONTEND_URL: z.string().default('http://localhost:5173'),
   TMDB_API_KEY: z.string().optional(),
+  TMDB_BASE_URL: z.string().url().default('https://api.themoviedb.org/3'),
+  TMDB_RATE_LIMIT_MS: z.coerce.number().int().min(0).default(300),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -35,6 +37,8 @@ function validateEnv(): Env {
         JWT_REFRESH_EXPIRES_IN: '30d',
         FRONTEND_URL: 'http://localhost:5173',
         TMDB_API_KEY: undefined,
+        TMDB_BASE_URL: 'https://api.themoviedb.org/3',
+        TMDB_RATE_LIMIT_MS: 300,
       };
     }
 
@@ -45,7 +49,20 @@ function validateEnv(): Env {
     process.exit(1);
   }
 
-  return result.data;
+  const data = result.data;
+
+  // In production, forbid permissive or dev origins (CORS and cookie security)
+  if (data.NODE_ENV === 'production') {
+    const url = data.FRONTEND_URL.trim();
+    if (url === '*' || url.startsWith('http://localhost') || url.startsWith('http://127.0.0.1')) {
+      console.error(
+        'Invalid FRONTEND_URL for production: must be the real frontend origin (e.g. https://your-app.vercel.app), not * or localhost.'
+      );
+      process.exit(1);
+    }
+  }
+
+  return data;
 }
 
 export const env = validateEnv();

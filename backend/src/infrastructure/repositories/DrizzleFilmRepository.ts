@@ -3,7 +3,7 @@
  */
 
 import { injectable } from 'tsyringe';
-import { eq, ilike } from 'drizzle-orm';
+import { and, desc, eq, ilike } from 'drizzle-orm';
 
 import { db, schema } from '../../db/index.js';
 import type { IFilmRepository } from '../../domain/repositories/IFilmRepository.js';
@@ -76,6 +76,37 @@ export class DrizzleFilmRepository implements IFilmRepository {
     });
 
     return results.map((r) => this.toDomain(r));
+  }
+
+  async findAllPaginated(options: {
+    page: number;
+    limit: number;
+    search?: string;
+    genre?: string;
+  }): Promise<{ items: Film[]; page: number; pageSize: number }> {
+    const { page, limit, search, genre } = options;
+    const offset = (page - 1) * limit;
+
+    const conditions = [];
+    if (search) {
+      conditions.push(ilike(schema.films.title, `%${search}%`));
+    }
+    if (genre) {
+      conditions.push(ilike(schema.films.genre, `%${genre}%`));
+    }
+
+    const results = await db.query.films.findMany({
+      where: conditions.length > 0 ? and(...conditions) : undefined,
+      orderBy: [desc(schema.films.createdAt)],
+      limit,
+      offset,
+    });
+
+    return {
+      items: results.map((r) => this.toDomain(r)),
+      page,
+      pageSize: limit,
+    };
   }
 
   /**

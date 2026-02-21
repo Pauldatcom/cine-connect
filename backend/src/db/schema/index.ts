@@ -208,6 +208,17 @@ export const watchlistsRelations = relations(watchlists, ({ one }) => ({
   }),
 }));
 
+export const filmCategoriesRelations = relations(filmCategories, ({ one }) => ({
+  category: one(categories, {
+    fields: [filmCategories.categoryId],
+    references: [categories.id],
+  }),
+  film: one(films, {
+    fields: [filmCategories.filmId],
+    references: [films.id],
+  }),
+}));
+
 export const categoriesRelations = relations(categories, ({ many }) => ({
   films: many(filmCategories),
 }));
