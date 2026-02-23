@@ -17,19 +17,15 @@
   },
   "include": ["src/**/*"],
   "exclude": [
-    "src/routes/friends.ts",
     "src/routes/messages.ts",
     "src/routes/recommendations.ts",
-    "src/application/use-cases/friends",
     "src/application/use-cases/messages",
     "src/application/use-cases/recommendations",
-    "src/infrastructure/repositories/DrizzleFriendsRepository.ts",
     "src/infrastructure/repositories/DrizzleMessageRepository.ts",
     "src/infrastructure/tmdb",
     "src/scripts",
     "src/cron",
     "src/lib/logger.ts",
-    "src/domain/repositories/IFriendsRepository.ts",
     "src/domain/repositories/IMessageRepository.ts",
     "src/domain/repositories/ITmdbClient.ts"
   ]

@@ -9,8 +9,7 @@ export default defineConfig({
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
-      // Routes not mounted on feat/backend-core; re-enable when friends/messages branches are merged
-      'src/__tests__/integration/friends.test.ts',
+      // Messages route not mounted yet; re-enable when feat/backend-messages is merged
       'src/__tests__/integration/messages.test.ts',
     ],
     setupFiles: ['./src/__tests__/setup.ts'],
@@ -41,15 +40,11 @@ export default defineConfig({
         'src/cron/**', // Scheduler - runs outside request lifecycle
         'src/routes/recommendations.ts', // Recommendations route - optional feature
         'src/application/use-cases/recommendations/**', // Recommendations use-case
-        // Not mounted on feat/backend-core; re-enable when respective branches are merged
-        'src/routes/friends.ts',
+        // Not mounted yet; re-enable when respective branches are merged
         'src/routes/messages.ts',
-        'src/application/use-cases/friends/**',
         'src/application/use-cases/messages/**',
-        'src/domain/repositories/IFriendsRepository.ts',
         'src/domain/repositories/IMessageRepository.ts',
         'src/domain/repositories/ITmdbClient.ts',
-        'src/infrastructure/repositories/DrizzleFriendsRepository.ts',
         'src/infrastructure/repositories/DrizzleMessageRepository.ts',
         'src/infrastructure/tmdb/**',
       ],
