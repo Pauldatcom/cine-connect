@@ -6,11 +6,13 @@
 import { container } from 'tsyringe';
 
 import { IFilmRepository } from '../domain/repositories/IFilmRepository.js';
+import { IFriendsRepository } from '../domain/repositories/IFriendsRepository.js';
 import { IReviewRepository } from '../domain/repositories/IReviewRepository.js';
 import { IUserRepository } from '../domain/repositories/IUserRepository.js';
 import { IWatchlistRepository } from '../domain/repositories/IWatchlistRepository.js';
 
 import { DrizzleFilmRepository } from './repositories/DrizzleFilmRepository.js';
+import { DrizzleFriendsRepository } from './repositories/DrizzleFriendsRepository.js';
 import { DrizzleReviewRepository } from './repositories/DrizzleReviewRepository.js';
 import { DrizzleUserRepository } from './repositories/DrizzleUserRepository.js';
 import { DrizzleWatchlistRepository } from './repositories/DrizzleWatchlistRepository.js';
@@ -30,6 +32,10 @@ export function registerDependencies(): void {
   container.registerSingleton<IWatchlistRepository>(
     IWatchlistRepository as symbol,
     DrizzleWatchlistRepository
+  );
+  container.registerSingleton<IFriendsRepository>(
+    IFriendsRepository as symbol,
+    DrizzleFriendsRepository
   );
 
   console.log('[DI] Dependencies registered');
