@@ -6,12 +6,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['src/__tests__/**/*.{test,spec}.ts'],
-    exclude: [
-      '**/node_modules/**',
-      '**/dist/**',
-      // Messages route not mounted yet; re-enable when feat/backend-messages is merged
-      'src/__tests__/integration/messages.test.ts',
-    ],
+    exclude: ['**/node_modules/**', '**/dist/**'],
     setupFiles: ['./src/__tests__/setup.ts'],
     testTimeout: 10000,
     coverage: {
@@ -41,11 +36,7 @@ export default defineConfig({
         'src/routes/recommendations.ts', // Recommendations route - optional feature
         'src/application/use-cases/recommendations/**', // Recommendations use-case
         // Not mounted yet; re-enable when respective branches are merged
-        'src/routes/messages.ts',
-        'src/application/use-cases/messages/**',
-        'src/domain/repositories/IMessageRepository.ts',
         'src/domain/repositories/ITmdbClient.ts',
-        'src/infrastructure/repositories/DrizzleMessageRepository.ts',
         'src/infrastructure/tmdb/**',
       ],
       thresholds: {

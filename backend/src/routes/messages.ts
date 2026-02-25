@@ -1,9 +1,21 @@
+/**
+ * Messages Routes
+ * Uses message use-cases and IMessageRepository (clean architecture)
+ */
+
 import { Router } from 'express';
 import { z } from 'zod';
-import { eq, and, or, desc } from 'drizzle-orm';
-import { db, schema } from '../db/index.js';
+import { container } from 'tsyringe';
+
 import { authenticate, getAuthUser } from '../middleware/auth.js';
 import { ApiError } from '../middleware/errorHandler.js';
+import { IMessageRepository } from '../domain/repositories/IMessageRepository.js';
+import {
+  ListConversationsUseCase,
+  ListMessagesUseCase,
+  SendMessageUseCase,
+  SendMessageError,
+} from '../application/use-cases/messages/index.js';
 
 export const messagesRouter = Router();
 
@@ -11,6 +23,8 @@ const sendMessageSchema = z.object({
   receiverId: z.string().uuid(),
   content: z.string().min(1).max(2000),
 });
+
+const PAGE_SIZE = 50;
 
 /**
  * @swagger
@@ -20,72 +34,12 @@ const sendMessageSchema = z.object({
  *     summary: Get all conversations for current user
  *     security:
  *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: List of conversations
  */
 messagesRouter.get('/', authenticate, async (req, res, next) => {
   try {
-    const userId = getAuthUser(req).userId;
-
-    // Get all unique conversations
-    const messages = await db.query.messages.findMany({
-      where: or(eq(schema.messages.senderId, userId), eq(schema.messages.receiverId, userId)),
-      with: {
-        sender: {
-          columns: {
-            id: true,
-            username: true,
-            avatarUrl: true,
-          },
-        },
-        receiver: {
-          columns: {
-            id: true,
-            username: true,
-            avatarUrl: true,
-          },
-        },
-      },
-      orderBy: [desc(schema.messages.createdAt)],
-    });
-
-    // Group by conversation partner
-    const conversationsMap = new Map<
-      string,
-      {
-        partnerId: string;
-        partner: { id: string; username: string; avatarUrl: string | null };
-        lastMessage: (typeof messages)[0];
-        unreadCount: number;
-      }
-    >();
-
-    for (const msg of messages) {
-      const partnerId = msg.senderId === userId ? msg.receiverId : msg.senderId;
-      const partner = msg.senderId === userId ? msg.receiver : msg.sender;
-
-      if (!conversationsMap.has(partnerId)) {
-        conversationsMap.set(partnerId, {
-          partnerId,
-          partner,
-          lastMessage: msg,
-          unreadCount: 0,
-        });
-      }
-
-      if (msg.receiverId === userId && !msg.read) {
-        const conv = conversationsMap.get(partnerId);
-        if (conv) {
-          conv.unreadCount++;
-        }
-      }
-    }
-
-    res.json({
-      success: true,
-      data: Array.from(conversationsMap.values()),
-    });
+    const listConv = container.resolve(ListConversationsUseCase);
+    const { conversations } = await listConv.execute({ userId: getAuthUser(req).userId });
+    res.json({ success: true, data: conversations });
   } catch (error) {
     next(error);
   }
@@ -99,55 +53,48 @@ messagesRouter.get('/', authenticate, async (req, res, next) => {
  *     summary: Get messages with a specific user
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: userId
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *     responses:
- *       200:
- *         description: List of messages
  */
 messagesRouter.get('/:userId', authenticate, async (req, res, next) => {
   try {
     const currentUserId = getAuthUser(req).userId;
     const userId = z.string().uuid().parse(req.params.userId);
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const limit = 50;
-    const offset = (page - 1) * limit;
-
-    const messages = await db.query.messages.findMany({
-      where: or(
-        and(eq(schema.messages.senderId, currentUserId), eq(schema.messages.receiverId, userId)),
-        and(eq(schema.messages.senderId, userId), eq(schema.messages.receiverId, currentUserId))
-      ),
-      orderBy: [desc(schema.messages.createdAt)],
-      limit,
-      offset,
+    const listMessages = container.resolve(ListMessagesUseCase);
+    const result = await listMessages.execute({
+      currentUserId,
+      otherUserId: userId,
+      page,
+      pageSize: PAGE_SIZE,
     });
-
-    // Mark messages as read
-    await db
-      .update(schema.messages)
-      .set({ read: true })
-      .where(
-        and(
-          eq(schema.messages.senderId, userId),
-          eq(schema.messages.receiverId, currentUserId),
-          eq(schema.messages.read, false)
-        )
-      );
-
     res.json({
       success: true,
       data: {
-        items: messages.reverse(), // Return in chronological order
-        page,
-        pageSize: limit,
+        items: result.items,
+        page: result.page,
+        pageSize: result.pageSize,
       },
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
+ * /api/v1/messages/{userId}/read:
+ *   patch:
+ *     tags: [Messages]
+ *     summary: Mark messages from a user as read
+ *     security:
+ *       - bearerAuth: []
+ */
+messagesRouter.patch('/:userId/read', authenticate, async (req, res, next) => {
+  try {
+    const currentUserId = getAuthUser(req).userId;
+    const partnerId = z.string().uuid().parse(req.params.userId);
+    const messageRepository = container.resolve(IMessageRepository as symbol) as IMessageRepository;
+    await messageRepository.markAsRead(partnerId, currentUserId);
+    res.status(200).json({ success: true });
   } catch (error) {
     next(error);
   }
@@ -161,55 +108,30 @@ messagesRouter.get('/:userId', authenticate, async (req, res, next) => {
  *     summary: Send a message
  *     security:
  *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [receiverId, content]
- *             properties:
- *               receiverId:
- *                 type: string
- *                 format: uuid
- *               content:
- *                 type: string
- *     responses:
- *       201:
- *         description: Message sent
  */
 messagesRouter.post('/', authenticate, async (req, res, next) => {
   try {
     const { receiverId, content } = sendMessageSchema.parse(req.body);
     const senderId = getAuthUser(req).userId;
-
-    if (senderId === receiverId) {
-      throw ApiError.badRequest('Cannot send message to yourself');
-    }
-
-    // Check if receiver exists
-    const receiver = await db.query.users.findFirst({
-      where: eq(schema.users.id, receiverId),
-    });
-
-    if (!receiver) {
-      throw ApiError.notFound('Receiver not found');
-    }
-
-    const [message] = await db
-      .insert(schema.messages)
-      .values({
-        senderId,
-        receiverId,
-        content,
-      })
-      .returning();
-
+    const sendMessage = container.resolve(SendMessageUseCase);
+    const { message } = await sendMessage.execute({ senderId, receiverId, content });
     res.status(201).json({
       success: true,
-      data: message,
+      data: {
+        id: message.id,
+        senderId: message.senderId,
+        receiverId: message.receiverId,
+        content: message.content,
+        read: message.read,
+        createdAt: message.createdAt,
+      },
     });
   } catch (error) {
+    if (error instanceof SendMessageError) {
+      if (error.code === 'SELF_MESSAGE')
+        return next(ApiError.badRequest('Cannot send message to yourself'));
+      if (error.code === 'RECEIVER_NOT_FOUND') return next(ApiError.notFound('Receiver not found'));
+    }
     next(error);
   }
 });
