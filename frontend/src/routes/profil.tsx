@@ -1,17 +1,26 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { useUserReviews, useWatchlist } from '@/hooks';
+import {
+  useFriends,
+  usePendingFriendRequests,
+  useRespondToFriendRequest,
+  useRemoveFriend,
+  useUserReviews,
+  useWatchlist,
+} from '@/hooks';
 import { createFileRoute, Link, useSearch } from '@tanstack/react-router';
 import {
   AlertCircle,
   Eye,
   Film,
-  Heart,
   Loader2,
   LogOut,
   Mail,
   Settings,
   Star,
   User,
+  UserMinus,
+  UserPlus,
+  Users,
 } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { z } from 'zod';
@@ -29,8 +38,9 @@ export const Route = createFileRoute('/profil')({
   validateSearch: searchSchema,
 });
 
-function ProfilPage() {
-  const { isAuthenticated, isLoading } = useAuth();
+/** Profile page component – exported for tests */
+export function ProfilPage() {
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   // Show loading spinner while checking auth
   if (isLoading) {
@@ -43,6 +53,21 @@ function ProfilPage() {
 
   if (!isAuthenticated) {
     return <AuthForm />;
+  }
+
+  // Defensive: auth says we're in but user not loaded yet (e.g. race)
+  if (!user) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-16">
+        <div className="card text-center">
+          <p className="text-text-secondary">Your profile could not be loaded.</p>
+          <p className="text-text-tertiary mt-2 text-sm">Please sign in again.</p>
+          <Link to="/" className="btn-primary mt-6 inline-block">
+            Back to home
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return <ProfileView />;
@@ -126,7 +151,7 @@ function AuthForm() {
             <Film className="text-letterboxd-green h-8 w-8" />
           </div>
           <h1 className="font-display text-text-primary mt-4 text-2xl font-bold">
-            {mode === 'login' ? 'Welcome Back' : 'Join CineConnect'}
+            {mode === 'login' ? 'Welcome Back' : 'Join CinéConnect'}
           </h1>
           <p className="text-text-secondary mt-2 text-sm">
             {mode === 'login'
@@ -253,20 +278,34 @@ function AuthForm() {
 function ProfileView() {
   const { user, logout } = useAuth();
 
-  // Fetch user's reviews and watchlist
   const { data: userReviews, isLoading: reviewsLoading } = useUserReviews(user?.id);
   const { data: watchlistData, isLoading: watchlistLoading } = useWatchlist();
+  const { data: friendsList, isLoading: friendsLoading, isError: friendsError } = useFriends();
+  const { data: pendingRequests, isError: pendingError } = usePendingFriendRequests();
+  const respondToRequest = useRespondToFriendRequest();
+  const removeFriendMutation = useRemoveFriend();
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-16">
+        <div className="card text-center">
+          <p className="text-text-secondary">Profile unavailable.</p>
+          <Link to="/" className="btn-primary mt-4 inline-block">
+            Back to home
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const memberSince = new Date(user.createdAt).toLocaleDateString('en-US', {
     month: 'long',
     year: 'numeric',
   });
 
-  // Calculate stats from real data
   const reviewsCount = userReviews?.length ?? 0;
   const watchlistCount = watchlistData?.count ?? 0;
+  const friendsCount = friendsList?.length ?? 0;
   const isLoading = reviewsLoading || watchlistLoading;
 
   return (
@@ -294,10 +333,10 @@ function ProfileView() {
             <p className="text-text-tertiary mt-1 text-sm">Member since {memberSince}</p>
           </div>
           <div className="sm:ml-auto">
-            <button className="btn-secondary">
+            <Link to="/settings" className="btn-secondary inline-flex items-center gap-2">
               <Settings className="h-4 w-4" />
-              Edit Profile
-            </button>
+              Settings
+            </Link>
           </div>
         </div>
       </div>
@@ -310,14 +349,157 @@ function ProfileView() {
           value={isLoading ? '...' : String(watchlistCount)}
           color="green"
         />
+        <StatCard
+          icon={<Users className="h-5 w-5" />}
+          label="Friends"
+          value={friendsLoading ? '...' : String(friendsCount)}
+          color="blue"
+        />
         <StatCard icon={<Eye className="h-5 w-5" />} label="This Year" value="0" color="blue" />
-        <StatCard icon={<Heart className="h-5 w-5" />} label="Liked" value="0" color="orange" />
         <StatCard
           icon={<Star className="h-5 w-5" />}
           label="Reviews"
           value={isLoading ? '...' : String(reviewsCount)}
           color="green"
         />
+      </div>
+
+      {/* Friends */}
+      <div className="card mt-6" data-testid="profile-friends">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="section-header mb-0">Friends</h2>
+          <Link
+            to="/members"
+            className="text-letterboxd-green hover:text-letterboxd-green-dark text-sm font-medium"
+          >
+            Find members
+          </Link>
+        </div>
+        {friendsError || pendingError ? (
+          <p className="text-text-tertiary py-4 text-center text-sm">
+            Could not load friends. Check your connection and try again.
+          </p>
+        ) : friendsLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="text-letterboxd-green h-6 w-6 animate-spin" />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {pendingRequests && pendingRequests.length > 0 && (
+              <div>
+                <h3 className="text-text-secondary mb-2 text-sm font-medium">Pending requests</h3>
+                <ul className="space-y-2">
+                  {pendingRequests.map((req) => (
+                    <li
+                      key={req.id}
+                      className="bg-bg-tertiary flex items-center justify-between gap-3 rounded-lg p-3"
+                    >
+                      <Link
+                        to="/user/$id"
+                        params={{ id: req.user.id }}
+                        className="flex min-w-0 flex-1 items-center gap-3"
+                      >
+                        <div className="bg-letterboxd-green/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+                          {req.user.avatarUrl ? (
+                            <img
+                              src={req.user.avatarUrl}
+                              alt=""
+                              className="h-10 w-10 rounded-full object-cover"
+                            />
+                          ) : (
+                            <User className="text-letterboxd-green h-5 w-5" />
+                          )}
+                        </div>
+                        <span className="text-text-primary truncate font-medium">
+                          {req.user.username}
+                        </span>
+                      </Link>
+                      <div className="flex shrink-0 gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            respondToRequest.mutate({ requestId: req.id, accept: true })
+                          }
+                          disabled={respondToRequest.isPending}
+                          className="btn-primary flex items-center gap-1 px-3 py-1.5 text-sm"
+                          aria-label="Accept request"
+                        >
+                          <UserPlus className="h-4 w-4" />
+                          Accept
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            respondToRequest.mutate({ requestId: req.id, accept: false })
+                          }
+                          disabled={respondToRequest.isPending}
+                          className="btn-ghost text-red-400 hover:bg-red-500/10"
+                          aria-label="Decline request"
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <div>
+              <h3 className="text-text-secondary mb-2 text-sm font-medium">
+                Your friends ({friendsList?.length ?? 0})
+              </h3>
+              {friendsList && friendsList.length > 0 ? (
+                <ul className="space-y-2">
+                  {friendsList.map((f) => (
+                    <li
+                      key={f.id}
+                      className="bg-bg-tertiary flex items-center justify-between gap-3 rounded-lg p-3"
+                    >
+                      <Link
+                        to="/user/$id"
+                        params={{ id: f.user.id }}
+                        className="flex min-w-0 flex-1 items-center gap-3"
+                      >
+                        <div className="bg-letterboxd-green/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+                          {f.user.avatarUrl ? (
+                            <img
+                              src={f.user.avatarUrl}
+                              alt=""
+                              className="h-10 w-10 rounded-full object-cover"
+                            />
+                          ) : (
+                            <User className="text-letterboxd-green h-5 w-5" />
+                          )}
+                        </div>
+                        <span className="text-text-primary truncate font-medium">
+                          {f.user.username}
+                        </span>
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => removeFriendMutation.mutate(f.id)}
+                        disabled={removeFriendMutation.isPending}
+                        className="btn-ghost shrink-0 p-2 text-red-400 hover:bg-red-500/10"
+                        aria-label={`Remove ${f.user.username} from friends`}
+                        title="Remove friend"
+                      >
+                        <UserMinus className="h-4 w-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-text-tertiary py-4 text-center text-sm">
+                  No friends yet.{' '}
+                  <Link to="/members" className="text-letterboxd-green hover:underline">
+                    Find members
+                  </Link>{' '}
+                  to add.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Recent Reviews */}

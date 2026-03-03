@@ -7,12 +7,12 @@ import { useUserById } from '@/hooks/useFriends';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { Loader2, Star, User } from 'lucide-react';
 
-export const Route = createFileRoute('/user/$id')({
+export const Route = createFileRoute('/user/$id' as any)({
   component: UserProfilePage,
 });
 
 function UserProfilePage() {
-  const { id } = Route.useParams();
+  const { id } = Route.useParams() as { id: string };
   const { data: user, isLoading: userLoading, error: userError } = useUserById(id);
   const { data: reviews = [], isLoading: reviewsLoading } = useUserReviews(user?.id);
 
@@ -28,7 +28,10 @@ function UserProfilePage() {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center">
         <p className="text-text-secondary">User not found.</p>
-        <Link to="/members" className="text-letterboxd-green mt-4 inline-block text-sm font-medium">
+        <Link
+          to={'/members' as any}
+          className="text-letterboxd-green mt-4 inline-block text-sm font-medium"
+        >
           Back to Members
         </Link>
       </div>
@@ -57,7 +60,7 @@ function UserProfilePage() {
             <p className="text-text-tertiary mt-1 text-sm">Member since {memberSince}</p>
           </div>
           <div className="sm:ml-auto">
-            <Link to="/members" className="btn-secondary">
+            <Link to={'/members' as any} className="btn-secondary">
               ← Back to Members
             </Link>
           </div>

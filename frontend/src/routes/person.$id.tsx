@@ -1,19 +1,23 @@
 import { FilmPoster } from '@/components/features/FilmPoster';
 import { usePerson, usePersonMovieCredits } from '@/hooks';
+import type { TMDbPersonMovieCredits } from '@/lib/api/tmdb';
 import { getImageUrl } from '@/lib/api/tmdb';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { ArrowLeft, Calendar, Film, MapPin, User } from 'lucide-react';
 import { useMemo } from 'react';
 
+type CastFilm = TMDbPersonMovieCredits['cast'][number];
+type CrewFilm = TMDbPersonMovieCredits['crew'][number];
+
 /**
  * Person detail page - Shows biography and filmography
  */
-export const Route = createFileRoute('/person/$id')({
+export const Route = createFileRoute('/person/$id' as any)({
   component: PersonDetailPage,
 });
 
 function PersonDetailPage() {
-  const { id } = Route.useParams();
+  const { id } = Route.useParams() as { id: string };
 
   // Fetch person details and credits
   const { data: person, isLoading, error } = usePerson(id);
@@ -23,21 +27,21 @@ function PersonDetailPage() {
   const castFilms = useMemo(() => {
     if (!credits?.cast) return [];
     return credits.cast
-      .filter((f) => f.poster_path)
-      .sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+      .filter((f: CastFilm) => f.poster_path)
+      .sort((a: CastFilm, b: CastFilm) => (b.popularity || 0) - (a.popularity || 0));
   }, [credits?.cast]);
 
   const crewFilms = useMemo(() => {
     if (!credits?.crew) return [];
     return credits.crew
-      .filter((f) => f.poster_path)
-      .sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+      .filter((f: CrewFilm) => f.poster_path)
+      .sort((a: CrewFilm, b: CrewFilm) => (b.popularity || 0) - (a.popularity || 0));
   }, [credits?.crew]);
 
   // Group crew by department
   const crewByDepartment = useMemo(() => {
-    const grouped: Record<string, typeof crewFilms> = {};
-    crewFilms.forEach((film) => {
+    const grouped: Record<string, CrewFilm[]> = {};
+    crewFilms.forEach((film: CrewFilm) => {
       if (!grouped[film.department]) {
         grouped[film.department] = [];
       }
@@ -177,7 +181,7 @@ function PersonDetailPage() {
             </h2>
             {castFilms.length > 0 ? (
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                {castFilms.slice(0, 24).map((film) => (
+                {castFilms.slice(0, 24).map((film: CastFilm) => (
                   <FilmPoster key={film.credit_id} film={film} showTitle />
                 ))}
               </div>
@@ -213,7 +217,7 @@ function PersonDetailPage() {
                       </span>
                     </h3>
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                      {films.slice(0, 12).map((film) => (
+                      {films.slice(0, 12).map((film: CrewFilm) => (
                         <FilmPoster key={film.credit_id} film={film} showTitle />
                       ))}
                     </div>
