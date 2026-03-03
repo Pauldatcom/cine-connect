@@ -1,4 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
+import type { PendingRequest } from '@/hooks';
 import {
   useFriends,
   usePendingFriendRequests,
@@ -7,6 +8,7 @@ import {
   useUserReviews,
   useWatchlist,
 } from '@/hooks';
+import type { FriendWithUser } from '@/lib/api/friends';
 import { createFileRoute, Link, useSearch } from '@tanstack/react-router';
 import {
   AlertCircle,
@@ -333,7 +335,7 @@ function ProfileView() {
             <p className="text-text-tertiary mt-1 text-sm">Member since {memberSince}</p>
           </div>
           <div className="sm:ml-auto">
-            <Link to="/settings" className="btn-secondary inline-flex items-center gap-2">
+            <Link to={'/settings' as any} className="btn-secondary inline-flex items-center gap-2">
               <Settings className="h-4 w-4" />
               Settings
             </Link>
@@ -369,7 +371,7 @@ function ProfileView() {
         <div className="mb-4 flex items-center justify-between">
           <h2 className="section-header mb-0">Friends</h2>
           <Link
-            to="/members"
+            to={'/members' as any}
             className="text-letterboxd-green hover:text-letterboxd-green-dark text-sm font-medium"
           >
             Find members
@@ -389,14 +391,14 @@ function ProfileView() {
               <div>
                 <h3 className="text-text-secondary mb-2 text-sm font-medium">Pending requests</h3>
                 <ul className="space-y-2">
-                  {pendingRequests.map((req) => (
+                  {pendingRequests.map((req: PendingRequest) => (
                     <li
                       key={req.id}
                       className="bg-bg-tertiary flex items-center justify-between gap-3 rounded-lg p-3"
                     >
                       <Link
-                        to="/user/$id"
-                        params={{ id: req.user.id }}
+                        to={'/user/$id' as any}
+                        params={{ id: req.user.id } as any}
                         className="flex min-w-0 flex-1 items-center gap-3"
                       >
                         <div className="bg-letterboxd-green/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
@@ -450,14 +452,14 @@ function ProfileView() {
               </h3>
               {friendsList && friendsList.length > 0 ? (
                 <ul className="space-y-2">
-                  {friendsList.map((f) => (
+                  {friendsList.map((f: FriendWithUser) => (
                     <li
                       key={f.id}
                       className="bg-bg-tertiary flex items-center justify-between gap-3 rounded-lg p-3"
                     >
                       <Link
-                        to="/user/$id"
-                        params={{ id: f.user.id }}
+                        to={'/user/$id' as any}
+                        params={{ id: f.user.id } as any}
                         className="flex min-w-0 flex-1 items-center gap-3"
                       >
                         <div className="bg-letterboxd-green/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
@@ -491,7 +493,7 @@ function ProfileView() {
               ) : (
                 <p className="text-text-tertiary py-4 text-center text-sm">
                   No friends yet.{' '}
-                  <Link to="/members" className="text-letterboxd-green hover:underline">
+                  <Link to={'/members' as any} className="text-letterboxd-green hover:underline">
                     Find members
                   </Link>{' '}
                   to add.
