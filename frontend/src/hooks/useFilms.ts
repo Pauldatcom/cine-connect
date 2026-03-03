@@ -5,13 +5,15 @@
  * TMDb API and our backend.
  */
 
-import { registerFilm, type BackendFilm } from '@/lib/api/films';
+import { getRecommendations, registerFilm, type BackendFilm } from '@/lib/api/films';
 import {
   getMovieCredits,
   getMovieDetails,
   getMoviesByGenre,
   getMovieVideos,
   getNowPlaying,
+  getPersonDetails,
+  getPersonMovieCredits,
   getPopular,
   getSimilarMovies,
   getTopRated,
@@ -21,6 +23,8 @@ import {
   type TMDbCredits,
   type TMDbMovie,
   type TMDbMovieDetails,
+  type TMDbPerson,
+  type TMDbPersonMovieCredits,
   type TMDbSearchResponse,
   type TMDbVideo,
 } from '@/lib/api/tmdb';
@@ -67,6 +71,18 @@ export function useSimilarFilms(tmdbId: string | number, enabled = true) {
     queryKey: ['movie', String(tmdbId), 'similar'],
     queryFn: () => getSimilarMovies(tmdbId),
     enabled: enabled && !!tmdbId,
+  });
+}
+
+/**
+ * Personalized film recommendations from backend (reviews + watchlist based).
+ * Only runs when enabled (e.g. when user is authenticated).
+ */
+export function useRecommendations(enabled = true) {
+  return useQuery({
+    queryKey: ['recommendations'],
+    queryFn: () => getRecommendations(20),
+    enabled,
   });
 }
 
@@ -177,5 +193,35 @@ export function useFilmsByGenre(genreId: number, page = 1) {
   });
 }
 
+/**
+ * Fetch person details from TMDb
+ */
+export function usePerson(personId: string | number) {
+  return useQuery({
+    queryKey: ['person', String(personId)],
+    queryFn: () => getPersonDetails(personId),
+    enabled: !!personId,
+  });
+}
+
+/**
+ * Fetch person movie credits (filmography) from TMDb
+ */
+export function usePersonMovieCredits(personId: string | number, enabled = true) {
+  return useQuery({
+    queryKey: ['person', String(personId), 'credits'],
+    queryFn: () => getPersonMovieCredits(personId),
+    enabled: enabled && !!personId,
+  });
+}
+
 // Type exports for convenience
-export type { BackendFilm, TMDbCredits, TMDbMovieDetails, TMDbSearchResponse, TMDbVideo };
+export type {
+  BackendFilm,
+  TMDbCredits,
+  TMDbMovieDetails,
+  TMDbPerson,
+  TMDbPersonMovieCredits,
+  TMDbSearchResponse,
+  TMDbVideo,
+};

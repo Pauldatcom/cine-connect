@@ -120,6 +120,24 @@ export interface TMDbGenre {
   name: string;
 }
 
+export interface TMDbPerson {
+  id: number;
+  name: string;
+  biography: string;
+  birthday: string | null;
+  deathday: string | null;
+  place_of_birth: string | null;
+  profile_path: string | null;
+  known_for_department: string;
+  also_known_as: string[];
+}
+
+export interface TMDbPersonMovieCredits {
+  id: number;
+  cast: (TMDbMovie & { character: string; credit_id: string })[];
+  crew: (TMDbMovie & { job: string; department: string; credit_id: string })[];
+}
+
 // ============================================
 // API Functions
 // ============================================
@@ -153,12 +171,13 @@ export async function searchMovies(query: string, page = 1): Promise<TMDbSearchR
 }
 
 /**
- * Get trending movies (day or week)
+ * Get trending movies (day or week) with optional page
  */
 export async function getTrending(
-  timeWindow: 'day' | 'week' = 'week'
+  timeWindow: 'day' | 'week' = 'week',
+  page = 1
 ): Promise<TMDbSearchResponse> {
-  return fetchTMDb(`/trending/movie/${timeWindow}`);
+  return fetchTMDb(`/trending/movie/${timeWindow}`, { page: String(page) });
 }
 
 /**
@@ -240,6 +259,22 @@ export async function getRecommendations(movieId: number | string): Promise<TMDb
  */
 export async function getGenres(): Promise<{ genres: TMDbGenre[] }> {
   return fetchTMDb('/genre/movie/list');
+}
+
+/**
+ * Get person details by ID
+ */
+export async function getPersonDetails(personId: number | string): Promise<TMDbPerson> {
+  return fetchTMDb(`/person/${personId}`);
+}
+
+/**
+ * Get person movie credits (filmography)
+ */
+export async function getPersonMovieCredits(
+  personId: number | string
+): Promise<TMDbPersonMovieCredits> {
+  return fetchTMDb(`/person/${personId}/movie_credits`);
 }
 
 // ============================================
