@@ -36,9 +36,24 @@ vi.mock('@/lib/api/tmdb', () => ({
   getMoviesByGenre: vi.fn(),
 }));
 
-vi.mock('@/lib/api/films', () => ({
-  registerFilm: vi.fn(),
-}));
+vi.mock('@/lib/api/films', () => {
+  const registerFilm = vi.fn();
+  const getRecommendations = vi.fn();
+  const getFilmByTmdbId = vi.fn();
+  const getFilmById = vi.fn();
+  return {
+    registerFilm,
+    getRecommendations,
+    getFilmByTmdbId,
+    getFilmById,
+    default: {
+      registerFilm,
+      getRecommendations,
+      getFilmByTmdbId,
+      getFilmById,
+    },
+  };
+});
 
 import * as tmdbApi from '@/lib/api/tmdb';
 import * as filmsApi from '@/lib/api/films';
