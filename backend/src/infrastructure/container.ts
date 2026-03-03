@@ -10,6 +10,7 @@ import { IFriendsRepository } from '../domain/repositories/IFriendsRepository.js
 import { IMessageRepository } from '../domain/repositories/IMessageRepository.js';
 import { IReviewRepository } from '../domain/repositories/IReviewRepository.js';
 import { IUserRepository } from '../domain/repositories/IUserRepository.js';
+import { ITmdbClient } from '../domain/repositories/ITmdbClient.js';
 import { IWatchlistRepository } from '../domain/repositories/IWatchlistRepository.js';
 
 import { DrizzleFilmRepository } from './repositories/DrizzleFilmRepository.js';
@@ -18,6 +19,7 @@ import { DrizzleMessageRepository } from './repositories/DrizzleMessageRepositor
 import { DrizzleReviewRepository } from './repositories/DrizzleReviewRepository.js';
 import { DrizzleUserRepository } from './repositories/DrizzleUserRepository.js';
 import { DrizzleWatchlistRepository } from './repositories/DrizzleWatchlistRepository.js';
+import { TmdbApiClient } from './tmdb/TmdbApiClient.js';
 
 /**
  * Register all dependencies
@@ -43,6 +45,7 @@ export function registerDependencies(): void {
     IMessageRepository as symbol,
     DrizzleMessageRepository
   );
+  container.registerSingleton<ITmdbClient>(ITmdbClient as symbol, TmdbApiClient);
 
   console.log('[DI] Dependencies registered');
 }
