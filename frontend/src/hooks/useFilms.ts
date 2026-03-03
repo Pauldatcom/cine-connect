@@ -5,7 +5,9 @@
  * TMDb API and our backend.
  */
 
-import { getRecommendations, registerFilm, type BackendFilm } from '@/lib/api/films';
+import filmsApi, { type BackendFilm } from '@/lib/api/films';
+
+const { getRecommendations, registerFilm } = filmsApi;
 import {
   getMovieCredits,
   getMovieDetails,
