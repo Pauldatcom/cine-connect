@@ -19,10 +19,8 @@
   "exclude": [
     "src/routes/recommendations.ts",
     "src/application/use-cases/recommendations",
-    "src/infrastructure/tmdb",
     "src/scripts",
     "src/cron",
-    "src/lib/logger.ts",
-    "src/domain/repositories/ITmdbClient.ts"
+    "src/lib/logger.ts"
   ]
 }

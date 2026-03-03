@@ -8,3 +8,4 @@ export * from './IMessageRepository.js';
 export * from './IReviewRepository.js';
 export * from './IUserRepository.js';
 export * from './IWatchlistRepository.js';
+export * from './ITmdbClient.js';

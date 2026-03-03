@@ -67,10 +67,18 @@ export async function getFilmById(id: string): Promise<BackendFilm> {
   return api.get<BackendFilm>(`/api/v1/films/${id}`);
 }
 
+/**
+ * Get personalized film recommendations (requires auth)
+ */
+export async function getRecommendations(limit = 20): Promise<BackendFilm[]> {
+  return api.get<BackendFilm[]>(`/api/v1/recommendations?limit=${limit}`);
+}
+
 export const filmsApi = {
   registerFilm,
   getFilmByTmdbId,
   getFilmById,
+  getRecommendations,
 };
 
 export default filmsApi;

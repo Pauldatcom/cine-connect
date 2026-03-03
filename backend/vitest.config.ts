@@ -35,9 +35,6 @@ export default defineConfig({
         'src/cron/**', // Scheduler - runs outside request lifecycle
         'src/routes/recommendations.ts', // Recommendations route - optional feature
         'src/application/use-cases/recommendations/**', // Recommendations use-case
-        // Not mounted yet; re-enable when respective branches are merged
-        'src/domain/repositories/ITmdbClient.ts',
-        'src/infrastructure/tmdb/**',
       ],
       thresholds: {
         // feat/backend-core: lower until friends/messages/recommendations branches merged
