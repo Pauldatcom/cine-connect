@@ -1,6 +1,7 @@
 import { WS_EVENTS } from '@cine-connect/shared';
 import jwt from 'jsonwebtoken';
 import type { Server, Socket } from 'socket.io';
+import { logger } from '../lib/logger.js';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -67,19 +68,35 @@ function isValidRoomId(roomId: unknown): boolean {
 }
 
 /**
- * Check if user can access a room (their ID should be part of the room)
+ * Extract roomId from JOIN_ROOM / LEAVE_ROOM payload. Client sends { roomId: string }.
+ * Returns the roomId string or null if payload is invalid.
  */
-function canAccessRoom(userId: string, roomId: string): boolean {
-  // Room should contain the user's ID (conversation between two users)
-  return roomId.includes(userId);
+function parseRoomIdPayload(payload: unknown): string | null {
+  if (
+    payload &&
+    typeof payload === 'object' &&
+    'roomId' in payload &&
+    typeof (payload as { roomId: unknown }).roomId === 'string'
+  ) {
+    return (payload as { roomId: string }).roomId;
+  }
+  return null;
 }
 
 /**
- * Logger that respects environment
+ * Check if user can access a room (their ID should be part of the room).
+ * Current format: roomId is "userA_userB"; both users are allowed.
+ * If room IDs later become conversation UUIDs, access must be verified via DB
+ * (e.g. user is participant of this conversation) instead of string inclusion.
  */
+function canAccessRoom(userId: string, roomId: string): boolean {
+  return roomId.includes(userId);
+}
+
+/** Socket event log (uses shared backend logger). */
 function log(message: string): void {
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(message);
+  if (process.env.NODE_ENV !== 'test') {
+    logger.info(message);
   }
 }
 
@@ -134,27 +151,29 @@ export function setupSocketHandlers(io: Server): void {
       });
     }
 
-    // Handle joining a conversation room
-    socket.on(WS_EVENTS.JOIN_ROOM, (roomId: string) => {
-      // Validate room ID format
+    // Handle joining a conversation room (payload: { roomId: string } from client)
+    socket.on(WS_EVENTS.JOIN_ROOM, (payload: unknown) => {
+      const roomId = parseRoomIdPayload(payload);
+      if (roomId === null) {
+        socket.emit('error', { message: 'Invalid payload: roomId (string) required' });
+        return;
+      }
       if (!isValidRoomId(roomId)) {
         socket.emit('error', { message: 'Invalid room ID format' });
         return;
       }
-
-      // Check if user has access to this room
       if (socket.userId && !canAccessRoom(socket.userId, roomId)) {
         socket.emit('error', { message: 'Access denied to this room' });
         return;
       }
-
       socket.join(`room:${roomId}`);
       log(`[Socket] User ${socket.userId} joined room: ${roomId}`);
     });
 
-    // Handle leaving a conversation room
-    socket.on(WS_EVENTS.LEAVE_ROOM, (roomId: string) => {
-      if (!isValidRoomId(roomId)) return;
+    // Handle leaving a conversation room (payload: { roomId: string } from client)
+    socket.on(WS_EVENTS.LEAVE_ROOM, (payload: unknown) => {
+      const roomId = parseRoomIdPayload(payload);
+      if (roomId === null || !isValidRoomId(roomId)) return;
 
       socket.leave(`room:${roomId}`);
       log(`[Socket] User ${socket.userId} left room: ${roomId}`);
@@ -251,5 +270,6 @@ export const _testExports = {
   sanitizeContent,
   isValidRoomId,
   canAccessRoom,
+  parseRoomIdPayload,
   messageRateLimits,
 };
