@@ -1,6 +1,7 @@
 import type { ErrorRequestHandler } from 'express';
 import { ZodError } from 'zod';
 import { HTTP_STATUS } from '@cine-connect/shared';
+import { logger } from '../lib/logger.js';
 
 /**
  * Custom API Error class
@@ -41,13 +42,18 @@ export class ApiError extends Error {
 }
 
 /**
- * Global error handler middleware
+ * Global error handler middleware.
+ * 4xx (expected): one-line warn, no stack. 5xx / unknown: full error log.
  */
-export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
-  console.error('Error:', err);
+export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
+  const method = req.method;
+  const path = req.path ?? req.url ?? '';
 
-  // Handle Zod validation errors
+  // Handle Zod validation errors — log short, no stack
   if (err instanceof ZodError) {
+    logger.warn(`400 Validation error — ${method} ${path}`, {
+      paths: err.errors.map((e) => e.path.join('.')),
+    });
     res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       error: 'Validation error',
@@ -59,8 +65,22 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     return;
   }
 
-  // Handle API errors
+  // Handle API errors: 4xx = warn one line, 5xx = full error
   if (err instanceof ApiError) {
+    const isExpectedRefreshUnauth =
+      err.statusCode === HTTP_STATUS.UNAUTHORIZED &&
+      path.includes('auth/refresh') &&
+      err.message === 'No refresh token provided';
+
+    if (err.statusCode < 500) {
+      if (isExpectedRefreshUnauth) {
+        logger.info(`${err.statusCode} ${err.message} — ${method} ${path}`);
+      } else {
+        logger.warn(`${err.statusCode} ${err.message} — ${method} ${path}`);
+      }
+    } else {
+      logger.error(`${err.statusCode} ${err.message} — ${method} ${path}`, err);
+    }
     res.status(err.statusCode).json({
       success: false,
       error: err.message,
@@ -68,9 +88,13 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     return;
   }
 
-  // Handle unknown errors
+  // Unknown errors: always full log
+  logger.error(`Unhandled error — ${method} ${path}`, err);
   res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
     success: false,
-    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
+    error:
+      process.env.NODE_ENV === 'production'
+        ? 'Internal server error'
+        : ((err as Error)?.message ?? 'Unknown error'),
   });
 };
