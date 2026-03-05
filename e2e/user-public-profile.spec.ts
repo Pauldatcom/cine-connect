@@ -8,7 +8,8 @@
 import { expect, test } from '@playwright/test';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:3000';
-const password = 'PublicProfile123!';
+const password = process.env.E2E_TEST_PASSWORD;
+if (!password) throw new Error('E2E_TEST_PASSWORD required (set in backend/.env or CI)');
 
 async function registerUserViaApi(suffix: string) {
   const ts = Date.now();

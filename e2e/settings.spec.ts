@@ -1,13 +1,14 @@
 /**
  * E2E Tests: Settings page (edit profile, change email, change password)
  *
- * Validates that the settings features added to the project are reachable and work:
- * - Navigate to /settings when authenticated
- * - Update username and save profile
- * - Change password (current + new + confirm)
+ * Set E2E_TEST_PASSWORD in backend/.env (or CI) for register/login.
+ * For "change password" test, new password is a test-only literal (not a secret).
  */
 
 import { expect, test } from '@playwright/test';
+
+const E2E_PASSWORD = process.env.E2E_TEST_PASSWORD;
+if (!E2E_PASSWORD) throw new Error('E2E_TEST_PASSWORD required (set in backend/.env or CI)');
 
 const generateUser = () => {
   const t = Date.now();
@@ -15,7 +16,7 @@ const generateUser = () => {
   return {
     email: `settings-${t}-${r}@cineconnect.test`,
     username: `set${t.toString().slice(-6)}${r}`,
-    password: 'SettingsTest123!',
+    password: E2E_PASSWORD,
   };
 };
 

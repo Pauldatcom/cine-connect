@@ -4,6 +4,7 @@
  * Tests real-time messaging, online status, and typing indicators.
  * Uses a single shared authenticated session for all logged-in tests to avoid
  * auth rate limits (20 req/15min per IP on /api/v1/auth).
+ * Set E2E_TEST_PASSWORD in backend/.env (or CI) for register/login.
  */
 
 import { expect, test } from '@playwright/test';
@@ -13,6 +14,9 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CHAT_AUTH_PATH = path.join(__dirname, '.auth', 'chat-user.json');
+
+const E2E_PASSWORD = process.env.E2E_TEST_PASSWORD;
+if (!E2E_PASSWORD) throw new Error('E2E_TEST_PASSWORD required (set in backend/.env or CI)');
 
 /**
  * Registers one user via UI, waits for success or failure (no blind timeout).
@@ -24,7 +28,7 @@ async function registerAndLoginOnce(page: import('@playwright/test').Page): Prom
   const user = {
     email: `test-${timestamp}-${random}@cineconnect.test`,
     username: `u${timestamp.toString().slice(-6)}${random}`,
-    password: 'TestPassword123!',
+    password: E2E_PASSWORD,
   };
 
   await page.goto('/profil?mode=register');
@@ -213,9 +217,9 @@ test.describe('Chat/Discussion', () => {
   });
 
   test.describe('Chat between two users', () => {
-    // Must point at backend (default 3000), not frontend (5173)
     const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:3000';
-    const password = 'TestPassword123!';
+    const password = process.env.E2E_TEST_PASSWORD;
+    if (!password) throw new Error('E2E_TEST_PASSWORD required (set in backend/.env or CI)');
 
     async function registerUserViaApi(suffix: string) {
       const ts = Date.now();
