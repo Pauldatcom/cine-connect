@@ -1,3 +1,16 @@
+/**
+ * Request logger middleware tests.
+ *
+ * HTTP status code ranges (what the logger uses):
+ * - 2xx (200–299): Success. Logged as info (console.log). e.g. 200 OK, 201 Created.
+ * - 3xx (300–399): Redirect. Logged as info. e.g. 301 Moved Permanently, 304 Not Modified.
+ * - 4xx (400–499): Client error — bad request, unauth, not found, etc. Logged as warn
+ *   (console.warn), except 401 on auth/refresh (no cookie) which is info (expected).
+ * - 5xx (500–599): Server error. Logged as error (console.error).
+ *
+ * The middleware does NOT use ANSI colors; it uses logger.info/warn/error only.
+ */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Request, Response, NextFunction } from 'express';
 import { requestLogger } from '@/middleware/requestLogger';
@@ -6,7 +19,9 @@ describe('requestLogger', () => {
   let mockReq: Partial<Request>;
   let mockRes: Partial<Response>;
   let mockNext: NextFunction;
-  let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+  let logSpy: ReturnType<typeof vi.spyOn>;
+  let warnSpy: ReturnType<typeof vi.spyOn>;
+  let errorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     mockReq = {
@@ -23,28 +38,32 @@ describe('requestLogger', () => {
       }),
     };
     mockNext = vi.fn();
-    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
-  // What is consoelLogSpy to research, use logger.info or logger or logger.error or even logger.warning
   afterEach(() => {
-    consoleLogSpy.mockRestore();
+    logSpy.mockRestore();
+    warnSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 
   it('should call next', () => {
     requestLogger(mockReq as Request, mockRes as Response, mockNext);
-
     expect(mockNext).toHaveBeenCalled();
   });
 
-  it('should log request on response finish', () => {
+  it('should log 2xx (success) via logger.info', () => {
     requestLogger(mockReq as Request, mockRes as Response, mockNext);
 
-    expect(consoleLogSpy).toHaveBeenCalled();
-    const logMessage = consoleLogSpy.mock.calls[0]?.[0] as string;
-    expect(logMessage).toContain('GET');
-    expect(logMessage).toContain('/api/v1/users');
-    expect(logMessage).toContain('200');
+    expect(logSpy).toHaveBeenCalled();
+    const message = logSpy.mock.calls[0]?.[0] as string;
+    expect(message).toContain('GET');
+    expect(message).toContain('/api/v1/users');
+    expect(message).toContain('200');
+    expect(warnSpy).not.toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled();
   });
 
   it('should log different HTTP methods', () => {
@@ -53,61 +72,80 @@ describe('requestLogger', () => {
 
     requestLogger(mockReq as Request, mockRes as Response, mockNext);
 
-    const logMessage = consoleLogSpy.mock.calls[0]?.[0] as string;
-    expect(logMessage).toContain('POST');
-    expect(logMessage).toContain('/api/v1/auth/login');
+    const message = logSpy.mock.calls[0]?.[0] as string;
+    expect(message).toContain('POST');
+    expect(message).toContain('/api/v1/auth/login');
   });
 
-  it('should log different status codes', () => {
+  it('should log 4xx (client error) via logger.warn', () => {
     mockRes.statusCode = 404;
 
     requestLogger(mockReq as Request, mockRes as Response, mockNext);
 
-    const logMessage = consoleLogSpy.mock.calls[0]?.[0] as string;
-    expect(logMessage).toContain('404');
+    expect(warnSpy).toHaveBeenCalled();
+    const message = warnSpy.mock.calls[0]?.[0] as string;
+    expect(message).toContain('404');
+    expect(message).toContain('(client)');
+    expect(logSpy).not.toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled();
   });
-  // Why did you dit that, doest need to have different colors for status code
-  it('should use red color for 500+ status codes', () => {
+
+  it('should log 401 on auth/refresh as info (expected when no cookie), not warn', () => {
+    mockReq.method = 'POST';
+    mockReq.url = '/api/v1/auth/refresh';
+    mockRes.statusCode = 401;
+
+    requestLogger(mockReq as Request, mockRes as Response, mockNext);
+
+    expect(logSpy).toHaveBeenCalled();
+    const message = logSpy.mock.calls[0]?.[0] as string;
+    expect(message).toContain('401');
+    expect(message).toContain('auth/refresh');
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('should log 5xx (server error) via logger.error', () => {
     mockRes.statusCode = 500;
 
     requestLogger(mockReq as Request, mockRes as Response, mockNext);
 
-    const logMessage = consoleLogSpy.mock.calls[0]?.[0] as string;
-    // Red color escape code
-    expect(logMessage).toContain('\x1b[31m');
-    expect(logMessage).toContain('500');
+    expect(errorSpy).toHaveBeenCalled();
+    const message = errorSpy.mock.calls[0]?.[0] as string;
+    expect(message).toContain('500');
+    expect(message).toContain('(server error)');
+    expect(logSpy).not.toHaveBeenCalled();
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 
-  it('should use cyan color for 300+ status codes', () => {
+  it('should log 3xx (redirect) via logger.info', () => {
     mockRes.statusCode = 301;
 
     requestLogger(mockReq as Request, mockRes as Response, mockNext);
 
-    const logMessage = consoleLogSpy.mock.calls[0]?.[0] as string;
-    // Cyan color escape code
-    expect(logMessage).toContain('\x1b[36m');
-    expect(logMessage).toContain('301');
+    expect(logSpy).toHaveBeenCalled();
+    const message = logSpy.mock.calls[0]?.[0] as string;
+    expect(message).toContain('301');
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 
-  it('should use yellow color for 400+ status codes', () => {
+  it('should log 4xx (e.g. 400 Bad Request) via logger.warn', () => {
     mockRes.statusCode = 400;
 
     requestLogger(mockReq as Request, mockRes as Response, mockNext);
 
-    const logMessage = consoleLogSpy.mock.calls[0]?.[0] as string;
-    // Yellow color escape code
-    expect(logMessage).toContain('\x1b[33m');
-    expect(logMessage).toContain('400');
+    expect(warnSpy).toHaveBeenCalled();
+    const message = warnSpy.mock.calls[0]?.[0] as string;
+    expect(message).toContain('400');
+    expect(message).toContain('(client)');
   });
 
-  it('should use green color for 200+ status codes', () => {
+  it('should log 2xx (e.g. 201 Created) via logger.info', () => {
     mockRes.statusCode = 201;
 
     requestLogger(mockReq as Request, mockRes as Response, mockNext);
 
-    const logMessage = consoleLogSpy.mock.calls[0]?.[0] as string;
-    // Green color escape code
-    expect(logMessage).toContain('\x1b[32m');
-    expect(logMessage).toContain('201');
+    expect(logSpy).toHaveBeenCalled();
+    const message = logSpy.mock.calls[0]?.[0] as string;
+    expect(message).toContain('201');
   });
 });
