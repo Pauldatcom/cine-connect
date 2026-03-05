@@ -1,7 +1,9 @@
 import type { RequestHandler } from 'express';
+import { logger } from '../lib/logger.js';
 
 /**
- * Simple request logger middleware
+ * Request logger: one line per request with [backend] prefix.
+ * 4xx/5xx are tagged so problems are easy to spot when scanning logs.
  */
 export const requestLogger: RequestHandler = (req, res, next) => {
   const start = Date.now();
@@ -11,16 +13,18 @@ export const requestLogger: RequestHandler = (req, res, next) => {
     const { method, url } = req;
     const { statusCode } = res;
 
-    const color =
-      statusCode >= 500
-        ? '\x1b[31m' // red
-        : statusCode >= 400
-          ? '\x1b[33m' // yellow
-          : statusCode >= 300
-            ? '\x1b[36m' // cyan
-            : '\x1b[32m'; // green
+    const tag = statusCode >= 500 ? ' (server error)' : statusCode >= 400 ? ' (client)' : '';
+    const message = `${method} ${url} ${statusCode}${tag} - ${duration}ms`;
+    // 401 on refresh with no cookie is expected (first load, bots, E2E) — don't spam WARN
+    const expectedRefreshUnauth = statusCode === 401 && String(url).includes('auth/refresh');
 
-    console.log(`${color}${method}\x1b[0m ${url} ${color}${statusCode}\x1b[0m - ${duration}ms`);
+    if (statusCode >= 500) {
+      logger.error(message);
+    } else if (statusCode >= 400 && !expectedRefreshUnauth) {
+      logger.warn(message);
+    } else {
+      logger.info(message);
+    }
   });
 
   next();
