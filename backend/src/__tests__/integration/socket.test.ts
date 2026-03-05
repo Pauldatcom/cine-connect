@@ -5,8 +5,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { getOnlineUsers, isUserOnline, _testExports } from '@/socket';
 
-const { isRateLimited, sanitizeContent, isValidRoomId, canAccessRoom, messageRateLimits } =
-  _testExports;
+const {
+  isRateLimited,
+  sanitizeContent,
+  isValidRoomId,
+  canAccessRoom,
+  parseRoomIdPayload,
+  messageRateLimits,
+} = _testExports;
 
 // These are unit tests for the exported helper functions ; unit but in the folder integration why ????
 // Full socket integration tests would require a test server setup
@@ -117,6 +123,28 @@ describe('Socket Security Functions', () => {
     it('returns false if userId is not in roomId', () => {
       const roomId = 'user1_user2';
       expect(canAccessRoom(userId, roomId)).toBe(false);
+    });
+  });
+
+  describe('parseRoomIdPayload (JOIN_ROOM / LEAVE_ROOM payload)', () => {
+    it('returns roomId when payload is { roomId: string }', () => {
+      expect(parseRoomIdPayload({ roomId: 'userA_userB' })).toBe('userA_userB');
+      expect(parseRoomIdPayload({ roomId: '550e8400-e29b-41d4-a716-446655440000' })).toBe(
+        '550e8400-e29b-41d4-a716-446655440000'
+      );
+    });
+
+    it('returns empty string when payload is { roomId: "" }', () => {
+      expect(parseRoomIdPayload({ roomId: '' })).toBe('');
+    });
+
+    it('returns null for invalid payloads', () => {
+      expect(parseRoomIdPayload(null)).toBe(null);
+      expect(parseRoomIdPayload(undefined)).toBe(null);
+      expect(parseRoomIdPayload('plain-string')).toBe(null);
+      expect(parseRoomIdPayload({})).toBe(null);
+      expect(parseRoomIdPayload({ roomId: 123 })).toBe(null);
+      expect(parseRoomIdPayload({ roomId: null })).toBe(null);
     });
   });
 
