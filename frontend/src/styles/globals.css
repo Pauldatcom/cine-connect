@@ -10,10 +10,28 @@
   :root {
     --color-bg-primary: #14181c;
     --color-bg-secondary: #1c2228;
+    --color-bg-tertiary: #242c34;
+    --color-bg-nav: #0d1114;
     --color-text-primary: #ffffff;
     --color-text-secondary: #9ab;
+    --color-text-tertiary: #678;
+    --color-border: #2c3440;
+    --color-border-light: #456;
     --color-accent-green: #00e054;
     --color-accent-orange: #ff8000;
+  }
+
+  /* Light theme – warm paper/sepia (inspired by cream reading modes, warm beige palettes) */
+  [data-theme='light'] {
+    --color-bg-primary: #f0e9de;
+    --color-bg-secondary: #e8dfd2;
+    --color-bg-tertiary: #ddd2c4;
+    --color-bg-nav: #f6f1e8;
+    --color-text-primary: #3c362f;
+    --color-text-secondary: #5a5349;
+    --color-text-tertiary: #726a60;
+    --color-border: #d2c9bc;
+    --color-border-light: #c9bfb0;
   }
 
   * {
@@ -32,6 +50,9 @@
       'calt' 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
   }
 
   /* Custom selection color */
@@ -147,6 +168,19 @@
 
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background-color: #678;
+  }
+
+  /* Light theme: warm scrollbar (matches paper palette) */
+  [data-theme='light'] .scrollbar-thin {
+    scrollbar-color: #c9bfb0 transparent;
+  }
+
+  [data-theme='light'] .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #c9bfb0;
+  }
+
+  [data-theme='light'] .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: #b5a998;
   }
 
   /* Hide scrollbar but keep functionality */
