@@ -20,6 +20,7 @@ import { DrizzleReviewRepository } from './repositories/DrizzleReviewRepository.
 import { DrizzleUserRepository } from './repositories/DrizzleUserRepository.js';
 import { DrizzleWatchlistRepository } from './repositories/DrizzleWatchlistRepository.js';
 import { TmdbApiClient } from './tmdb/TmdbApiClient.js';
+import { logger } from '../lib/logger.js';
 
 /**
  * Register all dependencies
@@ -47,7 +48,7 @@ export function registerDependencies(): void {
   );
   container.registerSingleton<ITmdbClient>(ITmdbClient as symbol, TmdbApiClient);
 
-  console.log('[DI] Dependencies registered');
+  logger.info('[DI] Dependencies registered');
 }
 
 /**

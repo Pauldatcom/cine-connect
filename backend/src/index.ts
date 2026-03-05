@@ -13,6 +13,8 @@ import { config } from 'dotenv';
 import { createApp } from './app.js';
 import { setupSocketHandlers } from './socket/index.js';
 import { registerDependencies } from './infrastructure/container.js';
+import { logger } from './lib/logger.js';
+import { startScheduler } from './cron/scheduler.js';
 
 // Load environment variables
 config();
@@ -39,8 +41,9 @@ setupSocketHandlers(io);
 const PORT = process.env.PORT || 3000;
 
 httpServer.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`API docs at http://localhost:${PORT}/api-docs`);
+  logger.info(`Server running on http://localhost:${PORT}`);
+  logger.info(`API docs at http://localhost:${PORT}/api-docs`);
+  startScheduler();
 });
 
 export { app, io };
