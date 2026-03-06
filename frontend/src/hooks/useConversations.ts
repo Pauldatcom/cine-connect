@@ -31,14 +31,12 @@ export interface Conversation {
   unreadCount: number;
 }
 
-// Backend response types
-interface MessagesApiResponse {
-  success: boolean;
-  data: {
-    items: ChatMessage[];
-    page: number;
-    pageSize: number;
-  };
+// Backend GET /api/v1/messages/:userId returns { success, data: { items, page, pageSize } }
+// API client returns data.data, so we get { items, page, pageSize }
+interface MessagesListData {
+  items: ChatMessage[];
+  page: number;
+  pageSize: number;
 }
 
 export interface SendMessageInput {
@@ -67,8 +65,8 @@ export function useMessages(userId: string | undefined) {
     queryKey: ['messages', userId],
     queryFn: async () => {
       if (!userId) throw new Error('userId is required');
-      const response = await api.get<MessagesApiResponse>(`/api/v1/messages/${userId}`);
-      return response.data.items;
+      const response = await api.get<MessagesListData>(`/api/v1/messages/${userId}`);
+      return response.items;
     },
     enabled: !!userId,
     refetchInterval: 5000, // Poll for new messages every 5 seconds
