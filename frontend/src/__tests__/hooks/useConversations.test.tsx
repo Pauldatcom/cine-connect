@@ -2,16 +2,16 @@
  * useConversations Hook Tests
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
 import {
   useConversations,
+  useMarkMessagesRead,
   useMessages,
   useSendMessage,
-  useMarkMessagesRead,
 } from '@/hooks/useConversations';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { renderHook, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the API client
 vi.mock('@/lib/api/client', () => ({
@@ -101,9 +101,11 @@ describe('useConversations hooks', () => {
 
   describe('useMessages', () => {
     it('should fetch messages with a user', async () => {
+      // API client returns data.data (inner payload), so we mock { items, page, pageSize }
       mockApi.get.mockResolvedValue({
-        success: true,
-        data: { items: [mockMessage], page: 1, pageSize: 50 },
+        items: [mockMessage],
+        page: 1,
+        pageSize: 50,
       });
 
       const { result } = renderHook(() => useMessages('user-1'), { wrapper: createWrapper() });
