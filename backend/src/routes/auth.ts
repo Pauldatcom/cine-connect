@@ -97,7 +97,7 @@ function userToResponse(user: {
 authRouter.post('/register', async (req, res, next) => {
   try {
     const body = registerSchema.parse(req.body);
-    const registerUseCase = container.resolve(RegisterUseCase);
+    const registerUseCase = container.resolve<RegisterUseCase>(RegisterUseCase);
     const { user } = await registerUseCase.execute({
       email: body.email,
       username: body.username,
@@ -114,15 +114,15 @@ authRouter.post('/register', async (req, res, next) => {
         accessToken,
       },
     });
-  } catch (error) {
-    if (error instanceof RegisterError) {
+  } catch (err: unknown) {
+    if (err instanceof RegisterError) {
       return next(
         ApiError.conflict(
-          error.code === 'EMAIL_TAKEN' ? 'Email already registered' : 'Username already taken'
+          err.code === 'EMAIL_TAKEN' ? 'Email already registered' : 'Username already taken'
         )
       );
     }
-    next(error);
+    next(err);
   }
 });
 
@@ -136,7 +136,7 @@ authRouter.post('/register', async (req, res, next) => {
 authRouter.post('/login', async (req, res, next) => {
   try {
     const body = loginSchema.parse(req.body);
-    const loginUseCase = container.resolve(LoginUseCase);
+    const loginUseCase = container.resolve<LoginUseCase>(LoginUseCase);
     const { user } = await loginUseCase.execute({ email: body.email, password: body.password });
 
     const { accessToken, refreshToken } = generateTokens({ userId: user.id, email: user.email });
@@ -149,11 +149,11 @@ authRouter.post('/login', async (req, res, next) => {
         accessToken,
       },
     });
-  } catch (error) {
-    if (error instanceof LoginError) {
+  } catch (err: unknown) {
+    if (err instanceof LoginError) {
       return next(ApiError.unauthorized('Invalid email or password'));
     }
-    next(error);
+    next(err);
   }
 });
 
@@ -187,7 +187,7 @@ authRouter.post('/refresh', async (req, res, next) => {
       return next(ApiError.unauthorized('Invalid refresh token'));
     }
 
-    const refreshUseCase = container.resolve(RefreshUseCase);
+    const refreshUseCase = container.resolve<RefreshUseCase>(RefreshUseCase);
     const { user } = await refreshUseCase.execute({ userId: decoded.userId });
 
     const { accessToken, refreshToken: newRefreshToken } = generateTokens({
@@ -203,12 +203,12 @@ authRouter.post('/refresh', async (req, res, next) => {
         user: userToResponse(user),
       },
     });
-  } catch (error) {
-    if (error instanceof RefreshError) {
+  } catch (err: unknown) {
+    if (err instanceof RefreshError) {
       clearRefreshTokenCookie(res);
       return next(ApiError.unauthorized('User not found'));
     }
-    next(error);
+    next(err);
   }
 });
 
@@ -225,7 +225,7 @@ authRouter.post('/change-password', authenticate, async (req, res, next) => {
   try {
     const body = changePasswordSchema.parse(req.body);
     const userId = getAuthUser(req).userId;
-    const changePasswordUseCase = container.resolve(ChangePasswordUseCase);
+    const changePasswordUseCase = container.resolve<ChangePasswordUseCase>(ChangePasswordUseCase);
     await changePasswordUseCase.execute({
       userId,
       currentPassword: body.currentPassword,
@@ -235,11 +235,11 @@ authRouter.post('/change-password', authenticate, async (req, res, next) => {
       success: true,
       message: 'Password updated successfully',
     });
-  } catch (error) {
-    if (error instanceof ChangePasswordError) {
-      return next(ApiError.unauthorized(error.message));
+  } catch (err: unknown) {
+    if (err instanceof ChangePasswordError) {
+      return next(ApiError.unauthorized(err.message));
     }
-    next(error);
+    next(err);
   }
 });
 
@@ -256,7 +256,7 @@ authRouter.post('/change-email', authenticate, async (req, res, next) => {
   try {
     const body = changeEmailSchema.parse(req.body);
     const userId = getAuthUser(req).userId;
-    const changeEmailUseCase = container.resolve(ChangeEmailUseCase);
+    const changeEmailUseCase = container.resolve<ChangeEmailUseCase>(ChangeEmailUseCase);
     const { user } = await changeEmailUseCase.execute({
       userId,
       newEmail: body.newEmail,
@@ -274,14 +274,14 @@ authRouter.post('/change-email', authenticate, async (req, res, next) => {
         accessToken,
       },
     });
-  } catch (error) {
-    if (error instanceof ChangeEmailError) {
-      if (error.code === 'EMAIL_TAKEN') {
+  } catch (err: unknown) {
+    if (err instanceof ChangeEmailError) {
+      if (err.code === 'EMAIL_TAKEN') {
         return next(ApiError.conflict('Email already in use'));
       }
-      return next(ApiError.unauthorized(error.message));
+      return next(ApiError.unauthorized(err.message));
     }
-    next(error);
+    next(err);
   }
 });
 
