@@ -6,10 +6,10 @@
 // Must import reflect-metadata FIRST before any tsyringe usage
 import 'reflect-metadata';
 
-import { createApp } from '@/app';
 import bcrypt from 'bcryptjs';
 import request from 'supertest';
-import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { createTestServer, closeTestServer } from '@/__tests__/helpers/server.js';
 
 // Mock the database module
 vi.mock('@/db/index.js', () => ({
@@ -39,7 +39,13 @@ vi.mock('@/db/index.js', () => ({
 import { db } from '@/db/index.js';
 
 describe('Auth Routes', () => {
-  const app = createApp();
+  let server: ReturnType<typeof createTestServer>;
+
+  beforeEach(() => {
+    server = createTestServer();
+  });
+
+  afterEach(() => closeTestServer());
 
   // Mock user data
   const mockUser = {
@@ -63,7 +69,7 @@ describe('Auth Routes', () => {
       // Mock: no existing user found
       (db.query.users.findFirst as Mock).mockResolvedValue(null);
 
-      // Mock: insert returns new user
+      // Mock: insert returns new user (passwordHash required by DrizzleUserRepository.toDomain)
       (db.insert as Mock).mockReturnValue({
         values: vi.fn().mockReturnValue({
           returning: vi.fn().mockResolvedValue([
@@ -71,6 +77,7 @@ describe('Auth Routes', () => {
               id: 'new-user-id',
               email: 'newuser@example.com',
               username: 'newuser',
+              passwordHash: 'mock_hash_password123',
               avatarUrl: null,
               createdAt: new Date(),
               updatedAt: new Date(),
@@ -79,7 +86,7 @@ describe('Auth Routes', () => {
         }),
       });
 
-      const response = await request(app)
+      const response = await request(server)
         .post('/api/v1/auth/register')
         .send({
           email: 'newuser@example.com',
@@ -102,7 +109,7 @@ describe('Auth Routes', () => {
     });
 
     it('should return 400 for invalid email', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .post('/api/v1/auth/register')
         .send({
           email: 'invalid-email',
@@ -116,7 +123,7 @@ describe('Auth Routes', () => {
     });
 
     it('should return 400 for short password', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .post('/api/v1/auth/register')
         .send({
           email: 'test@example.com',
@@ -129,7 +136,7 @@ describe('Auth Routes', () => {
     });
 
     it('should return 400 for short username', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .post('/api/v1/auth/register')
         .send({
           email: 'test@example.com',
@@ -148,7 +155,7 @@ describe('Auth Routes', () => {
         email: 'test@example.com',
       });
 
-      const response = await request(app)
+      const response = await request(server)
         .post('/api/v1/auth/register')
         .send({
           email: 'test@example.com',
@@ -169,7 +176,7 @@ describe('Auth Routes', () => {
         username: 'testuser',
       });
 
-      const response = await request(app)
+      const response = await request(server)
         .post('/api/v1/auth/register')
         .send({
           email: 'new@example.com',
@@ -188,7 +195,7 @@ describe('Auth Routes', () => {
       // Mock: user found
       (db.query.users.findFirst as Mock).mockResolvedValue(mockUser);
 
-      const response = await request(app)
+      const response = await request(server)
         .post('/api/v1/auth/login')
         .send({
           email: 'test@example.com',
@@ -210,7 +217,7 @@ describe('Auth Routes', () => {
       // Mock: no user found
       (db.query.users.findFirst as Mock).mockResolvedValue(null);
 
-      const response = await request(app)
+      const response = await request(server)
         .post('/api/v1/auth/login')
         .send({
           email: 'nonexistent@example.com',
@@ -226,7 +233,7 @@ describe('Auth Routes', () => {
       // Mock: user found but password won't match
       (db.query.users.findFirst as Mock).mockResolvedValue(mockUser);
 
-      const response = await request(app)
+      const response = await request(server)
         .post('/api/v1/auth/login')
         .send({
           email: 'test@example.com',
@@ -239,7 +246,7 @@ describe('Auth Routes', () => {
     });
 
     it('should return 400 for missing email', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .post('/api/v1/auth/login')
         .send({
           password: 'password123',
@@ -250,7 +257,7 @@ describe('Auth Routes', () => {
     });
 
     it('should return 400 for missing password', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .post('/api/v1/auth/login')
         .send({
           email: 'test@example.com',
@@ -261,7 +268,7 @@ describe('Auth Routes', () => {
     });
 
     it('should return 400 for invalid email format', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .post('/api/v1/auth/login')
         .send({
           email: 'not-an-email',
@@ -275,13 +282,13 @@ describe('Auth Routes', () => {
 
   describe('POST /api/v1/auth/refresh', () => {
     it('should return 401 when no refresh cookie is sent', async () => {
-      await request(app).post('/api/v1/auth/refresh').expect(401);
+      await request(server).post('/api/v1/auth/refresh').expect(401);
     });
 
     it('should return 200 and new accessToken when valid refresh cookie is sent', async () => {
       // Login to get refresh token cookie
       (db.query.users.findFirst as Mock).mockResolvedValue(mockUser);
-      const loginResponse = await request(app)
+      const loginResponse = await request(server)
         .post('/api/v1/auth/login')
         .send({
           email: 'test@example.com',
@@ -303,7 +310,7 @@ describe('Auth Routes', () => {
         .join('; ');
       expect(cookieValue).toBeTruthy();
 
-      const response = await request(app)
+      const response = await request(server)
         .post('/api/v1/auth/refresh')
         .set('Cookie', cookieValue)
         .expect(200);
@@ -312,12 +319,59 @@ describe('Auth Routes', () => {
       expect(response.body.data.accessToken).toBeDefined();
       expect(response.body.data.user.email).toBe('test@example.com');
     });
+
+    it('should return 401 when refresh cookie is valid but user no longer exists', async () => {
+      (db.query.users.findFirst as Mock).mockResolvedValue(mockUser);
+      const loginResponse = await request(server)
+        .post('/api/v1/auth/login')
+        .send({
+          email: 'test@example.com',
+          password: 'password123',
+        })
+        .expect(200);
+
+      const cookieHeader = loginResponse.headers['set-cookie'] as string | string[] | undefined;
+      const rawCookies: string[] = Array.isArray(cookieHeader)
+        ? cookieHeader.filter((c): c is string => typeof c === 'string')
+        : cookieHeader
+          ? [cookieHeader]
+          : [];
+      const cookieValue = rawCookies
+        .map((c) => c.split(';')[0]?.trim() ?? '')
+        .filter(Boolean)
+        .join('; ');
+
+      (db.query.users.findFirst as Mock).mockResolvedValue(null);
+
+      const response = await request(server)
+        .post('/api/v1/auth/refresh')
+        .set('Cookie', cookieValue)
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+    });
   });
+
+  describe('POST /api/v1/auth/logout', () => {
+    it('should return 200 and clear refresh cookie', async () => {
+      const response = await request(server).post('/api/v1/auth/logout').expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toMatch(/logged out/i);
+      const setCookie = response.headers['set-cookie'];
+      const cookieArr = Array.isArray(setCookie) ? setCookie : setCookie ? [setCookie] : [];
+      const clearCookie = cookieArr.find(
+        (c) => typeof c === 'string' && c.includes('cineconnect_refresh=')
+      );
+      expect(clearCookie).toBeDefined();
+    });
+  });
+
   // don't no it's realy usefull to have health check in test, use it before register,
   // when user using the API for wake up the service
   describe('GET /health', () => {
     it('should return health check status', async () => {
-      const response = await request(app).get('/health').expect(200);
+      const response = await request(server).get('/health').expect(200);
 
       expect(response.body.status).toBe('ok');
       expect(response.body.timestamp).toBeDefined();
