@@ -16,9 +16,10 @@ import {
   useToggleWatchlist,
   useUpdateReview,
   useUserFilmReview,
+  useWatchProviders,
   type Review,
 } from '@/hooks';
-import { getImageUrl } from '@/lib/api/tmdb';
+import { getImageUrl, type TMDbWatchProvider } from '@/lib/api/tmdb';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import {
   ArrowLeft,
@@ -33,15 +34,13 @@ import {
   Play,
   Share2,
   Star,
+  Tv,
   Users,
 } from 'lucide-react';
 import { useState } from 'react';
 
 type TabId = 'cast' | 'crew' | 'details' | 'genres' | 'releases';
 
-/**
- * Film detail page - Letterboxd-inspired layout with tabs
- */
 export const Route = createFileRoute('/film/$id')({
   component: FilmDetailPage,
 });
@@ -55,37 +54,47 @@ function FilmDetailPage() {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
 
-  // Fetch film details from TMDb using custom hook
   const { data: film, isLoading, error } = useFilm(id);
-
-  // Fetch credits, videos, and similar films using custom hooks
   const { data: credits } = useFilmCredits(id, !!film);
   const { data: videos } = useFilmVideos(id, !!film);
   const { data: similar } = useSimilarFilms(id, !!film);
 
-  // Register film in our backend to get internal UUID
-  const { data: backendFilm } = useRegisterFilm(film, !!film);
+  // Hook pour les plateformes de streaming
+  const { data: providers, isLoading: loadingProviders } = useWatchProviders(id, 'FR');
 
-  // Fetch reviews from our backend using internal UUID
+  const { data: backendFilm } = useRegisterFilm(film, !!film);
   const { data: reviewsData, isLoading: reviewsLoading } = useFilmReviews(backendFilm?.id);
 
-  // Check if user has already reviewed this film
   const { existingReview, hasReviewed } = useUserFilmReview(
     isAuthenticated ? user?.id : undefined,
     backendFilm?.id
   );
 
-  // Create and update review mutations
   const createReviewMutation = useCreateReview(backendFilm?.id);
   const updateReviewMutation = useUpdateReview(backendFilm?.id);
-
-  // Like review mutation using custom hook
   const likeReviewMutation = useLikeReview(backendFilm?.id);
 
-  // To Watch (watchlist)
   const { data: watchlistStatus } = useIsInWatchlist(isAuthenticated ? backendFilm?.id : undefined);
   const { toggleWatchlist, isLoading: watchlistLoading } = useToggleWatchlist();
   const isInWatchlist = watchlistStatus?.isInWatchlist ?? false;
+
+  // --- FUNCTION FOR DIRECT LINK ---
+  // TMDb doesn’t provide a direct link, so we generate a search on the site or via Google.
+  const getProviderDeepLink = (providerName: string, movieTitle: string) => {
+    const encodedTitle = encodeURIComponent(movieTitle);
+    const name = providerName.toLowerCase();
+
+    // Attempt to create a direct link to the platform’s search
+    if (name.includes('netflix')) return `https://www.netflix.com/search?q=${encodedTitle}`;
+    if (name.includes('disney')) return `https://www.disneyplus.com/search?q=${encodedTitle}`;
+    if (name.includes('prime') || name.includes('amazon'))
+      return `https://www.primevideo.com/search/phrase=${encodedTitle}`;
+    if (name.includes('apple tv')) return `https://tv.apple.com/search?term=${encodedTitle}`;
+    if (name.includes('canal')) return `https://www.canalplus.com/`;
+
+    // Fallback: Google search "Watch [Film] on [Platform]"
+    return `https://www.google.com/search?q=${encodeURIComponent(`Watch ${movieTitle} on ${providerName}`)}`;
+  };
 
   const handleToggleWatchlist = async () => {
     if (!backendFilm?.id || !isAuthenticated) return;
@@ -103,41 +112,29 @@ function FilmDetailPage() {
     }
     setReviewError(null);
 
-    // If user already has a review, update it instead of creating
     if (hasReviewed && existingReview) {
       updateReviewMutation.mutate(
         {
           reviewId: existingReview.id,
-          input: {
-            rating: data.rating,
-            comment: data.comment || undefined,
-          },
+          input: { rating: data.rating, comment: data.comment || undefined },
         },
         {
           onSuccess: () => {
             setShowReviewForm(false);
             setReviewError(null);
           },
-          onError: (error: Error) => {
-            setReviewError(error.message || 'Failed to update review');
-          },
+          onError: (error: Error) => setReviewError(error.message || 'Failed to update review'),
         }
       );
     } else {
       createReviewMutation.mutate(
-        {
-          filmId: backendFilm.id,
-          rating: data.rating,
-          comment: data.comment || undefined,
-        },
+        { filmId: backendFilm.id, rating: data.rating, comment: data.comment || undefined },
         {
           onSuccess: () => {
             setShowReviewForm(false);
             setReviewError(null);
           },
-          onError: (error: Error) => {
-            setReviewError(error.message || 'Failed to submit review');
-          },
+          onError: (error: Error) => setReviewError(error.message || 'Failed to submit review'),
         }
       );
     }
@@ -145,14 +142,10 @@ function FilmDetailPage() {
 
   const handleWriteReview = () => {
     if (!isAuthenticated) {
-      // Redirect to login
       window.location.href = '/profil?mode=login';
       return;
     }
-    // Pre-fill rating if editing existing review
-    if (hasReviewed && existingReview) {
-      setUserRating(existingReview.rating);
-    }
+    if (hasReviewed && existingReview) setUserRating(existingReview.rating);
     setShowReviewForm(true);
   };
 
@@ -202,7 +195,6 @@ function FilmDetailPage() {
 
   return (
     <div className="animate-fade-in">
-      {/* Review Form Modal */}
       {showReviewForm && (
         <ReviewForm
           film={{
@@ -223,9 +215,7 @@ function FilmDetailPage() {
         />
       )}
 
-      {/* Backdrop Header */}
       <div className="relative">
-        {/* Backdrop Image */}
         {film.backdrop_path && (
           <div className="absolute inset-0 h-[60vh] overflow-hidden">
             <img
@@ -238,9 +228,7 @@ function FilmDetailPage() {
           </div>
         )}
 
-        {/* Content */}
         <div className="relative mx-auto max-w-7xl px-4 pt-8">
-          {/* Back Button */}
           <Link
             to="/films"
             className="text-text-secondary hover:text-text-primary mb-8 inline-flex items-center gap-2 transition-colors"
@@ -249,18 +237,14 @@ function FilmDetailPage() {
             Back to Films
           </Link>
 
-          {/* Film Header */}
           <div className="flex flex-col gap-8 pb-8 lg:flex-row">
-            {/* Left: Poster & Actions */}
             <div className="shrink-0 lg:w-72">
-              {/* Poster */}
               <div className="relative">
                 <img
                   src={getImageUrl(film.poster_path, 'poster', 'large')}
                   alt={film.title}
                   className="mx-auto w-full max-w-[288px] rounded-lg shadow-2xl lg:mx-0"
                 />
-                {/* Trailer overlay button */}
                 {trailer && (
                   <a
                     href={`https://www.youtube.com/watch?v=${trailer.key}`}
@@ -276,7 +260,6 @@ function FilmDetailPage() {
                 )}
               </div>
 
-              {/* To Watch (watchlist) */}
               <div className="mx-auto mt-6 max-w-[288px] lg:mx-0">
                 <ActionButton
                   icon={<List className="h-5 w-5" />}
@@ -289,36 +272,29 @@ function FilmDetailPage() {
                 />
               </div>
 
-              {/* Rate this film */}
               <div className="bg-bg-secondary/80 mx-auto mt-6 max-w-[288px] rounded-lg p-4 backdrop-blur lg:mx-0">
                 <p className="text-text-secondary mb-3 text-sm">Rate this film</p>
                 <StarRating
                   rating={userRating}
                   onRatingChange={(rating) => {
                     setUserRating(rating);
-                    if (isAuthenticated && rating > 0) {
-                      setShowReviewForm(true);
-                    }
+                    if (isAuthenticated && rating > 0) setShowReviewForm(true);
                   }}
                   size="lg"
                 />
               </div>
 
-              {/* Share */}
               <button className="btn-ghost mx-auto mt-4 w-full max-w-[288px] justify-center lg:mx-0">
                 <Share2 className="h-4 w-4" />
                 Share
               </button>
             </div>
 
-            {/* Right: Film Info */}
             <div className="min-w-0 flex-1 pt-4 lg:pt-0">
-              {/* Title */}
               <h1 className="font-display text-3xl font-bold leading-tight text-white md:text-4xl lg:text-5xl">
                 {film.title}
               </h1>
 
-              {/* Year, Runtime, Director */}
               <div className="text-text-secondary mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
                 {year && (
                   <span className="flex items-center gap-1.5 text-lg">
@@ -340,7 +316,6 @@ function FilmDetailPage() {
                 )}
               </div>
 
-              {/* Rating */}
               {film.vote_average > 0 && (
                 <div className="mt-6 flex flex-wrap items-center gap-4">
                   <div className="flex items-center gap-2">
@@ -359,14 +334,12 @@ function FilmDetailPage() {
                 </div>
               )}
 
-              {/* Tagline */}
               {film.tagline && (
                 <p className="text-text-secondary border-letterboxd-green mt-6 border-l-2 pl-4 text-xl italic">
                   &ldquo;{film.tagline}&rdquo;
                 </p>
               )}
 
-              {/* Genres */}
               {film.genres.length > 0 && (
                 <div className="mt-6 flex flex-wrap gap-2">
                   {film.genres.map((genre) => (
@@ -382,7 +355,6 @@ function FilmDetailPage() {
                 </div>
               )}
 
-              {/* Overview */}
               <div className="mt-8">
                 <h2 className="text-text-tertiary mb-3 text-sm font-semibold uppercase tracking-wider">
                   Overview
@@ -392,7 +364,6 @@ function FilmDetailPage() {
                 </p>
               </div>
 
-              {/* Writers */}
               {writers.length > 0 && (
                 <div className="mt-6">
                   <span className="text-text-tertiary">Written by </span>
@@ -405,7 +376,6 @@ function FilmDetailPage() {
                 </div>
               )}
 
-              {/* External Links */}
               <div className="mt-8 flex flex-wrap gap-3">
                 {trailer && (
                   <a
@@ -440,6 +410,114 @@ function FilmDetailPage() {
                   </a>
                 )}
               </div>
+
+              {/* WHERE TO WATCH SECTION (WITH DIRECT LINKS*/}
+              <div className="mt-8">
+                <h2 className="text-text-tertiary mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider">
+                  <Tv className="h-4 w-4" />
+                  Where to watch
+                </h2>
+
+                {loadingProviders && (
+                  <p className="text-text-secondary text-sm">Searching platforms...</p>
+                )}
+                {!loadingProviders && !providers && (
+                  <p className="text-text-secondary text-sm">
+                    No platforms available in France at the moment.
+                  </p>
+                )}
+
+                {!loadingProviders && providers && (
+                  <div className="space-y-4">
+                    {/* Streaming */}
+                    {providers.flatrate && providers.flatrate.length > 0 && (
+                      <div>
+                        <h3 className="text-text-primary mb-2 text-sm font-medium">
+                          Streaming (Subscription)
+                        </h3>
+                        <div className="flex flex-wrap gap-3">
+                          {providers.flatrate.map((p: TMDbWatchProvider) => (
+                            <a
+                              key={p.provider_id}
+                              href={getProviderDeepLink(p.provider_name, film.title)} // LIEN DIRECT GENERE
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex cursor-pointer flex-col items-center transition-opacity hover:opacity-80"
+                            >
+                              <img
+                                src={`https://image.tmdb.org/t/p/w200${p.logo_path}`}
+                                alt={p.provider_name}
+                                title={p.provider_name}
+                                className="bg-bg-secondary h-12 w-12 rounded-lg shadow-sm"
+                              />
+                              <span className="text-text-tertiary mt-1 max-w-[60px] text-center text-xs leading-tight">
+                                {p.provider_name}
+                              </span>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Rental */}
+                    {providers.rent && providers.rent.length > 0 && (
+                      <div>
+                        <h3 className="text-text-primary mb-2 text-sm font-medium">Rental</h3>
+                        <div className="flex flex-wrap gap-3">
+                          {providers.rent.map((p: TMDbWatchProvider) => (
+                            <a
+                              key={p.provider_id}
+                              href={getProviderDeepLink(p.provider_name, film.title)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex cursor-pointer flex-col items-center transition-opacity hover:opacity-80"
+                            >
+                              <img
+                                src={`https://image.tmdb.org/t/p/w200${p.logo_path}`}
+                                alt={p.provider_name}
+                                title={p.provider_name}
+                                className="bg-bg-secondary h-12 w-12 rounded-lg shadow-sm"
+                              />
+                              <span className="text-text-tertiary mt-1 max-w-[60px] text-center text-xs leading-tight">
+                                {p.provider_name}
+                              </span>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Purchase */}
+                    {providers.buy && providers.buy.length > 0 && (
+                      <div>
+                        <h3 className="text-text-primary mb-2 text-sm font-medium">Purchase</h3>
+                        <div className="flex flex-wrap gap-3">
+                          {providers.buy.map((p: TMDbWatchProvider) => (
+                            <a
+                              key={p.provider_id}
+                              href={getProviderDeepLink(p.provider_name, film.title)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex cursor-pointer flex-col items-center transition-opacity hover:opacity-80"
+                            >
+                              <img
+                                src={`https://image.tmdb.org/t/p/w200${p.logo_path}`}
+                                alt={p.provider_name}
+                                title={p.provider_name}
+                                className="bg-bg-secondary h-12 w-12 rounded-lg shadow-sm"
+                              />
+                              <span className="text-text-tertiary mt-1 max-w-[60px] text-center text-xs leading-tight">
+                                {p.provider_name}
+                              </span>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              {/* END OF SECTION*/}
             </div>
           </div>
         </div>
@@ -469,7 +547,6 @@ function FilmDetailPage() {
 
       {/* Tab Content */}
       <div className="mx-auto max-w-7xl px-4 py-8">
-        {/* Cast Tab */}
         {activeTab === 'cast' && topCast.length > 0 && (
           <div className="animate-fade-in">
             <h2 className="section-header mb-6">Top Billed Cast</h2>
@@ -497,7 +574,6 @@ function FilmDetailPage() {
           </div>
         )}
 
-        {/* Crew Tab */}
         {activeTab === 'crew' && topCrew.length > 0 && (
           <div className="animate-fade-in">
             <h2 className="section-header mb-6">Crew</h2>
@@ -528,7 +604,6 @@ function FilmDetailPage() {
           </div>
         )}
 
-        {/* Details Tab */}
         {activeTab === 'details' && (
           <div className="animate-fade-in max-w-2xl">
             <h2 className="section-header mb-6">Details</h2>
@@ -565,7 +640,6 @@ function FilmDetailPage() {
           </div>
         )}
 
-        {/* Genres Tab */}
         {activeTab === 'genres' && (
           <div className="animate-fade-in">
             <h2 className="section-header mb-6">Genres</h2>
@@ -585,7 +659,6 @@ function FilmDetailPage() {
         )}
       </div>
 
-      {/* Similar Films */}
       {similar && similar.results.length > 0 && (
         <section className="border-border mx-auto max-w-7xl border-t px-4 py-8">
           <h2 className="section-header mb-6">Similar Films</h2>
@@ -597,7 +670,6 @@ function FilmDetailPage() {
         </section>
       )}
 
-      {/* Reviews Section */}
       <section className="border-border mx-auto max-w-7xl border-t px-4 py-8">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="section-header flex items-center gap-2">
@@ -614,14 +686,12 @@ function FilmDetailPage() {
           </button>
         </div>
 
-        {/* Loading state */}
         {reviewsLoading && (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="text-letterboxd-green h-8 w-8 animate-spin" />
           </div>
         )}
 
-        {/* No reviews */}
         {!reviewsLoading && reviews.length === 0 && (
           <div className="text-text-tertiary py-12 text-center">
             <MessageSquare className="mx-auto mb-4 h-12 w-12 opacity-50" />
@@ -630,7 +700,6 @@ function FilmDetailPage() {
           </div>
         )}
 
-        {/* Reviews list */}
         {!reviewsLoading && reviews.length > 0 && (
           <div className="grid gap-4 md:grid-cols-2">
             {reviews.map((review: Review) => (
@@ -656,7 +725,6 @@ function FilmDetailPage() {
           </div>
         )}
 
-        {/* Load more */}
         {reviewsData && reviewsData.totalPages > 1 && (
           <div className="mt-6 text-center">
             <button className="btn-secondary">Load More Reviews</button>
@@ -712,9 +780,6 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
-/**
- * Format a date string to relative time (e.g., "2 days ago")
- */
 function formatRelativeDate(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();

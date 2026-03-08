@@ -77,6 +77,48 @@ export interface TMDbMovieDetails extends TMDbMovie {
   homepage: string | null;
 }
 
+// --- Add these types at the top of the file ---
+
+export interface TMDbWatchProvider {
+  logo_path: string;
+  provider_id: number;
+  provider_name: string;
+  display_priority: number;
+}
+
+export interface TMDbWatchProvidersResult {
+  link: string;
+  flatrate?: TMDbWatchProvider[]; // Streaming (Netflix, Disney+, etc.)
+  rent?: TMDbWatchProvider[]; // Location (Apple TV, Google Play)
+  buy?: TMDbWatchProvider[]; // Achat
+  free?: TMDbWatchProvider[]; // Gratuit
+  ads?: TMDbWatchProvider[]; // Avec pubs
+}
+
+export interface TMDbWatchProvidersResponse {
+  id: number;
+  results: Record<string, TMDbWatchProvidersResult>; //Key = country code (FR, US, etc.)
+}
+
+// --- Add this API call function ---
+
+/**
+ * Fetch watch providers (streaming, rent, buy) for a movie
+ */
+export async function getMovieWatchProviders(
+  tmdbId: string | number
+): Promise<TMDbWatchProvidersResponse> {
+  const response = await fetch(
+    `${TMDB_BASE_URL}/movie/${tmdbId}/watch/providers?api_key=${TMDB_API_KEY}`
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch watch providers');
+  }
+
+  return response.json();
+}
+
 export interface TMDbCredits {
   id: number;
   cast: TMDbCastMember[];
@@ -241,6 +283,7 @@ export async function getRecommendations(movieId: number | string): Promise<TMDb
 export async function getGenres(): Promise<{ genres: TMDbGenre[] }> {
   return fetchTMDb('/genre/movie/list');
 }
+// À la fin de src/lib/api/tmdb.ts ou dans les exports nommés
 
 // ============================================
 // Genre mapping (for URL-friendly slugs)

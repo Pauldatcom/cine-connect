@@ -18,11 +18,14 @@ import {
   getTrending,
   getUpcoming,
   searchMovies,
+  // --- AJOUT DES IMPORTS ---
+  getMovieWatchProviders,
   type TMDbCredits,
   type TMDbMovie,
   type TMDbMovieDetails,
   type TMDbSearchResponse,
   type TMDbVideo,
+  // Type pour le retour du hook
 } from '@/lib/api/tmdb';
 import { useQuery } from '@tanstack/react-query';
 
@@ -174,6 +177,26 @@ export function useFilmsByGenre(genreId: number, page = 1) {
     queryKey: ['movies', 'genre', genreId, page],
     queryFn: () => getMoviesByGenre(genreId, page),
     enabled: genreId > 0,
+  });
+}
+
+// --- NOUVEAU HOOK ---
+
+/**
+ * Fetch watch providers (streaming, rent, buy) from TMDb
+ * @param tmdbId L'ID du film TMDb
+ * @param countryCode Code pays ISO 3166-1 (ex: 'FR', 'US', 'GB'). Défaut: 'FR'
+ */
+export function useWatchProviders(tmdbId: string | number, countryCode: string = 'FR') {
+  return useQuery({
+    queryKey: ['movie', String(tmdbId), 'watch-providers', countryCode],
+    queryFn: async () => {
+      const data = await getMovieWatchProviders(tmdbId);
+      // Retourne les infos pour le pays spécifique, ou null si indisponible
+      return data.results[countryCode] || null;
+    },
+    enabled: !!tmdbId,
+    staleTime: 1000 * 60 * 60, // 1 heure (les providers ne changent pas toutes les minutes)
   });
 }
 

@@ -38,6 +38,22 @@
   ::selection {
     @apply bg-letterboxd-green/30 text-white;
   }
+
+  /* --- AMÉLIORATION 1 : SCROLLBAR PERSONNALISÉE (Global) --- */
+  body::-webkit-scrollbar {
+    width: 10px;
+  }
+  body::-webkit-scrollbar-track {
+    background: #14181c; /* bg-primary */
+  }
+  body::-webkit-scrollbar-thumb {
+    background: #2c3440; /* Un gris un peu plus clair */
+    border-radius: 5px;
+    border: 2px solid #14181c;
+  }
+  body::-webkit-scrollbar-thumb:hover {
+    background: #456; /* Couleur au survol */
+  }
 }
 
 @layer components {
@@ -69,6 +85,12 @@
     @apply bg-bg-secondary border-border rounded-lg border p-4;
   }
 
+  /* --- AMÉLIORATION 2 : GLASSMORPHISME --- */
+  /* Classe utilitaire pour les effets de verre dépolu */
+  .glass-effect {
+    @apply bg-bg-secondary/60 border border-white/5 shadow-lg backdrop-blur-xl;
+  }
+
   /* Inputs */
   .input {
     @apply bg-bg-tertiary border-border text-text-primary w-full rounded border px-3 py-2 text-sm;
@@ -79,7 +101,7 @@
 
   /* Film poster card */
   .poster-card {
-    @apply relative overflow-hidden rounded transition-transform duration-300;
+    @apply relative overflow-hidden rounded transition-all duration-300;
     @apply hover:z-10 hover:scale-105;
   }
 
@@ -106,9 +128,9 @@
     @apply text-border;
   }
 
-  /* Link styles */
+  /* Link styles (CORRIGÉ pour éviter l'erreur PostCSS) */
   .link {
-    @apply text-letterboxd-blue hover:text-letterboxd-blue/80 transition-colors;
+    @apply text-letterboxd-blue hover:text-letterboxd-blue/80 underline underline-offset-2 transition-colors;
   }
 
   /* Genre tag */
@@ -125,7 +147,7 @@
 }
 
 @layer utilities {
-  /* Custom scrollbar (Letterboxd style) */
+  /* Custom scrollbar (Letterboxd style) - Utilitaire pour les conteneurs */
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: #456 transparent;
@@ -190,5 +212,38 @@
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  /* --- AMÉLIORATION 3 : SQUELETTE DE CHARGEMENT (SHIMMER) --- */
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  .shimmer-loading {
+    background: linear-gradient(90deg, #2c3440 25%, #3a4550 50%, #2c3440 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 4px;
+  }
+
+  /* --- AMÉLIORATION 4 : ANIMATION FADE-IN --- */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
   }
 }
