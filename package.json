@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "predev": "pnpm --filter @cine-connect/shared build",
-    "dev": "concurrently -n 'frontend,backend' -c 'cyan,green' 'pnpm dev:frontend' 'pnpm dev:backend'",
+    "dev": "concurrently -n frontend,backend -c cyan,green \"pnpm dev:frontend\" \"pnpm dev:backend\"",
     "dev:frontend": "pnpm --filter @cine-connect/frontend dev",
     "dev:backend": "pnpm --filter @cine-connect/backend dev",
     "dev:all": "concurrently -n 'db,backend,frontend' -c 'yellow,green,cyan' 'docker-compose up' 'pnpm dev:backend' 'pnpm dev:frontend'",
@@ -70,6 +70,7 @@
     "lint-staged": "^15.2.11",
     "prettier": "^3.4.2",
     "prettier-plugin-tailwindcss": "^0.6.9",
+    "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.1",
     "wait-on": "^9.0.3"
   }
