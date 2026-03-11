@@ -51,6 +51,7 @@ export class DrizzleWatchlistRepository implements IWatchlistRepository {
         title: row.film.title,
         year: row.film.year,
         poster: row.film.poster,
+        genre: row.film.genre ?? undefined,
       },
     }));
   }

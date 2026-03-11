@@ -2,10 +2,13 @@
  * E2E Tests: Complete User Journey
  *
  * Tests the full user experience from registration to using all features.
- * This is the main integration test that covers the entire app flow.
+ * Set E2E_TEST_PASSWORD in backend/.env (or CI) for register/login.
  */
 
 import { test, expect } from '@playwright/test';
+
+const E2E_PASSWORD = process.env.E2E_TEST_PASSWORD;
+if (!E2E_PASSWORD) throw new Error('E2E_TEST_PASSWORD required (set in backend/.env or CI)');
 
 test.describe('Complete User Journey', () => {
   test('should complete full user journey: register -> browse -> review -> chat', async ({
@@ -14,7 +17,7 @@ test.describe('Complete User Journey', () => {
     const user = {
       email: `journey-${Date.now()}@cineconnect.test`,
       username: `user${Date.now().toString().slice(-8)}`,
-      password: 'JourneyTest123!',
+      password: E2E_PASSWORD,
     };
 
     // ========================================

@@ -5,8 +5,8 @@
 // Must import reflect-metadata FIRST before any tsyringe usage
 import 'reflect-metadata';
 
-import { createApp } from '@/app';
 import { Film } from '@/domain/entities/Film.js';
+import { createTestServer, closeTestServer } from '@/__tests__/helpers/server.js';
 import { Review } from '@/domain/entities/Review.js';
 import { ReviewComment } from '@/domain/entities/ReviewComment.js';
 import { ReviewLike } from '@/domain/entities/ReviewLike.js';
@@ -15,7 +15,7 @@ import { IReviewRepository } from '@/domain/repositories/IReviewRepository.js';
 import jwt from 'jsonwebtoken';
 import request from 'supertest';
 import { container } from 'tsyringe';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Valid UUIDs for testing
 const USER_ID = '11111111-1111-1111-1111-111111111111';
@@ -85,10 +85,11 @@ const mockFilmRepository: IFilmRepository = {
   upsertByTmdbId: vi.fn(),
   searchByTitle: vi.fn(),
   findByGenre: vi.fn(),
+  findAllPaginated: vi.fn(),
 };
 
 describe('Reviews Routes', () => {
-  let app: ReturnType<typeof createApp>;
+  let server: ReturnType<typeof createTestServer>;
   const JWT_SECRET =
     process.env.JWT_SECRET || 'test-secret-key-for-testing-purposes-only-minimum-32-chars';
 
@@ -102,16 +103,17 @@ describe('Reviews Routes', () => {
   };
 
   beforeEach(() => {
+    server = createTestServer();
     vi.clearAllMocks();
-    // Clear and re-register mock repositories for each test
     container.clearInstances();
     container.registerInstance<IReviewRepository>(
       IReviewRepository as symbol,
       mockReviewRepository
     );
     container.registerInstance<IFilmRepository>(IFilmRepository as symbol, mockFilmRepository);
-    app = createApp();
   });
+
+  afterEach(() => closeTestServer());
 
   describe('POST /api/v1/reviews', () => {
     it('should create a new review', async () => {
@@ -124,7 +126,7 @@ describe('Reviews Routes', () => {
       // Create returns new review
       vi.mocked(mockReviewRepository.create).mockResolvedValue(mockReview);
 
-      const response = await request(app)
+      const response = await request(server)
         .post('/api/v1/reviews')
         .set('Authorization', `Bearer ${token}`)
         .send({
@@ -139,7 +141,7 @@ describe('Reviews Routes', () => {
     });
 
     it('should return 401 without token', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .post('/api/v1/reviews')
         .send({
           filmId: FILM_ID,
@@ -157,7 +159,7 @@ describe('Reviews Routes', () => {
       // User already reviewed this film
       vi.mocked(mockReviewRepository.findByUserAndFilm).mockResolvedValue(mockReview);
 
-      const response = await request(app)
+      const response = await request(server)
         .post('/api/v1/reviews')
         .set('Authorization', `Bearer ${token}`)
         .send({
@@ -174,7 +176,7 @@ describe('Reviews Routes', () => {
       vi.mocked(mockReviewRepository.findByUserAndFilm).mockResolvedValue(null);
       vi.mocked(mockFilmRepository.findById).mockResolvedValue(null);
 
-      const response = await request(app)
+      const response = await request(server)
         .post('/api/v1/reviews')
         .set('Authorization', `Bearer ${token}`)
         .send({
@@ -191,7 +193,7 @@ describe('Reviews Routes', () => {
     it('should return 400 for invalid rating', async () => {
       const token = generateToken(mockUser.id, mockUser.email);
 
-      const response = await request(app)
+      const response = await request(server)
         .post('/api/v1/reviews')
         .set('Authorization', `Bearer ${token}`)
         .send({
@@ -216,7 +218,7 @@ describe('Reviews Routes', () => {
         totalPages: 1,
       });
 
-      const response = await request(app).get(`/api/v1/reviews/film/${FILM_ID}`).expect(200);
+      const response = await request(server).get(`/api/v1/reviews/film/${FILM_ID}`).expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.items).toHaveLength(1);
@@ -231,7 +233,9 @@ describe('Reviews Routes', () => {
         totalPages: 0,
       });
 
-      const response = await request(app).get(`/api/v1/reviews/film/${FILM_ID}?page=2`).expect(200);
+      const response = await request(server)
+        .get(`/api/v1/reviews/film/${FILM_ID}?page=2`)
+        .expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.page).toBe(2);
@@ -244,7 +248,7 @@ describe('Reviews Routes', () => {
         { ...mockReviewData, film: mockFilmData },
       ]);
 
-      const response = await request(app).get(`/api/v1/reviews/user/${USER_ID}`).expect(200);
+      const response = await request(server).get(`/api/v1/reviews/user/${USER_ID}`).expect(200);
 
       expect(response.body.success).toBe(true);
     });
@@ -258,7 +262,7 @@ describe('Reviews Routes', () => {
       const updatedReview = new Review({ ...mockReviewData, rating: 5 });
       vi.mocked(mockReviewRepository.update).mockResolvedValue(updatedReview);
 
-      const response = await request(app)
+      const response = await request(server)
         .patch(`/api/v1/reviews/${REVIEW_ID}`)
         .set('Authorization', `Bearer ${token}`)
         .send({ rating: 5 })
@@ -272,7 +276,7 @@ describe('Reviews Routes', () => {
       const token = generateToken(mockUser.id, mockUser.email);
       vi.mocked(mockReviewRepository.findById).mockResolvedValue(null);
 
-      const response = await request(app)
+      const response = await request(server)
         .patch(`/api/v1/reviews/${NONEXISTENT_ID}`)
         .set('Authorization', `Bearer ${token}`)
         .send({ rating: 5 })
@@ -285,7 +289,7 @@ describe('Reviews Routes', () => {
       const token = generateToken(OTHER_USER_ID, 'other@example.com');
       vi.mocked(mockReviewRepository.findById).mockResolvedValue(mockReview);
 
-      const response = await request(app)
+      const response = await request(server)
         .patch(`/api/v1/reviews/${REVIEW_ID}`)
         .set('Authorization', `Bearer ${token}`)
         .send({ rating: 5 })
@@ -301,7 +305,7 @@ describe('Reviews Routes', () => {
       vi.mocked(mockReviewRepository.findById).mockResolvedValue(mockReview);
       vi.mocked(mockReviewRepository.delete).mockResolvedValue(true);
 
-      await request(app)
+      await request(server)
         .delete(`/api/v1/reviews/${REVIEW_ID}`)
         .set('Authorization', `Bearer ${token}`)
         .expect(204);
@@ -311,7 +315,7 @@ describe('Reviews Routes', () => {
       const token = generateToken(mockUser.id, mockUser.email);
       vi.mocked(mockReviewRepository.findById).mockResolvedValue(null);
 
-      const response = await request(app)
+      const response = await request(server)
         .delete(`/api/v1/reviews/${NONEXISTENT_ID}`)
         .set('Authorization', `Bearer ${token}`)
         .expect(404);
@@ -323,7 +327,7 @@ describe('Reviews Routes', () => {
       const token = generateToken(OTHER_USER_ID, 'other@example.com');
       vi.mocked(mockReviewRepository.findById).mockResolvedValue(mockReview);
 
-      const response = await request(app)
+      const response = await request(server)
         .delete(`/api/v1/reviews/${REVIEW_ID}`)
         .set('Authorization', `Bearer ${token}`)
         .expect(403);
@@ -347,7 +351,7 @@ describe('Reviews Routes', () => {
       );
       vi.mocked(mockReviewRepository.getLikeCount).mockResolvedValue(1);
 
-      const response = await request(app)
+      const response = await request(server)
         .post(`/api/v1/reviews/${REVIEW_ID}/like`)
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
@@ -358,7 +362,7 @@ describe('Reviews Routes', () => {
     });
 
     it('should return 401 without token', async () => {
-      const response = await request(app).post(`/api/v1/reviews/${REVIEW_ID}/like`).expect(401);
+      const response = await request(server).post(`/api/v1/reviews/${REVIEW_ID}/like`).expect(401);
 
       expect(response.body.success).toBe(false);
     });
@@ -367,7 +371,7 @@ describe('Reviews Routes', () => {
       const token = generateToken(mockUser.id, mockUser.email);
       vi.mocked(mockReviewRepository.findById).mockResolvedValue(null);
 
-      const response = await request(app)
+      const response = await request(server)
         .post(`/api/v1/reviews/${NONEXISTENT_ID}/like`)
         .set('Authorization', `Bearer ${token}`)
         .expect(404);
@@ -392,7 +396,7 @@ describe('Reviews Routes', () => {
       );
       vi.mocked(mockReviewRepository.getCommentCount).mockResolvedValue(1);
 
-      const response = await request(app)
+      const response = await request(server)
         .post(`/api/v1/reviews/${REVIEW_ID}/comments`)
         .set('Authorization', `Bearer ${token}`)
         .send({ content: 'Nice review!' })
@@ -403,7 +407,7 @@ describe('Reviews Routes', () => {
     });
 
     it('should return 401 without token', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .post(`/api/v1/reviews/${REVIEW_ID}/comments`)
         .send({ content: 'Nice review!' })
         .expect(401);
@@ -415,7 +419,7 @@ describe('Reviews Routes', () => {
       const token = generateToken(mockUser.id, mockUser.email);
       vi.mocked(mockReviewRepository.findById).mockResolvedValue(null);
 
-      const response = await request(app)
+      const response = await request(server)
         .post(`/api/v1/reviews/${NONEXISTENT_ID}/comments`)
         .set('Authorization', `Bearer ${token}`)
         .send({ content: 'Nice review!' })
@@ -436,7 +440,7 @@ describe('Reviews Routes', () => {
         isLikedByCurrentUser: false,
       });
 
-      const response = await request(app).get(`/api/v1/reviews/${REVIEW_ID}`).expect(200);
+      const response = await request(server).get(`/api/v1/reviews/${REVIEW_ID}`).expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.id).toBe(REVIEW_ID);
@@ -446,7 +450,7 @@ describe('Reviews Routes', () => {
     it('should return 404 if review not found', async () => {
       vi.mocked(mockReviewRepository.findByIdWithRelations).mockResolvedValue(null);
 
-      const response = await request(app).get(`/api/v1/reviews/${NONEXISTENT_ID}`).expect(404);
+      const response = await request(server).get(`/api/v1/reviews/${NONEXISTENT_ID}`).expect(404);
 
       expect(response.body.success).toBe(false);
     });
@@ -462,7 +466,7 @@ describe('Reviews Routes', () => {
         isLikedByCurrentUser: true,
       });
 
-      const response = await request(app)
+      const response = await request(server)
         .get(`/api/v1/reviews/${REVIEW_ID}`)
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
@@ -480,7 +484,7 @@ describe('Reviews Routes', () => {
       ]);
       vi.mocked(mockReviewRepository.getLikeCount).mockResolvedValue(2);
 
-      const response = await request(app).get(`/api/v1/reviews/${REVIEW_ID}/likes`).expect(200);
+      const response = await request(server).get(`/api/v1/reviews/${REVIEW_ID}/likes`).expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.users).toHaveLength(2);
@@ -493,7 +497,7 @@ describe('Reviews Routes', () => {
       ]);
       vi.mocked(mockReviewRepository.getLikeCount).mockResolvedValue(5);
 
-      const response = await request(app)
+      const response = await request(server)
         .get(`/api/v1/reviews/${REVIEW_ID}/likes?limit=1`)
         .expect(200);
 
@@ -524,7 +528,9 @@ describe('Reviews Routes', () => {
         totalPages: 1,
       });
 
-      const response = await request(app).get(`/api/v1/reviews/${REVIEW_ID}/comments`).expect(200);
+      const response = await request(server)
+        .get(`/api/v1/reviews/${REVIEW_ID}/comments`)
+        .expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.items).toHaveLength(1);
@@ -540,7 +546,7 @@ describe('Reviews Routes', () => {
         totalPages: 3,
       });
 
-      const response = await request(app)
+      const response = await request(server)
         .get(`/api/v1/reviews/${REVIEW_ID}/comments?page=3&pageSize=20`)
         .expect(200);
 
@@ -551,7 +557,7 @@ describe('Reviews Routes', () => {
     it('should return 404 if review not found', async () => {
       vi.mocked(mockReviewRepository.findById).mockResolvedValue(null);
 
-      const response = await request(app)
+      const response = await request(server)
         .get(`/api/v1/reviews/${NONEXISTENT_ID}/comments`)
         .expect(404);
 
@@ -576,7 +582,7 @@ describe('Reviews Routes', () => {
       );
       vi.mocked(mockReviewRepository.deleteComment).mockResolvedValue(true);
 
-      await request(app)
+      await request(server)
         .delete(`/api/v1/reviews/${REVIEW_ID}/comments/${COMMENT_ID}`)
         .set('Authorization', `Bearer ${token}`)
         .expect(204);
@@ -588,7 +594,7 @@ describe('Reviews Routes', () => {
       const token = generateToken(mockUser.id, mockUser.email);
       vi.mocked(mockReviewRepository.findCommentById).mockResolvedValue(null);
 
-      const response = await request(app)
+      const response = await request(server)
         .delete(`/api/v1/reviews/${REVIEW_ID}/comments/${NONEXISTENT_ID}`)
         .set('Authorization', `Bearer ${token}`)
         .expect(404);
@@ -609,7 +615,7 @@ describe('Reviews Routes', () => {
         })
       );
 
-      const response = await request(app)
+      const response = await request(server)
         .delete(`/api/v1/reviews/${REVIEW_ID}/comments/${COMMENT_ID}`)
         .set('Authorization', `Bearer ${token}`)
         .expect(403);
@@ -618,7 +624,7 @@ describe('Reviews Routes', () => {
     });
 
     it('should return 401 without token', async () => {
-      const response = await request(app)
+      const response = await request(server)
         .delete(`/api/v1/reviews/${REVIEW_ID}/comments/${COMMENT_ID}`)
         .expect(401);
 
@@ -641,7 +647,7 @@ describe('Reviews Routes', () => {
       vi.mocked(mockReviewRepository.removeLike).mockResolvedValue(true);
       vi.mocked(mockReviewRepository.getLikeCount).mockResolvedValue(0);
 
-      const response = await request(app)
+      const response = await request(server)
         .post(`/api/v1/reviews/${REVIEW_ID}/like`)
         .set('Authorization', `Bearer ${token}`)
         .expect(200);

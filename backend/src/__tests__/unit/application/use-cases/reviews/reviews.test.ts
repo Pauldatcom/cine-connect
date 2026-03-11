@@ -96,6 +96,7 @@ const mockFilmRepository: IFilmRepository = {
   upsertByTmdbId: vi.fn(),
   searchByTitle: vi.fn(),
   findByGenre: vi.fn(),
+  findAllPaginated: vi.fn(),
 };
 
 describe('CreateReviewUseCase', () => {

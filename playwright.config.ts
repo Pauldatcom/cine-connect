@@ -1,12 +1,24 @@
-/**
- * Playwright E2E Test Configuration
- *
- * Comprehensive E2E tests simulating real user behavior across the CineConnect app.
- */
+/** Playwright E2E config. Loads backend/.env (E2E_TEST_PASSWORD for chat + user-public-profile specs). */
+
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
+
+const envPath = join(process.cwd(), 'backend', '.env');
+if (existsSync(envPath)) {
+  for (const line of readFileSync(envPath, 'utf8').split('\n')) {
+    const t = line.trim();
+    if (!t || t.startsWith('#')) continue;
+    const m = t.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+    if (m) {
+      const value = m[2].replace(/^["']|["']$/g, '').trim();
+      if (process.env[m[1]] === undefined) process.env[m[1]] = value;
+    }
+  }
+}
 
 import { defineConfig, devices } from '@playwright/test';
 
-// Default URLs for dev environment
+// Local dev defaults; set in CI. Do not commit real credentials.
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
 

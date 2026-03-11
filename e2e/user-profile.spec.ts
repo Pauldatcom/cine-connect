@@ -2,19 +2,18 @@
  * E2E Tests: User Profile Data
  *
  * Tests that user data (reviews, watchlist) correctly appears on profile.
- * These tests catch bugs where:
- * - Reviews don't appear on profile after creation
- * - Watchlist count doesn't update
- * - Edit review functionality doesn't work
+ * Set E2E_TEST_PASSWORD in backend/.env (or CI) for register/login.
  */
 
 import { expect, test } from '@playwright/test';
 
-// Test user credentials - reused across tests
+const E2E_PASSWORD = process.env.E2E_TEST_PASSWORD;
+if (!E2E_PASSWORD) throw new Error('E2E_TEST_PASSWORD required (set in backend/.env or CI)');
+
 const generateUser = () => ({
   email: `profile-test-${Date.now()}@cineconnect.test`,
   username: `profile${Date.now().toString().slice(-8)}`,
-  password: 'ProfileTest123!',
+  password: E2E_PASSWORD,
 });
 
 // Helper to register and login a test user

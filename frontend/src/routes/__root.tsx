@@ -1,8 +1,26 @@
-import { useEffect } from 'react';
-import { createRootRoute, Outlet, useLocation } from '@tanstack/react-router';
-import { TanStackRouterDevtools } from '@tanstack/router-devtools';
-import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+import { Navbar } from '@/components/layout/Navbar';
+import { createRootRoute, Link, Outlet, useLocation } from '@tanstack/react-router';
+import { TanStackRouterDevtools } from '@tanstack/router-devtools';
+import { useEffect } from 'react';
+
+/**
+ * 404 Not Found - Shown when no route matches
+ */
+function NotFoundComponent() {
+  return (
+    <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 py-16">
+      <h1 className="font-display text-text-primary text-4xl font-bold">404</h1>
+      <p className="text-text-secondary mt-2 text-lg">This page could not be found.</p>
+      <Link
+        to="/"
+        className="text-letterboxd-green hover:text-letterboxd-green-dark mt-6 text-sm font-medium transition-colors"
+      >
+        Back to home
+      </Link>
+    </div>
+  );
+}
 
 /**
  * Root layout - Letterboxd-inspired dark theme
@@ -10,6 +28,7 @@ import { Footer } from '@/components/layout/Footer';
  */
 export const Route = createRootRoute({
   component: RootLayout,
+  notFoundComponent: NotFoundComponent,
 });
 
 function RootLayout() {

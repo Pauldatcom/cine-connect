@@ -135,7 +135,7 @@ export class DrizzleReviewRepository implements IReviewRepository {
       where: eq(schema.reviews.userId, userId),
       with: {
         film: {
-          columns: { id: true, tmdbId: true, title: true, poster: true, year: true },
+          columns: { id: true, tmdbId: true, title: true, poster: true, year: true, genre: true },
         },
       },
       orderBy: [desc(schema.reviews.createdAt)],

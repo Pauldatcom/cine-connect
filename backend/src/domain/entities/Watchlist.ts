@@ -22,6 +22,7 @@ export interface WatchlistItemWithFilm extends WatchlistItemProps {
     title: string;
     year: string | null;
     poster: string | null;
+    genre?: string | null;
   };
 }
 

@@ -3,18 +3,21 @@
  *
  * Tests user registration, login, logout, and session persistence.
  * Auth is handled at /profil with ?mode=login or ?mode=register query params.
+ * Set E2E_TEST_PASSWORD in backend/.env (or CI) for register/login tests.
  */
 
 import { test, expect } from '@playwright/test';
 
-// Generate unique user for each test run
+const E2E_PASSWORD = process.env.E2E_TEST_PASSWORD;
+if (!E2E_PASSWORD) throw new Error('E2E_TEST_PASSWORD required (set in backend/.env or CI)');
+
 const generateTestUser = () => {
   const timestamp = Date.now();
   const random = Math.random().toString(36).slice(2, 8);
   return {
     email: `test-${timestamp}-${random}@cineconnect.test`,
     username: `u${timestamp.toString().slice(-6)}${random}`,
-    password: 'TestPassword123!',
+    password: E2E_PASSWORD,
   };
 };
 

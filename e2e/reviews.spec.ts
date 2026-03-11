@@ -2,16 +2,19 @@
  * E2E Tests: Reviews & Ratings
  *
  * Tests review creation, editing, deletion, likes, and comments.
+ * Set E2E_TEST_PASSWORD in backend/.env (or CI) for register/login.
  */
 
 import { expect, test } from '@playwright/test';
 
-// Helper to register and login a test user
+const E2E_PASSWORD = process.env.E2E_TEST_PASSWORD;
+if (!E2E_PASSWORD) throw new Error('E2E_TEST_PASSWORD required (set in backend/.env or CI)');
+
 async function registerAndLogin(page: import('@playwright/test').Page) {
   const user = {
     email: `test-${Date.now()}@cineconnect.test`,
     username: `user${Date.now().toString().slice(-8)}`,
-    password: 'TestPassword123!',
+    password: E2E_PASSWORD,
   };
 
   await page.goto('/profil?mode=register');

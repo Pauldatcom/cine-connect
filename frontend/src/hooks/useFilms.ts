@@ -4,36 +4,40 @@
  * Encapsulates all TanStack Query logic for films from both
  * TMDb API and our backend.
  */
+// src/hooks/useFilms.ts
 
-import { registerFilm, type BackendFilm } from '@/lib/api/films';
+// src/hooks/useFilms.ts
+import { useQuery } from '@tanstack/react-query';
+import { getRecommendations, registerFilm, type BackendFilm } from '@/lib/api/films';
 import {
   getMovieCredits,
   getMovieDetails,
   getMoviesByGenre,
   getMovieVideos,
   getNowPlaying,
+  getPersonDetails,
+  getPersonMovieCredits,
   getPopular,
   getSimilarMovies,
   getTopRated,
   getTrending,
   getUpcoming,
   searchMovies,
-  // --- AJOUT DES IMPORTS ---
   getMovieWatchProviders,
-  type TMDbCredits,
   type TMDbMovie,
   type TMDbMovieDetails,
+  type TMDbPerson,
+  type TMDbPersonMovieCredits,
   type TMDbSearchResponse,
   type TMDbVideo,
-  // Type pour le retour du hook
+  type TMDbCredits,
 } from '@/lib/api/tmdb';
-import { useQuery } from '@tanstack/react-query';
 
 /**
  * Fetch film details from TMDb
  */
 export function useFilm(tmdbId: string | number) {
-  return useQuery({
+  return useQuery<TMDbMovieDetails>({
     queryKey: ['movie', String(tmdbId)],
     queryFn: () => getMovieDetails(tmdbId),
     enabled: !!tmdbId,
@@ -44,7 +48,7 @@ export function useFilm(tmdbId: string | number) {
  * Fetch film credits (cast & crew) from TMDb
  */
 export function useFilmCredits(tmdbId: string | number, enabled = true) {
-  return useQuery({
+  return useQuery<TMDbCredits>({
     queryKey: ['movie', String(tmdbId), 'credits'],
     queryFn: () => getMovieCredits(tmdbId),
     enabled: enabled && !!tmdbId,
@@ -55,7 +59,7 @@ export function useFilmCredits(tmdbId: string | number, enabled = true) {
  * Fetch film videos (trailers, etc.) from TMDb
  */
 export function useFilmVideos(tmdbId: string | number, enabled = true) {
-  return useQuery({
+  return useQuery<{ results: TMDbVideo[] }>({
     queryKey: ['movie', String(tmdbId), 'videos'],
     queryFn: () => getMovieVideos(tmdbId),
     enabled: enabled && !!tmdbId,
@@ -66,7 +70,7 @@ export function useFilmVideos(tmdbId: string | number, enabled = true) {
  * Fetch similar films from TMDb
  */
 export function useSimilarFilms(tmdbId: string | number, enabled = true) {
-  return useQuery({
+  return useQuery<TMDbSearchResponse>({
     queryKey: ['movie', String(tmdbId), 'similar'],
     queryFn: () => getSimilarMovies(tmdbId),
     enabled: enabled && !!tmdbId,
@@ -74,17 +78,26 @@ export function useSimilarFilms(tmdbId: string | number, enabled = true) {
 }
 
 /**
- * Film type accepted by useRegisterFilm (list item or full details).
- * Accepts TMDbMovie (e.g. from trending) or TMDbMovieDetails (from film detail).
+ * Personalized film recommendations from backend
+ */
+export function useRecommendations(enabled = true) {
+  return useQuery<BackendFilm[]>({
+    queryKey: ['recommendations'],
+    queryFn: () => getRecommendations(20),
+    enabled,
+  });
+}
+
+/**
+ * Type accepté par useRegisterFilm
  */
 export type TMDbFilmForRegister = TMDbMovie | TMDbMovieDetails;
 
 /**
- * Register a film in our backend (get or create)
- * Returns the internal UUID for use with reviews
+ * Register a film in backend (get or create)
  */
 export function useRegisterFilm(film: TMDbFilmForRegister | undefined, enabled = true) {
-  return useQuery({
+  return useQuery<BackendFilm>({
     queryKey: ['backend-film', film?.id],
     queryFn: () => {
       if (!film) throw new Error('Film is required');
@@ -103,102 +116,106 @@ export function useRegisterFilm(film: TMDbFilmForRegister | undefined, enabled =
       });
     },
     enabled: enabled && !!film,
-    staleTime: Infinity, // Film data doesn't change
+    staleTime: Infinity,
     retry: 1,
   });
 }
 
 /**
- * Fetch popular films from TMDb
+ * Hooks TMDb généraux
  */
 export function usePopularFilms(page = 1) {
-  return useQuery({
+  return useQuery<TMDbSearchResponse>({
     queryKey: ['movies', 'popular', page],
     queryFn: () => getPopular(page),
   });
 }
 
-/**
- * Fetch trending films from TMDb
- */
 export function useTrendingFilms(timeWindow: 'day' | 'week' = 'week') {
-  return useQuery({
+  return useQuery<TMDbSearchResponse>({
     queryKey: ['movies', 'trending', timeWindow],
     queryFn: () => getTrending(timeWindow),
   });
 }
 
-/**
- * Fetch top rated films from TMDb
- */
 export function useTopRatedFilms(page = 1) {
-  return useQuery({
+  return useQuery<TMDbSearchResponse>({
     queryKey: ['movies', 'top-rated', page],
     queryFn: () => getTopRated(page),
   });
 }
 
-/**
- * Fetch upcoming films from TMDb
- */
 export function useUpcomingFilms(page = 1) {
-  return useQuery({
+  return useQuery<TMDbSearchResponse>({
     queryKey: ['movies', 'upcoming', page],
     queryFn: () => getUpcoming(page),
   });
 }
 
-/**
- * Fetch now playing films from TMDb
- */
 export function useNowPlayingFilms(page = 1) {
-  return useQuery({
+  return useQuery<TMDbSearchResponse>({
     queryKey: ['movies', 'now-playing', page],
     queryFn: () => getNowPlaying(page),
   });
 }
 
-/**
- * Search films from TMDb
- */
 export function useSearchFilms(query: string, page = 1) {
-  return useQuery({
+  return useQuery<TMDbSearchResponse>({
     queryKey: ['movies', 'search', query, page],
     queryFn: () => searchMovies(query, page),
     enabled: query.length > 0,
   });
 }
 
-/**
- * Fetch films by genre from TMDb
- */
 export function useFilmsByGenre(genreId: number, page = 1) {
-  return useQuery({
+  return useQuery<TMDbSearchResponse>({
     queryKey: ['movies', 'genre', genreId, page],
     queryFn: () => getMoviesByGenre(genreId, page),
     enabled: genreId > 0,
   });
 }
 
-// --- NOUVEAU HOOK ---
-
 /**
- * Fetch watch providers (streaming, rent, buy) from TMDb
- * @param tmdbId L'ID du film TMDb
- * @param countryCode Code pays ISO 3166-1 (ex: 'FR', 'US', 'GB'). Défaut: 'FR'
+ * Nouveau hook : watch providers
  */
 export function useWatchProviders(tmdbId: string | number, countryCode: string = 'FR') {
   return useQuery({
     queryKey: ['movie', String(tmdbId), 'watch-providers', countryCode],
     queryFn: async () => {
       const data = await getMovieWatchProviders(tmdbId);
-      // Retourne les infos pour le pays spécifique, ou null si indisponible
       return data.results[countryCode] || null;
     },
     enabled: !!tmdbId,
-    staleTime: 1000 * 60 * 60, // 1 heure (les providers ne changent pas toutes les minutes)
+    staleTime: 1000 * 60 * 60,
   });
 }
 
-// Type exports for convenience
-export type { BackendFilm, TMDbCredits, TMDbMovieDetails, TMDbSearchResponse, TMDbVideo };
+/**
+ * Nouveau hook : person
+ */
+export function usePerson(personId: string | number) {
+  return useQuery<TMDbPerson>({
+    queryKey: ['person', String(personId)],
+    queryFn: () => getPersonDetails(personId),
+    enabled: !!personId,
+  });
+}
+
+export function usePersonMovieCredits(personId: string | number, enabled = true) {
+  return useQuery<TMDbPersonMovieCredits>({
+    queryKey: ['person', String(personId), 'credits'],
+    queryFn: () => getPersonMovieCredits(personId),
+    enabled: enabled && !!personId,
+  });
+}
+
+// --- Export des types pour TS ---
+export type {
+  BackendFilm,
+  TMDbCredits,
+  TMDbMovieDetails,
+  TMDbPerson,
+  TMDbPersonMovieCredits,
+  TMDbSearchResponse,
+  TMDbVideo,
+};

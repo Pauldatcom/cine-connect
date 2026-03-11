@@ -35,6 +35,16 @@ export interface IFilmRepository {
    * Get films by genre
    */
   findByGenre(genre: string, limit?: number, offset?: number): Promise<Film[]>;
+
+  /**
+   * Get films paginated with optional search and genre filter
+   */
+  findAllPaginated(options: {
+    page: number;
+    limit: number;
+    search?: string;
+    genre?: string;
+  }): Promise<{ items: Film[]; page: number; pageSize: number }>;
 }
 
 // Token for dependency injection

@@ -1,7 +1,8 @@
 /**
  * E2E Tests: Films Discovery
  *
- * Tests film browsing, searching, and viewing details. Using Playwright to Headless testing.
+ * Tests film browsing, searching, and viewing details.
+ * Watchlist tests require E2E_TEST_PASSWORD in backend/.env (or CI).
  */
 
 import { expect, test } from '@playwright/test';
@@ -152,12 +153,13 @@ test.describe('Films Discovery', () => {
   });
 
   test.describe('To Watch (watchlist) integration', () => {
-    // Helper to register user
     async function registerUser(page: import('@playwright/test').Page) {
+      const pwd = process.env.E2E_TEST_PASSWORD;
+      if (!pwd) throw new Error('E2E_TEST_PASSWORD required (set in backend/.env or CI)');
       const user = {
         email: `watchlist-${Date.now()}@cineconnect.test`,
         username: `wl${Date.now().toString().slice(-8)}`,
-        password: 'WatchlistTest123!',
+        password: pwd,
       };
 
       await page.goto('/profil?mode=register');

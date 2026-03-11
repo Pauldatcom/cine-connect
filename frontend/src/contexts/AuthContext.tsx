@@ -25,6 +25,8 @@ interface AuthActions {
   register: (credentials: RegisterCredentials) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
+  /** Update the current user in state (e.g. after profile or email change) */
+  updateUser: (user: User) => void;
 }
 
 // Full context type
@@ -142,9 +144,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     });
   }, []);
 
-  // Clear error
   const clearError = useCallback(() => {
     setState((prev) => ({ ...prev, error: null }));
+  }, []);
+
+  const updateUser = useCallback((user: User) => {
+    setState((prev) => (prev.user ? { ...prev, user } : prev));
   }, []);
 
   const value: AuthContextType = {
@@ -153,6 +158,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     register,
     logout,
     clearError,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

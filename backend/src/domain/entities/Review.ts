@@ -39,6 +39,7 @@ export interface ReviewWithRelations extends ReviewProps {
     title: string;
     poster: string | null;
     year: string | null;
+    genre?: string | null;
   };
   likesCount?: number;
   commentsCount?: number;

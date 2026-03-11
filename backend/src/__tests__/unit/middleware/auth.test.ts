@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { authenticate, optionalAuth, generateTokens } from '@/middleware/auth';
+import { authenticate, optionalAuth, generateTokens, getAuthUser } from '@/middleware/auth';
 
 // Use the same JWT_SECRET that's set in test/setup.ts
 const JWT_SECRET = 'test-secret-key-for-testing-purposes-only-minimum-32-chars';
@@ -123,6 +123,25 @@ describe('Auth Middleware', () => {
 
       expect(mockReq.user).toBeUndefined();
       expect(mockNext).toHaveBeenCalled();
+    });
+  });
+
+  describe('getAuthUser', () => {
+    it('should throw when req.user is undefined', () => {
+      const req = { user: undefined } as Request;
+
+      expect(() => getAuthUser(req)).toThrow('User not authenticated');
+    });
+
+    it('should return user payload when req.user is set', () => {
+      const req = {
+        user: { userId: 'user-123', email: 'test@example.com' },
+      } as Request;
+
+      const result = getAuthUser(req);
+
+      expect(result.userId).toBe('user-123');
+      expect(result.email).toBe('test@example.com');
     });
   });
 

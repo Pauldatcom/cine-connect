@@ -12,7 +12,10 @@ export {
   useFilmVideos,
   useFilmsByGenre,
   useNowPlayingFilms,
+  usePerson,
+  usePersonMovieCredits,
   usePopularFilms,
+  useRecommendations,
   useRegisterFilm,
   useSearchFilms,
   useSimilarFilms,
@@ -43,6 +46,8 @@ export type {
   BackendFilm,
   TMDbCredits,
   TMDbMovieDetails,
+  TMDbPerson,
+  TMDbPersonMovieCredits,
   TMDbSearchResponse,
   TMDbVideo,
 } from './useFilms';
@@ -90,3 +95,15 @@ export {
 
 // Watchlist type exports
 export type { WatchlistFilm, WatchlistItem } from './useWatchlist';
+
+// Friends hooks
+export {
+  useFriends,
+  usePendingFriendRequests,
+  useSendFriendRequest,
+  useRespondToFriendRequest,
+  useRemoveFriend,
+  useUserById,
+} from './useFriends';
+
+export type { PendingRequest } from './useFriends';
