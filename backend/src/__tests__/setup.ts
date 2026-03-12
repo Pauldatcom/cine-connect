@@ -17,6 +17,54 @@ vi.mock('bcryptjs', () => ({
   },
 }));
 
+// Mock the database module globally to prevent real DB connections in tests
+vi.mock('@/db/index.js', () => {
+  return {
+    db: {
+      select: vi.fn(),
+      insert: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      query: {
+        users: {
+          findFirst: vi.fn(),
+          findMany: vi.fn(),
+        },
+        films: {
+          findFirst: vi.fn(),
+          findMany: vi.fn(),
+        },
+        reviews: {
+          findFirst: vi.fn(),
+          findMany: vi.fn(),
+        },
+        watchlist: {
+          findFirst: vi.fn(),
+          findMany: vi.fn(),
+        },
+        friends: {
+          findFirst: vi.fn(),
+          findMany: vi.fn(),
+        },
+        messages: {
+          findFirst: vi.fn(),
+          findMany: vi.fn(),
+        },
+      },
+    },
+    schema: {
+      users: {},
+      films: {},
+      reviews: {},
+      watchlist: {},
+      friends: {},
+      messages: {},
+      filmCategories: {},
+      categories: {},
+    },
+  };
+});
+
 // Set test environment variables BEFORE any imports that might use them
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-secret-key-for-testing-purposes-only-minimum-32-chars';
@@ -28,8 +76,8 @@ process.env.PORT = '3001';
 
 // Mock console methods to reduce noise in test output
 beforeAll(() => {
-  vi.spyOn(console, 'log').mockImplementation(() => {});
-  vi.spyOn(console, 'error').mockImplementation(() => {});
+  // vi.spyOn(console, 'log').mockImplementation(() => {});
+  // vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 afterAll(() => {
