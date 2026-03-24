@@ -1,86 +1,157 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { useState, useMemo } from 'react';
-import { Search, Loader2, Grid3X3, LayoutList } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import {
+  Search,
+  Loader2,
+  Grid3X3,
+  LayoutList,
+  Star,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
+import { z } from 'zod';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRecommendations } from '@/hooks';
+import type { BackendFilm } from '@/lib/api/films';
 import { searchMovies, getPopular, getTrending, getTopRated, type TMDbMovie } from '@/lib/api/tmdb';
 import { FilmPoster } from '@/components/features/FilmPoster';
 import { FilterPanel, defaultFilters, type FilmFilters } from '@/components/ui/FilterPanel';
 import { FilmStrip } from '@/components/ui/FilmStrip';
 
+const viewEnum = z.enum(['popular', 'trending', 'top-rated', 'for-you']);
+const filmsSearchSchema = z.object({
+  page: z.coerce.number().int().min(1).optional().catch(1),
+  view: viewEnum.optional().catch('popular'),
+});
+
+function backendFilmToTMDbMovie(f: BackendFilm): TMDbMovie {
+  return {
+    id: f.tmdbId,
+    title: f.title,
+    original_title: f.title,
+    overview: f.plot ?? '',
+    poster_path: f.poster ?? null,
+    backdrop_path: null,
+    release_date: f.year ? `${f.year}-01-01` : '',
+    vote_average: f.tmdbRating ? parseFloat(f.tmdbRating) : 0,
+    vote_count: 0,
+    popularity: 0,
+    genre_ids: [],
+    adult: false,
+    original_language: 'en',
+  };
+}
+
 /**
- * Films index - Browse and search all films with advanced filtering
+ * Films index - Browse and search all films with advanced filtering and pagination
  * Letterboxd-style layout with poster grid
  */
 export const Route = createFileRoute('/films/')({
   component: FilmsIndexPage,
+  validateSearch: filmsSearchSchema,
 });
 
+const RESULTS_PER_PAGE = 20;
+
 function FilmsIndexPage() {
-  // Search state
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const { page: urlPage, view: urlView } = useSearch({ from: '/films/' });
+  const page = urlPage ?? 1;
+  const view = (urlView ?? 'popular') as 'popular' | 'trending' | 'top-rated' | 'for-you';
+
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSearch, setActiveSearch] = useState('');
-
-  // Filter state
   const [filters, setFilters] = useState<FilmFilters>(defaultFilters);
-
-  // View toggle
-  const [view, setView] = useState<'popular' | 'trending' | 'top-rated'>('popular');
   const [gridSize, setGridSize] = useState<'normal' | 'compact'>('normal');
 
-  // Search results
+  // Debounced search-on-type: update activeSearch after 350ms of no typing (min 2 chars)
+  const SEARCH_DEBOUNCE_MS = 350;
+  useEffect(() => {
+    if (searchQuery.trim().length < 2) {
+      setActiveSearch((prev) => (prev ? '' : prev));
+      return;
+    }
+    const timer = setTimeout(() => {
+      setActiveSearch(searchQuery.trim());
+      navigate({ from: '/films/', search: (prev) => ({ ...prev, page: 1 }) });
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [searchQuery, navigate]);
+
+  const { data: recommendations, isLoading: recLoading } = useRecommendations(isAuthenticated);
+
   const { data: searchResults, isLoading: searchLoading } = useQuery({
-    queryKey: ['movies', 'search', activeSearch],
-    queryFn: () => searchMovies(activeSearch),
+    queryKey: ['movies', 'search', activeSearch, page],
+    queryFn: () => searchMovies(activeSearch, page),
     enabled: activeSearch.length >= 2,
   });
 
   // Popular movies
   const { data: popular, isLoading: popularLoading } = useQuery({
-    queryKey: ['movies', 'popular'],
-    queryFn: () => getPopular(),
+    queryKey: ['movies', 'popular', page],
+    queryFn: () => getPopular(page),
     enabled: !activeSearch && view === 'popular',
   });
 
   // Trending movies
   const { data: trending, isLoading: trendingLoading } = useQuery({
-    queryKey: ['movies', 'trending'],
-    queryFn: () => getTrending('week'),
+    queryKey: ['movies', 'trending', page],
+    queryFn: () => getTrending('week', page),
     enabled: !activeSearch && view === 'trending',
   });
 
-  // Top rated movies
   const { data: topRated, isLoading: topRatedLoading } = useQuery({
-    queryKey: ['movies', 'top-rated'],
-    queryFn: () => getTopRated(),
+    queryKey: ['movies', 'top-rated', page],
+    queryFn: () => getTopRated(page),
     enabled: !activeSearch && view === 'top-rated',
   });
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setActiveSearch(searchQuery);
+    navigate({ from: '/films/', search: { page: 1 } });
   };
 
   const handleClear = () => {
     setSearchQuery('');
     setActiveSearch('');
+    navigate({ from: '/films/', search: { page: 1 } });
   };
 
   const handleResetFilters = () => {
     setFilters(defaultFilters);
   };
 
-  // Get current movies based on view
+  const setPage = (newPage: number) => {
+    navigate({ from: '/films/', search: (prev) => ({ ...prev, page: newPage }) });
+  };
+
+  const setViewAndResetPage = (newView: 'popular' | 'trending' | 'top-rated' | 'for-you') => {
+    navigate({ from: '/films/', search: { view: newView, page: 1 } });
+  };
+
   const rawMovies: TMDbMovie[] = useMemo(() => {
-    if (activeSearch) return searchResults?.results || [];
-    switch (view) {
-      case 'trending':
-        return trending?.results || [];
-      case 'top-rated':
-        return topRated?.results || [];
-      default:
-        return popular?.results || [];
+    let results: TMDbMovie[] = [];
+    if (activeSearch) results = searchResults?.results || [];
+    else if (view === 'for-you' && recommendations?.length) {
+      results = recommendations.map(backendFilmToTMDbMovie);
+    } else {
+      switch (view) {
+        case 'trending':
+          results = trending?.results || [];
+          break;
+        case 'top-rated':
+          results = topRated?.results || [];
+          break;
+        default:
+          results = popular?.results || [];
+      }
     }
-  }, [activeSearch, view, searchResults, trending, topRated, popular]);
+    // Filter out films without posters
+    return results.filter((m) => m.poster_path);
+  }, [activeSearch, view, searchResults, trending, topRated, popular, recommendations]);
 
   // Apply client-side filters
   const movies = useMemo(() => {
@@ -115,7 +186,32 @@ function FilmsIndexPage() {
     return filtered;
   }, [rawMovies, filters]);
 
-  const isLoading = searchLoading || popularLoading || trendingLoading || topRatedLoading;
+  const isLoading =
+    searchLoading ||
+    popularLoading ||
+    trendingLoading ||
+    topRatedLoading ||
+    (view === 'for-you' && recLoading);
+
+  const paginationMeta = useMemo(() => {
+    if (activeSearch && searchResults) {
+      return { totalPages: searchResults.total_pages, totalResults: searchResults.total_results };
+    }
+    if (view === 'popular' && popular) {
+      return { totalPages: popular.total_pages, totalResults: popular.total_results };
+    }
+    if (view === 'trending' && trending) {
+      return { totalPages: trending.total_pages, totalResults: trending.total_results };
+    }
+    if (view === 'top-rated' && topRated) {
+      return { totalPages: topRated.total_pages, totalResults: topRated.total_results };
+    }
+    return null;
+  }, [activeSearch, view, searchResults, popular, trending, topRated]);
+
+  const showPagination = paginationMeta && paginationMeta.totalPages > 1 && view !== 'for-you';
+  const startItem = (page - 1) * RESULTS_PER_PAGE + 1;
+  const endItem = Math.min(page * RESULTS_PER_PAGE, paginationMeta?.totalResults ?? 0);
 
   const gridClasses =
     gridSize === 'compact'
@@ -165,17 +261,31 @@ function FilmsIndexPage() {
             {/* Category Toggle (only when not searching) */}
             {!activeSearch && (
               <div className="bg-bg-secondary flex gap-1 rounded p-1">
-                {(['popular', 'trending', 'top-rated'] as const).map((v) => (
+                {(
+                  [
+                    'popular',
+                    'trending',
+                    'top-rated',
+                    ...(isAuthenticated ? (['for-you'] as const) : []),
+                  ] as const
+                ).map((v) => (
                   <button
                     key={v}
-                    onClick={() => setView(v)}
-                    className={`rounded px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
+                    onClick={() => setViewAndResetPage(v)}
+                    className={`flex items-center gap-1 rounded px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
                       view === v
                         ? 'bg-letterboxd-green text-bg-primary'
                         : 'text-text-secondary hover:text-text-primary'
                     }`}
                   >
-                    {v.replace('-', ' ')}
+                    {v === 'for-you' ? (
+                      <>
+                        <Star className="h-3.5 w-3.5" />
+                        For you
+                      </>
+                    ) : (
+                      v.replace('-', ' ')
+                    )}
                   </button>
                 ))}
               </div>
@@ -243,17 +353,55 @@ function FilmsIndexPage() {
             <Loader2 className="text-letterboxd-green h-8 w-8 animate-spin" />
           </div>
         ) : movies.length > 0 ? (
-          <div className={`grid ${gridClasses}`}>
-            {movies.map((film, index) => (
-              <FilmPoster
-                key={film.id}
-                film={film}
-                priority={index < 12}
-                showTitle={gridSize === 'normal'}
-                showRating={gridSize === 'normal'}
-              />
-            ))}
-          </div>
+          <>
+            <div className={`grid ${gridClasses}`}>
+              {movies.map((film, index) => (
+                <FilmPoster
+                  key={film.id}
+                  film={film}
+                  priority={index < 12}
+                  showTitle={gridSize === 'normal'}
+                  showRating={gridSize === 'normal'}
+                />
+              ))}
+            </div>
+            {showPagination && paginationMeta && (
+              <div className="border-border mt-8 flex flex-wrap items-center justify-center gap-4 border-t pt-8">
+                <p className="text-text-secondary text-sm">
+                  Showing <span className="text-text-primary font-medium">{startItem}</span>–
+                  <span className="text-text-primary font-medium">{endItem}</span> of{' '}
+                  <span className="text-text-primary font-medium">
+                    {paginationMeta.totalResults.toLocaleString()}
+                  </span>
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPage(page - 1)}
+                    disabled={page <= 1}
+                    className="btn-secondary flex items-center gap-1 px-3 py-2 text-sm disabled:opacity-50"
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </button>
+                  <span className="text-text-secondary px-2 text-sm">
+                    Page {page} of {paginationMeta.totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPage(page + 1)}
+                    disabled={page >= paginationMeta.totalPages}
+                    className="btn-secondary flex items-center gap-1 px-3 py-2 text-sm disabled:opacity-50"
+                    aria-label="Next page"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         ) : activeSearch ? (
           <div className="py-20 text-center">
             <p className="text-text-secondary text-lg">
@@ -263,6 +411,12 @@ function FilmsIndexPage() {
             <button onClick={handleClear} className="btn-secondary mt-6">
               Clear Search
             </button>
+          </div>
+        ) : view === 'for-you' ? (
+          <div className="py-20 text-center">
+            <p className="text-text-secondary">
+              Rate or add films to your watchlist to get personalized recommendations.
+            </p>
           </div>
         ) : (
           <div className="py-20 text-center">
