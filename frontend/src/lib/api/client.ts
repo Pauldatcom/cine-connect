@@ -94,36 +94,29 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     config.body = JSON.stringify(body);
   }
 
-  try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
-    // 204 No Content: no body to parse
-    if (response.status === 204) {
-      return undefined as T;
-    }
-
-    // Handle non-JSON responses
-    const contentType = response.headers.get('content-type');
-    if (!contentType?.includes('application/json')) {
-      if (!response.ok) {
-        console.error('[API] Non-JSON error:', response.status, response.statusText);
-        throw new ApiError(response.status, response.statusText);
-      }
-      return {} as T;
-    }
-
-    const data: ApiResponse<T> = await response.json();
-
-    if (!response.ok) {
-      console.error('[API] Error response:', response.status, data);
-      throw new ApiError(response.status, response.statusText, data);
-    }
-
-    return data.data as T;
-  } catch (error) {
-    console.error('[API] Request failed:', endpoint, error);
-    throw error;
+  // 204 No Content: no body to parse
+  if (response.status === 204) {
+    return undefined as T;
   }
+
+  // Handle non-JSON responses
+  const contentType = response.headers.get('content-type');
+  if (!contentType?.includes('application/json')) {
+    if (!response.ok) {
+      throw new ApiError(response.status, response.statusText);
+    }
+    return {} as T;
+  }
+
+  const data: ApiResponse<T> = await response.json();
+
+  if (!response.ok) {
+    throw new ApiError(response.status, response.statusText, data);
+  }
+
+  return data.data as T;
 }
 
 // HTTP method shortcuts
