@@ -14,7 +14,7 @@ import {
 } from '@/lib/api/tmdb';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { ArrowRight, Clock, Film, Sparkles, Star, TrendingUp, Users } from 'lucide-react';
+import { ArrowRight, Clock, Film, Sparkles, Star, TrendingUp, Users } from 'lucide-react'; // 2. Icône ajoutée
 
 /**
  * Home page - Letterboxd-inspired design with hero, sections, and film strip

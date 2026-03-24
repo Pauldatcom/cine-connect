@@ -32,9 +32,6 @@ const searchSchema = z.object({
   mode: z.enum(['login', 'register']).optional().catch('login'),
 });
 
-/**
- * User profile / Authentication page
- */
 export const Route = createFileRoute('/profil')({
   component: ProfilPage,
   validateSearch: searchSchema,
@@ -44,7 +41,6 @@ export const Route = createFileRoute('/profil')({
 export function ProfilPage() {
   const { isAuthenticated, isLoading, user } = useAuth();
 
-  // Show loading spinner while checking auth
   if (isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -75,6 +71,7 @@ export function ProfilPage() {
   return <ProfileView />;
 }
 
+// --- AuthForm Component ---
 function AuthForm() {
   const { mode: initialMode } = useSearch({ from: '/profil' });
   const [mode, setMode] = useState<'login' | 'register'>(initialMode || 'login');
@@ -88,7 +85,6 @@ function AuthForm() {
 
   const { login, register, isLoading, error, clearError } = useAuth();
 
-  // Sync with URL when it changes
   useEffect(() => {
     if (initialMode) {
       setMode(initialMode);
@@ -100,7 +96,7 @@ function AuthForm() {
     setValidationError(null);
     clearError();
 
-    // Validation
+    // Validation Frontend
     if (mode === 'register') {
       if (formData.password !== formData.confirmPassword) {
         setValidationError('Passwords do not match');
@@ -117,12 +113,16 @@ function AuthForm() {
     }
 
     try {
+      // CORRECTION : On nettoie les données avant l'envoi
+      const cleanEmail = formData.email.trim().toLowerCase();
+      const cleanUsername = formData.username.trim();
+
       if (mode === 'login') {
-        await login({ email: formData.email, password: formData.password });
+        await login({ email: cleanEmail, password: formData.password });
       } else {
         await register({
-          email: formData.email,
-          username: formData.username,
+          email: cleanEmail,
+          username: cleanUsername,
           password: formData.password,
         });
       }
@@ -162,7 +162,6 @@ function AuthForm() {
           </p>
         </div>
 
-        {/* Error Message */}
         {displayError && (
           <div className="mt-4 flex items-center gap-2 rounded-lg bg-red-500/10 p-3 text-red-400">
             <AlertCircle className="h-5 w-5 flex-shrink-0" />
@@ -170,7 +169,6 @@ function AuthForm() {
           </div>
         )}
 
-        {/* Form */}
         <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
           {mode === 'register' && (
             <div>
@@ -259,7 +257,6 @@ function AuthForm() {
           </button>
         </form>
 
-        {/* Toggle */}
         <div className="mt-6 text-center">
           <p className="text-text-secondary text-sm">
             {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}
@@ -277,9 +274,9 @@ function AuthForm() {
   );
 }
 
+// --- ProfileView Component ---
 function ProfileView() {
   const { user, logout } = useAuth();
-
   const { data: userReviews, isLoading: reviewsLoading } = useUserReviews(user?.id);
   const { data: watchlistData, isLoading: watchlistLoading } = useWatchlist();
   const { data: friendsList, isLoading: friendsLoading, isError: friendsError } = useFriends();
@@ -312,7 +309,6 @@ function ProfileView() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      {/* Profile Header */}
       <div className="card">
         <div className="flex flex-col items-center gap-6 sm:flex-row">
           <div className="bg-letterboxd-green/20 flex h-24 w-24 items-center justify-center rounded-full">
@@ -343,7 +339,6 @@ function ProfileView() {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="mt-6 grid gap-4 sm:grid-cols-4">
         <StatCard
           icon={<Film className="h-5 w-5" />}
@@ -558,7 +553,6 @@ function ProfileView() {
         )}
       </div>
 
-      {/* Watchlist Preview */}
       <div className="card mt-6" data-testid="profile-watchlist">
         <h2 className="section-header mb-4">Your Watchlist</h2>
         {watchlistLoading ? (
@@ -597,7 +591,6 @@ function ProfileView() {
         )}
       </div>
 
-      {/* Logout */}
       <div className="mt-6 flex justify-end">
         <button
           onClick={logout}
@@ -612,6 +605,7 @@ function ProfileView() {
   );
 }
 
+// --- StatCard Component ---
 function StatCard({
   icon,
   label,

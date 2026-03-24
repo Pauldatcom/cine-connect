@@ -20,6 +20,7 @@ import {
   getTrending,
   getUpcoming,
   searchMovies,
+  getMovieWatchProviders,
   type TMDbCredits,
   type TMDbMovie,
   type TMDbMovieDetails,
@@ -212,6 +213,22 @@ export function usePersonMovieCredits(personId: string | number, enabled = true)
     queryKey: ['person', String(personId), 'credits'],
     queryFn: () => getPersonMovieCredits(personId),
     enabled: enabled && !!personId,
+  });
+}
+
+/**
+ * Watch providers (stream / rent / buy) from TMDb JustWatch data
+ * @param countryCode ISO 3166-1 region (e.g. FR, US, GB)
+ */
+export function useWatchProviders(tmdbId: string | number, countryCode: string = 'FR') {
+  return useQuery({
+    queryKey: ['movie', String(tmdbId), 'watch-providers', countryCode],
+    queryFn: async () => {
+      const data = await getMovieWatchProviders(tmdbId);
+      return data.results[countryCode] || null;
+    },
+    enabled: !!tmdbId,
+    staleTime: 1000 * 60 * 60,
   });
 }
 
