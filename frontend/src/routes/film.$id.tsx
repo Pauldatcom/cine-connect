@@ -34,8 +34,9 @@ import {
   Share2,
   Star,
   Users,
+  X,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 type TabId = 'cast' | 'crew' | 'details' | 'genres' | 'releases';
 
@@ -54,6 +55,7 @@ function FilmDetailPage() {
   const [userRating, setUserRating] = useState<number>(0);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
+  const [showTrailer, setShowTrailer] = useState(false);
 
   // Fetch film details from TMDb using custom hook
   const { data: film, isLoading, error } = useFilm(id);
@@ -202,6 +204,11 @@ function FilmDetailPage() {
 
   return (
     <div className="animate-fade-in">
+      {/* Trailer Modal */}
+      {showTrailer && trailer && (
+        <TrailerModal trailerKey={trailer.key} onClose={() => setShowTrailer(false)} />
+      )}
+
       {/* Review Form Modal */}
       {showReviewForm && (
         <ReviewForm
@@ -262,17 +269,15 @@ function FilmDetailPage() {
                 />
                 {/* Trailer overlay button */}
                 {trailer && (
-                  <a
-                    href={`https://www.youtube.com/watch?v=${trailer.key}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={() => setShowTrailer(true)}
                     className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50 opacity-0 transition-opacity hover:opacity-100"
                   >
                     <div className="bg-letterboxd-orange flex items-center gap-2 rounded-full px-4 py-2 font-medium text-white">
                       <Play className="h-5 w-5 fill-current" />
                       Watch Trailer
                     </div>
-                  </a>
+                  </button>
                 )}
               </div>
 
@@ -335,7 +340,13 @@ function FilmDetailPage() {
                 {director && (
                   <span>
                     Directed by{' '}
-                    <span className="text-text-primary font-medium">{director.name}</span>
+                    <Link
+                      to="/person/$id"
+                      params={{ id: String(director.id) }}
+                      className="text-text-primary hover:text-letterboxd-green font-medium transition-colors"
+                    >
+                      {director.name}
+                    </Link>
                   </span>
                 )}
               </div>
@@ -398,7 +409,13 @@ function FilmDetailPage() {
                   <span className="text-text-tertiary">Written by </span>
                   {writers.map((w, i) => (
                     <span key={`${w.id}-${i}`}>
-                      <span className="text-text-primary">{w.name}</span>
+                      <Link
+                        to="/person/$id"
+                        params={{ id: String(w.id) }}
+                        className="text-text-primary hover:text-letterboxd-green transition-colors"
+                      >
+                        {w.name}
+                      </Link>
                       {i < writers.length - 1 && <span className="text-text-tertiary">, </span>}
                     </span>
                   ))}
@@ -408,15 +425,10 @@ function FilmDetailPage() {
               {/* External Links */}
               <div className="mt-8 flex flex-wrap gap-3">
                 {trailer && (
-                  <a
-                    href={`https://www.youtube.com/watch?v=${trailer.key}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-orange"
-                  >
+                  <button onClick={() => setShowTrailer(true)} className="btn-orange">
                     <Play className="h-4 w-4" />
                     Watch Trailer
-                  </a>
+                  </button>
                 )}
                 {film.homepage && (
                   <a
@@ -475,7 +487,12 @@ function FilmDetailPage() {
             <h2 className="section-header mb-6">Top Billed Cast</h2>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
               {topCast.map((person, index) => (
-                <div key={`${person.id}-${index}`} className="card p-4 text-center">
+                <Link
+                  key={`${person.id}-${index}`}
+                  to="/person/$id"
+                  params={{ id: String(person.id) }}
+                  className="card hover:border-letterboxd-green group p-4 text-center transition-colors"
+                >
                   <div className="bg-bg-tertiary mx-auto mb-3 aspect-square w-24 overflow-hidden rounded-full">
                     {person.profile_path ? (
                       <img
@@ -489,9 +506,11 @@ function FilmDetailPage() {
                       </div>
                     )}
                   </div>
-                  <p className="text-text-primary line-clamp-1 font-medium">{person.name}</p>
+                  <p className="text-text-primary group-hover:text-letterboxd-green line-clamp-1 font-medium transition-colors">
+                    {person.name}
+                  </p>
                   <p className="text-text-tertiary mt-1 line-clamp-1 text-sm">{person.character}</p>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -503,9 +522,11 @@ function FilmDetailPage() {
             <h2 className="section-header mb-6">Crew</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {topCrew.map((person, index) => (
-                <div
+                <Link
                   key={`${person.id}-${index}`}
-                  className="bg-bg-secondary flex items-center gap-4 rounded-lg p-4"
+                  to="/person/$id"
+                  params={{ id: String(person.id) }}
+                  className="bg-bg-secondary hover:border-letterboxd-green group flex items-center gap-4 rounded-lg border border-transparent p-4 transition-colors"
                 >
                   <div className="bg-bg-tertiary flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full">
                     {person.profile_path ? (
@@ -519,10 +540,12 @@ function FilmDetailPage() {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-text-primary font-medium">{person.name}</p>
+                    <p className="text-text-primary group-hover:text-letterboxd-green font-medium transition-colors">
+                      {person.name}
+                    </p>
                     <p className="text-text-tertiary text-sm">{person.job}</p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -586,13 +609,16 @@ function FilmDetailPage() {
       </div>
 
       {/* Similar Films */}
-      {similar && similar.results.length > 0 && (
+      {similar && similar.results.filter((m) => m.poster_path).length > 0 && (
         <section className="border-border mx-auto max-w-7xl border-t px-4 py-8">
           <h2 className="section-header mb-6">Similar Films</h2>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-            {similar.results.slice(0, 12).map((movie, index) => (
-              <FilmPoster key={`${movie.id}-${index}`} film={movie} showTitle />
-            ))}
+            {similar.results
+              .filter((m) => m.poster_path)
+              .slice(0, 12)
+              .map((movie, index) => (
+                <FilmPoster key={`${movie.id}-${index}`} film={movie} showTitle />
+              ))}
           </div>
         </section>
       )}
@@ -734,4 +760,58 @@ function formatRelativeDate(dateString: string): string {
   if (diffMonths < 12) return `${diffMonths} month${diffMonths === 1 ? '' : 's'} ago`;
 
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+/**
+ * Trailer Modal - Embeds YouTube trailer with loading spinner
+ */
+function TrailerModal({ trailerKey, onClose }: { trailerKey: string; onClose: () => void }) {
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="bg-bg-primary relative aspect-video w-full max-w-5xl overflow-hidden rounded-lg shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 z-10 rounded-full bg-black/50 p-2 text-white transition-colors hover:bg-black/70"
+          aria-label="Close trailer"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        {/* Loading spinner */}
+        {isLoading && (
+          <div className="bg-bg-secondary absolute inset-0 flex items-center justify-center">
+            <Loader2 className="text-letterboxd-green h-12 w-12 animate-spin" />
+          </div>
+        )}
+
+        {/* YouTube iframe */}
+        <iframe
+          src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1`}
+          title="Film Trailer"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          className="absolute inset-0 h-full w-full"
+          onLoad={() => setIsLoading(false)}
+        />
+      </div>
+    </div>
+  );
 }
