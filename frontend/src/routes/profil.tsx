@@ -24,7 +24,7 @@ import {
   UserPlus,
   Users,
 } from 'lucide-react';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { z } from 'zod';
 
 // Search params schema
@@ -32,9 +32,6 @@ const searchSchema = z.object({
   mode: z.enum(['login', 'register']).optional().catch('login'),
 });
 
-/**
- * User profile / Authentication page
- */
 export const Route = createFileRoute('/profil')({
   component: ProfilPage,
   validateSearch: searchSchema,
@@ -44,7 +41,6 @@ export const Route = createFileRoute('/profil')({
 export function ProfilPage() {
   const { isAuthenticated, isLoading, user } = useAuth();
 
-  // Show loading spinner while checking auth
   if (isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -75,6 +71,7 @@ export function ProfilPage() {
   return <ProfileView />;
 }
 
+// --- AuthForm Component ---
 function AuthForm() {
   const { mode: initialMode } = useSearch({ from: '/profil' });
   const [mode, setMode] = useState<'login' | 'register'>(initialMode || 'login');
@@ -88,7 +85,6 @@ function AuthForm() {
 
   const { login, register, isLoading, error, clearError } = useAuth();
 
-  // Sync with URL when it changes
   useEffect(() => {
     if (initialMode) {
       setMode(initialMode);
@@ -100,7 +96,7 @@ function AuthForm() {
     setValidationError(null);
     clearError();
 
-    // Validation
+    // Validation Frontend
     if (mode === 'register') {
       if (formData.password !== formData.confirmPassword) {
         setValidationError('Passwords do not match');
@@ -117,12 +113,16 @@ function AuthForm() {
     }
 
     try {
+      // CORRECTION : On nettoie les données avant l'envoi
+      const cleanEmail = formData.email.trim().toLowerCase();
+      const cleanUsername = formData.username.trim();
+
       if (mode === 'login') {
-        await login({ email: formData.email, password: formData.password });
+        await login({ email: cleanEmail, password: formData.password });
       } else {
         await register({
-          email: formData.email,
-          username: formData.username,
+          email: cleanEmail,
+          username: cleanUsername,
           password: formData.password,
         });
       }
@@ -162,7 +162,6 @@ function AuthForm() {
           </p>
         </div>
 
-        {/* Error Message */}
         {displayError && (
           <div className="mt-4 flex items-center gap-2 rounded-lg bg-red-500/10 p-3 text-red-400">
             <AlertCircle className="h-5 w-5 flex-shrink-0" />
@@ -170,7 +169,6 @@ function AuthForm() {
           </div>
         )}
 
-        {/* Form */}
         <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
           {mode === 'register' && (
             <div>
@@ -259,7 +257,6 @@ function AuthForm() {
           </button>
         </form>
 
-        {/* Toggle */}
         <div className="mt-6 text-center">
           <p className="text-text-secondary text-sm">
             {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}
@@ -277,9 +274,44 @@ function AuthForm() {
   );
 }
 
+/**
+ * Typed TanStack Router links for profile (avoids `as any` on `to` / `params` under strict ESLint).
+ */
+function LinkToSettings({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    <Link to="/settings" className={className}>
+      {children}
+    </Link>
+  );
+}
+
+function LinkToMembers({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    <Link to="/members" className={className}>
+      {children}
+    </Link>
+  );
+}
+
+function LinkToUserPublicProfile({
+  userId,
+  className,
+  children,
+}: {
+  userId: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <Link to="/user/$id" params={{ id: userId }} className={className}>
+      {children}
+    </Link>
+  );
+}
+
+// --- ProfileView Component ---
 function ProfileView() {
   const { user, logout } = useAuth();
-
   const { data: userReviews, isLoading: reviewsLoading } = useUserReviews(user?.id);
   const { data: watchlistData, isLoading: watchlistLoading } = useWatchlist();
   const { data: friendsList, isLoading: friendsLoading, isError: friendsError } = useFriends();
@@ -312,7 +344,6 @@ function ProfileView() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      {/* Profile Header */}
       <div className="card">
         <div className="flex flex-col items-center gap-6 sm:flex-row">
           <div className="bg-letterboxd-green/20 flex h-24 w-24 items-center justify-center rounded-full">
@@ -335,15 +366,14 @@ function ProfileView() {
             <p className="text-text-tertiary mt-1 text-sm">Member since {memberSince}</p>
           </div>
           <div className="sm:ml-auto">
-            <Link to={'/settings' as any} className="btn-secondary inline-flex items-center gap-2">
+            <LinkToSettings className="btn-secondary inline-flex items-center gap-2">
               <Settings className="h-4 w-4" />
               Settings
-            </Link>
+            </LinkToSettings>
           </div>
         </div>
       </div>
 
-      {/* Stats */}
       <div className="mt-6 grid gap-4 sm:grid-cols-4">
         <StatCard
           icon={<Film className="h-5 w-5" />}
@@ -370,12 +400,9 @@ function ProfileView() {
       <div className="card mt-6" data-testid="profile-friends">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="section-header mb-0">Friends</h2>
-          <Link
-            to={'/members' as any}
-            className="text-letterboxd-green hover:text-letterboxd-green-dark text-sm font-medium"
-          >
+          <LinkToMembers className="text-letterboxd-green hover:text-letterboxd-green-dark text-sm font-medium">
             Find members
-          </Link>
+          </LinkToMembers>
         </div>
         {friendsError || pendingError ? (
           <p className="text-text-tertiary py-4 text-center text-sm">
@@ -396,9 +423,8 @@ function ProfileView() {
                       key={req.id}
                       className="bg-bg-tertiary flex items-center justify-between gap-3 rounded-lg p-3"
                     >
-                      <Link
-                        to={'/user/$id' as any}
-                        params={{ id: req.user.id } as any}
+                      <LinkToUserPublicProfile
+                        userId={req.user.id}
                         className="flex min-w-0 flex-1 items-center gap-3"
                       >
                         <div className="bg-letterboxd-green/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
@@ -415,7 +441,7 @@ function ProfileView() {
                         <span className="text-text-primary truncate font-medium">
                           {req.user.username}
                         </span>
-                      </Link>
+                      </LinkToUserPublicProfile>
                       <div className="flex shrink-0 gap-2">
                         <button
                           type="button"
@@ -457,9 +483,8 @@ function ProfileView() {
                       key={f.id}
                       className="bg-bg-tertiary flex items-center justify-between gap-3 rounded-lg p-3"
                     >
-                      <Link
-                        to={'/user/$id' as any}
-                        params={{ id: f.user.id } as any}
+                      <LinkToUserPublicProfile
+                        userId={f.user.id}
                         className="flex min-w-0 flex-1 items-center gap-3"
                       >
                         <div className="bg-letterboxd-green/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
@@ -476,7 +501,7 @@ function ProfileView() {
                         <span className="text-text-primary truncate font-medium">
                           {f.user.username}
                         </span>
-                      </Link>
+                      </LinkToUserPublicProfile>
                       <button
                         type="button"
                         onClick={() => removeFriendMutation.mutate(f.id)}
@@ -493,9 +518,9 @@ function ProfileView() {
               ) : (
                 <p className="text-text-tertiary py-4 text-center text-sm">
                   No friends yet.{' '}
-                  <Link to={'/members' as any} className="text-letterboxd-green hover:underline">
+                  <LinkToMembers className="text-letterboxd-green hover:underline">
                     Find members
-                  </Link>{' '}
+                  </LinkToMembers>{' '}
                   to add.
                 </p>
               )}
@@ -558,7 +583,6 @@ function ProfileView() {
         )}
       </div>
 
-      {/* Watchlist Preview */}
       <div className="card mt-6" data-testid="profile-watchlist">
         <h2 className="section-header mb-4">Your Watchlist</h2>
         {watchlistLoading ? (
@@ -597,7 +621,6 @@ function ProfileView() {
         )}
       </div>
 
-      {/* Logout */}
       <div className="mt-6 flex justify-end">
         <button
           onClick={logout}
@@ -612,6 +635,7 @@ function ProfileView() {
   );
 }
 
+// --- StatCard Component ---
 function StatCard({
   icon,
   label,

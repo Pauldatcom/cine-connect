@@ -77,6 +77,154 @@ export interface TMDbMovieDetails extends TMDbMovie {
   homepage: string | null;
 }
 
+// --- Add these types at the top of the file ---
+
+export interface TMDbWatchProvider {
+  logo_path: string;
+  provider_id: number;
+  provider_name: string;
+  display_priority: number;
+}
+
+export interface TMDbWatchProvidersResult {
+  link: string;
+  flatrate?: TMDbWatchProvider[]; // Streaming (Netflix, Disney+, etc.)
+  rent?: TMDbWatchProvider[]; // Location (Apple TV, Google Play)
+  buy?: TMDbWatchProvider[]; // Achat
+  free?: TMDbWatchProvider[]; // Gratuit
+  ads?: TMDbWatchProvider[]; // Avec pubs
+}
+
+export interface TMDbWatchProvidersResponse {
+  id: number;
+  results: Record<string, TMDbWatchProvidersResult>; // Key = country code (FR, US, etc.)
+}
+
+/** Resolved watch data for UI: chosen region, optional JustWatch link from TMDb, TMDb watch page. */
+export interface WatchProvidersPick {
+  /** Provider rows for `region` (may exist with only `link` and no lists) */
+  result: TMDbWatchProvidersResult | null;
+  /** ISO region used (e.g. FR, US) or null if TMDb returned no rows */
+  region: string | null;
+  /** True when `region` is not the preferred country (e.g. used US after empty FR) */
+  isFallback: boolean;
+  /** TMDb “where to watch” page — always safe to show */
+  tmdbWatchPageUrl: string;
+  /** True when flatrate/rent/buy/free/ads has at least one provider */
+  hasLists: boolean;
+}
+
+function getWatchResultForRegion(
+  results: Record<string, TMDbWatchProvidersResult>,
+  code: string
+): TMDbWatchProvidersResult | undefined {
+  const upper = code.toUpperCase();
+  if (results[upper]) return results[upper];
+  const key = Object.keys(results).find((k) => k.toUpperCase() === upper);
+  return key !== undefined ? results[key] : undefined;
+}
+
+/** True if TMDb returned at least one provider in any category */
+export function hasAnyWatchProviderLists(r: TMDbWatchProvidersResult | null | undefined): boolean {
+  if (!r) return false;
+  return (
+    (r.flatrate?.length ?? 0) > 0 ||
+    (r.rent?.length ?? 0) > 0 ||
+    (r.buy?.length ?? 0) > 0 ||
+    (r.free?.length ?? 0) > 0 ||
+    (r.ads?.length ?? 0) > 0
+  );
+}
+
+/**
+ * Prefer `preferred` (e.g. FR), then US, then any region with provider lists.
+ * Falls back to a result that only has `link` (JustWatch) if no lists anywhere.
+ */
+export function pickWatchProvidersForRegion(
+  data: TMDbWatchProvidersResponse,
+  preferred: string
+): Omit<WatchProvidersPick, 'tmdbWatchPageUrl' | 'hasLists'> {
+  const preferredUpper = preferred.toUpperCase();
+
+  const tryPick = (code: string): { result: TMDbWatchProvidersResult; region: string } | null => {
+    const r = getWatchResultForRegion(data.results, code);
+    if (r && hasAnyWatchProviderLists(r)) {
+      return { result: r, region: code.toUpperCase() };
+    }
+    return null;
+  };
+
+  let picked = tryPick(preferredUpper);
+  if (!picked && preferredUpper !== 'US') {
+    picked = tryPick('US');
+  }
+  if (!picked) {
+    for (const code of Object.keys(data.results)) {
+      const r = data.results[code];
+      if (r && hasAnyWatchProviderLists(r)) {
+        picked = { result: r, region: code.toUpperCase() };
+        break;
+      }
+    }
+  }
+
+  if (picked) {
+    return {
+      result: picked.result,
+      region: picked.region,
+      isFallback: picked.region !== preferredUpper,
+    };
+  }
+
+  // No provider lists: still expose JustWatch/TMDb link if present for preferred → US → any
+  const linkPick = (code: string): TMDbWatchProvidersResult | undefined =>
+    getWatchResultForRegion(data.results, code);
+
+  let r = linkPick(preferredUpper);
+  let region: string | null = r?.link ? preferredUpper : null;
+  if (!r?.link && preferredUpper !== 'US') {
+    r = linkPick('US');
+    region = r?.link ? 'US' : null;
+  }
+  if (!r?.link) {
+    for (const code of Object.keys(data.results)) {
+      const row = data.results[code];
+      if (row?.link) {
+        r = row;
+        region = code.toUpperCase();
+        break;
+      }
+    }
+  }
+
+  if (r?.link) {
+    return {
+      result: r,
+      region,
+      isFallback: region !== null && region !== preferredUpper,
+    };
+  }
+
+  return { result: null, region: null, isFallback: false };
+}
+
+/**
+ * Fetch watch providers (streaming, rent, buy) for a movie
+ */
+export async function getMovieWatchProviders(
+  tmdbId: string | number
+): Promise<TMDbWatchProvidersResponse> {
+  const response = await fetch(
+    `${TMDB_BASE_URL}/movie/${tmdbId}/watch/providers?api_key=${TMDB_API_KEY}`
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch watch providers');
+  }
+
+  return response.json();
+}
+
 export interface TMDbCredits {
   id: number;
   cast: TMDbCastMember[];
@@ -260,6 +408,7 @@ export async function getRecommendations(movieId: number | string): Promise<TMDb
 export async function getGenres(): Promise<{ genres: TMDbGenre[] }> {
   return fetchTMDb('/genre/movie/list');
 }
+// À la fin de src/lib/api/tmdb.ts ou dans les exports nommés
 
 /**
  * Get person details by ID

@@ -30,7 +30,7 @@ function validateEnv(): Env {
     if (process.env.NODE_ENV === 'test') {
       return {
         NODE_ENV: 'test',
-        PORT: '3001',
+        PORT: '3000',
         DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/cineconnect_test',
         JWT_SECRET: 'test-secret-key-for-testing-purposes-only-minimum-32-chars',
         JWT_EXPIRES_IN: '7d',

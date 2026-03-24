@@ -20,7 +20,11 @@ import {
   getTrending,
   getUpcoming,
   searchMovies,
+  getMovieWatchProviders,
+  hasAnyWatchProviderLists,
+  pickWatchProvidersForRegion,
   type TMDbCredits,
+  type WatchProvidersPick,
   type TMDbMovie,
   type TMDbMovieDetails,
   type TMDbPerson,
@@ -212,6 +216,28 @@ export function usePersonMovieCredits(personId: string | number, enabled = true)
     queryKey: ['person', String(personId), 'credits'],
     queryFn: () => getPersonMovieCredits(personId),
     enabled: enabled && !!personId,
+  });
+}
+
+/**
+ * Watch providers from TMDb/JustWatch: prefers `countryCode` (default FR), then US, then any region with data.
+ * Includes TMDb watch page URL and optional JustWatch `link` on the result.
+ */
+export function useWatchProviders(tmdbId: string | number, countryCode: string = 'FR') {
+  return useQuery({
+    queryKey: ['movie', String(tmdbId), 'watch-providers', countryCode, 'v2'],
+    queryFn: async (): Promise<WatchProvidersPick> => {
+      const raw = await getMovieWatchProviders(tmdbId);
+      const partial = pickWatchProvidersForRegion(raw, countryCode);
+      const result = partial.result;
+      return {
+        ...partial,
+        hasLists: hasAnyWatchProviderLists(result),
+        tmdbWatchPageUrl: `https://www.themoviedb.org/movie/${raw.id}/watch`,
+      };
+    },
+    enabled: !!tmdbId,
+    staleTime: 1000 * 60 * 60,
   });
 }
 

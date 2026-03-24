@@ -25,8 +25,20 @@ vi.mock('@/contexts/AuthContext', () => ({
 
 vi.mock('@tanstack/react-router', () => ({
   createFileRoute: (_path: string) => (config: object) => config,
-  Link: ({ children, to, ...props }: { children: React.ReactNode; to: string }) =>
-    React.createElement('a', { href: to, 'data-testid': 'router-link', ...props }, children),
+  Link: ({
+    children,
+    to,
+    params,
+    ...props
+  }: {
+    children: React.ReactNode;
+    to: string;
+    params?: Record<string, string>;
+  }) => {
+    const href =
+      typeof params?.id === 'string' && to.includes('$id') ? to.replace('$id', params.id) : to;
+    return React.createElement('a', { href, 'data-testid': 'router-link', ...props }, children);
+  },
   useNavigate: () => vi.fn(),
   useRouter: () => ({ navigate: vi.fn() }),
   useParams: () => ({}),
@@ -350,6 +362,103 @@ describe('ProfilPage', () => {
       await user.click(screen.getByTestId('sign-out-button'));
 
       expect(logout).toHaveBeenCalled();
+    });
+
+    it('renders pending friend requests with profile links and accept/decline', () => {
+      mockUsePendingFriendRequests.mockReturnValue({
+        data: [
+          {
+            id: 'req-1',
+            user: { id: 'pending-user-1', username: 'pendingpal', avatarUrl: null },
+            createdAt: '2024-01-01T00:00:00Z',
+          },
+        ],
+        isError: false,
+      });
+
+      renderWithProviders(<ProfilPage />);
+
+      expect(screen.getByText(/pending requests/i)).toBeInTheDocument();
+      expect(screen.getByText('pendingpal')).toBeInTheDocument();
+      const profileLink = screen.getByRole('link', { name: /pendingpal/i });
+      expect(profileLink).toHaveAttribute('href', '/user/pending-user-1');
+      expect(screen.getByRole('button', { name: /accept/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /decline/i })).toBeInTheDocument();
+    });
+
+    it('calls respondToRequest when Accept is clicked on a pending request', async () => {
+      const mutate = vi.fn();
+      mockUseRespondToFriendRequest.mockReturnValue({ mutate, isPending: false });
+      mockUsePendingFriendRequests.mockReturnValue({
+        data: [
+          {
+            id: 'req-99',
+            user: { id: 'u-99', username: 'asker', avatarUrl: null },
+            createdAt: '2024-01-01T00:00:00Z',
+          },
+        ],
+        isError: false,
+      });
+
+      const user = userEvent.setup();
+      renderWithProviders(<ProfilPage />);
+      await user.click(screen.getByRole('button', { name: /accept/i }));
+
+      expect(mutate).toHaveBeenCalledWith({ requestId: 'req-99', accept: true });
+    });
+
+    it('renders friends list with profile links and remove control', () => {
+      mockUseFriends.mockReturnValue({
+        data: [
+          {
+            id: 'friendship-1',
+            user: { id: 'friend-1', username: 'moviebuddy', avatarUrl: null },
+            since: '2024-02-01T00:00:00Z',
+          },
+        ],
+        isLoading: false,
+        isError: false,
+      });
+
+      renderWithProviders(<ProfilPage />);
+
+      expect(screen.getByText(/your friends \(1\)/i)).toBeInTheDocument();
+      expect(screen.getByText('moviebuddy')).toBeInTheDocument();
+      const buddyLink = screen.getByRole('link', { name: /moviebuddy/i });
+      expect(buddyLink).toHaveAttribute('href', '/user/friend-1');
+      expect(
+        screen.getByRole('button', { name: /remove moviebuddy from friends/i })
+      ).toBeInTheDocument();
+    });
+
+    it('calls removeFriend when Remove is clicked', async () => {
+      const mutate = vi.fn();
+      mockUseRemoveFriend.mockReturnValue({ mutate, isPending: false });
+      mockUseFriends.mockReturnValue({
+        data: [
+          {
+            id: 'fs-42',
+            user: { id: 'x', username: 'exfriend', avatarUrl: null },
+            since: '2024-02-01T00:00:00Z',
+          },
+        ],
+        isLoading: false,
+        isError: false,
+      });
+
+      const user = userEvent.setup();
+      renderWithProviders(<ProfilPage />);
+      await user.click(screen.getByRole('button', { name: /remove exfriend from friends/i }));
+
+      expect(mutate).toHaveBeenCalledWith('fs-42');
+    });
+
+    it('shows friends error message when friends or pending requests fail to load', () => {
+      mockUseFriends.mockReturnValue({ data: [], isLoading: false, isError: true });
+      mockUsePendingFriendRequests.mockReturnValue({ data: [], isError: false });
+
+      renderWithProviders(<ProfilPage />);
+      expect(screen.getByText(/could not load friends/i)).toBeInTheDocument();
     });
   });
 });

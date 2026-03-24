@@ -22,6 +22,7 @@ export {
   useTopRatedFilms,
   useTrendingFilms,
   useUpcomingFilms,
+  useWatchProviders,
 } from './useFilms';
 
 // Review hooks
