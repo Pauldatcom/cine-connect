@@ -24,7 +24,7 @@ import {
   UserPlus,
   Users,
 } from 'lucide-react';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { z } from 'zod';
 
 // Search params schema
@@ -274,6 +274,41 @@ function AuthForm() {
   );
 }
 
+/**
+ * Typed TanStack Router links for profile (avoids `as any` on `to` / `params` under strict ESLint).
+ */
+function LinkToSettings({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    <Link to="/settings" className={className}>
+      {children}
+    </Link>
+  );
+}
+
+function LinkToMembers({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    <Link to="/members" className={className}>
+      {children}
+    </Link>
+  );
+}
+
+function LinkToUserPublicProfile({
+  userId,
+  className,
+  children,
+}: {
+  userId: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <Link to="/user/$id" params={{ id: userId }} className={className}>
+      {children}
+    </Link>
+  );
+}
+
 // --- ProfileView Component ---
 function ProfileView() {
   const { user, logout } = useAuth();
@@ -331,10 +366,10 @@ function ProfileView() {
             <p className="text-text-tertiary mt-1 text-sm">Member since {memberSince}</p>
           </div>
           <div className="sm:ml-auto">
-            <Link to={'/settings' as any} className="btn-secondary inline-flex items-center gap-2">
+            <LinkToSettings className="btn-secondary inline-flex items-center gap-2">
               <Settings className="h-4 w-4" />
               Settings
-            </Link>
+            </LinkToSettings>
           </div>
         </div>
       </div>
@@ -365,12 +400,9 @@ function ProfileView() {
       <div className="card mt-6" data-testid="profile-friends">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="section-header mb-0">Friends</h2>
-          <Link
-            to={'/members' as any}
-            className="text-letterboxd-green hover:text-letterboxd-green-dark text-sm font-medium"
-          >
+          <LinkToMembers className="text-letterboxd-green hover:text-letterboxd-green-dark text-sm font-medium">
             Find members
-          </Link>
+          </LinkToMembers>
         </div>
         {friendsError || pendingError ? (
           <p className="text-text-tertiary py-4 text-center text-sm">
@@ -391,9 +423,8 @@ function ProfileView() {
                       key={req.id}
                       className="bg-bg-tertiary flex items-center justify-between gap-3 rounded-lg p-3"
                     >
-                      <Link
-                        to={'/user/$id' as any}
-                        params={{ id: req.user.id } as any}
+                      <LinkToUserPublicProfile
+                        userId={req.user.id}
                         className="flex min-w-0 flex-1 items-center gap-3"
                       >
                         <div className="bg-letterboxd-green/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
@@ -410,7 +441,7 @@ function ProfileView() {
                         <span className="text-text-primary truncate font-medium">
                           {req.user.username}
                         </span>
-                      </Link>
+                      </LinkToUserPublicProfile>
                       <div className="flex shrink-0 gap-2">
                         <button
                           type="button"
@@ -452,9 +483,8 @@ function ProfileView() {
                       key={f.id}
                       className="bg-bg-tertiary flex items-center justify-between gap-3 rounded-lg p-3"
                     >
-                      <Link
-                        to={'/user/$id' as any}
-                        params={{ id: f.user.id } as any}
+                      <LinkToUserPublicProfile
+                        userId={f.user.id}
                         className="flex min-w-0 flex-1 items-center gap-3"
                       >
                         <div className="bg-letterboxd-green/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
@@ -471,7 +501,7 @@ function ProfileView() {
                         <span className="text-text-primary truncate font-medium">
                           {f.user.username}
                         </span>
-                      </Link>
+                      </LinkToUserPublicProfile>
                       <button
                         type="button"
                         onClick={() => removeFriendMutation.mutate(f.id)}
@@ -488,9 +518,9 @@ function ProfileView() {
               ) : (
                 <p className="text-text-tertiary py-4 text-center text-sm">
                   No friends yet.{' '}
-                  <Link to={'/members' as any} className="text-letterboxd-green hover:underline">
+                  <LinkToMembers className="text-letterboxd-green hover:underline">
                     Find members
-                  </Link>{' '}
+                  </LinkToMembers>{' '}
                   to add.
                 </p>
               )}
