@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, type RenderOptions, type RenderResult } from '@testing-library/react';
 import { vi } from 'vitest';
 import type { TMDbMovie } from '@/lib/api/tmdb';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 
 // ============================================
 // Test Wrapper
@@ -30,7 +31,11 @@ export function createTestWrapper() {
   });
 
   return function Wrapper({ children }: { children: React.ReactNode }) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+    return (
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>{children}</ThemeProvider>
+      </QueryClientProvider>
+    );
   };
 }
 
@@ -54,6 +59,10 @@ export function renderWithProviders(
  * TanStack Router mock configuration.
  * Use vi.mock('@tanstack/react-router', () => routerMock) in your test file.
  */
+/**
+ * Link mock: prevent real navigation (jsdom does not implement navigation).
+ * Click is prevented so tests don't trigger "Not implemented: navigation (except hash changes)".
+ */
 export const routerMock: Record<string, unknown> = {
   Link: ({
     children,
@@ -72,7 +81,7 @@ export const routerMock: Record<string, unknown> = {
     params?: unknown;
     [key: string]: unknown;
   }) => (
-    <a href={to} data-testid="router-link" {...props}>
+    <a href={to} data-testid="router-link" onClick={(e) => e.preventDefault()} {...props}>
       {children}
     </a>
   ),
