@@ -62,7 +62,12 @@ function FilmDetailPage() {
   const { data: similar } = useSimilarFilms(id, !!film);
 
   // Hook pour les plateformes de streaming
-  const { data: providers, isLoading: loadingProviders } = useWatchProviders(id, 'FR');
+  const {
+    data: watchPick,
+    isLoading: loadingProviders,
+    isError: watchProvidersError,
+  } = useWatchProviders(id, 'FR');
+  const providers = watchPick?.result ?? null;
 
   const { data: backendFilm } = useRegisterFilm(film, !!film);
   const { data: reviewsData, isLoading: reviewsLoading } = useFilmReviews(backendFilm?.id);
@@ -424,7 +429,7 @@ function FilmDetailPage() {
                 )}
               </div>
 
-              {/* WHERE TO WATCH SECTION (WITH DIRECT LINKS*/}
+              {/* Where to watch: TMDb + JustWatch links; provider lists when TMDb has data (FR → US → other) */}
               <div className="mt-8">
                 <h2 className="text-text-tertiary mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider">
                   <Tv className="h-4 w-4" />
@@ -434,13 +439,65 @@ function FilmDetailPage() {
                 {loadingProviders && (
                   <p className="text-text-secondary text-sm">Searching platforms...</p>
                 )}
-                {!loadingProviders && !providers && (
-                  <p className="text-text-secondary text-sm">
-                    No platforms available in France at the moment.
+
+                {!loadingProviders && watchProvidersError && (
+                  <div className="mb-4 space-y-3">
+                    <p className="text-text-secondary text-sm">
+                      Could not load provider data. Check your connection or TMDb key.
+                    </p>
+                    <a
+                      href={`https://www.themoviedb.org/movie/${id}/watch`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secondary inline-flex items-center gap-2 text-sm"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      View on TMDb
+                    </a>
+                  </div>
+                )}
+
+                {!loadingProviders && watchPick && (
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    <a
+                      href={watchPick.tmdbWatchPageUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secondary inline-flex items-center gap-2 text-sm"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      View on TMDb
+                    </a>
+                    {providers?.link ? (
+                      <a
+                        href={providers.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-secondary inline-flex items-center gap-2 text-sm"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        JustWatch (TMDb)
+                      </a>
+                    ) : null}
+                  </div>
+                )}
+
+                {!loadingProviders && watchPick?.isFallback && watchPick.region && (
+                  <p className="text-text-tertiary mb-3 text-xs">
+                    Showing availability for region <strong>{watchPick.region}</strong> (no
+                    streaming list for France in TMDb).
                   </p>
                 )}
 
-                {!loadingProviders && providers && (
+                {!loadingProviders && watchPick && !watchPick.hasLists && !watchProvidersError && (
+                  <p className="text-text-secondary mb-3 text-sm">
+                    No provider list in TMDb for this title in the regions we checked. Use{' '}
+                    <span className="text-letterboxd-green font-medium">View on TMDb</span> above
+                    for official availability.
+                  </p>
+                )}
+
+                {!loadingProviders && providers && watchPick?.hasLists && (
                   <div className="space-y-4">
                     {/* Streaming */}
                     {providers.flatrate && providers.flatrate.length > 0 && (
@@ -530,7 +587,6 @@ function FilmDetailPage() {
                   </div>
                 )}
               </div>
-              {/* END OF SECTION*/}
             </div>
           </div>
         </div>
