@@ -34,7 +34,9 @@ export function FilmStrip({
   });
 
   const films = providedFilms || popularData?.results || [];
-  const displayFilms = films.slice(0, count);
+  // Filter out films without posters
+  const filmsWithPosters = films.filter((f) => f.poster_path);
+  const displayFilms = filmsWithPosters.slice(0, count);
 
   const heightClasses = {
     sm: 'h-24',

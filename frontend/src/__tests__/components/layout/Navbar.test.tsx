@@ -335,6 +335,31 @@ describe('Navbar', () => {
     });
   });
 
+  describe('theme toggle', () => {
+    beforeEach(() => {
+      localStorage.removeItem('cineconnect-theme');
+    });
+
+    it('renders theme toggle with accessible label', () => {
+      const Wrapper = createTestWrapper();
+      render(<Navbar />, { wrapper: Wrapper });
+      // Default theme is dark, so we show "Switch to light theme"
+      expect(screen.getByRole('button', { name: /switch to light theme/i })).toBeInTheDocument();
+    });
+
+    it('switches theme when toggle is clicked', () => {
+      const Wrapper = createTestWrapper();
+      render(<Navbar />, { wrapper: Wrapper });
+
+      const toggle = screen.getByRole('button', { name: /switch to light theme/i });
+      fireEvent.click(toggle);
+
+      // After click, we're in light mode so the button offers to switch back to dark
+      expect(screen.getByRole('button', { name: /switch to dark theme/i })).toBeInTheDocument();
+      expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+    });
+  });
+
   describe('accessibility', () => {
     it('has accessible search button', () => {
       const Wrapper = createTestWrapper();

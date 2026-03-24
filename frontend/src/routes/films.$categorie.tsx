@@ -69,11 +69,13 @@ function FilmsCategoryPage() {
         <div className="card border-red-500/50 bg-red-500/10 text-red-400">
           Error loading films. Please try again.
         </div>
-      ) : data?.results.length ? (
+      ) : data?.results.filter((f) => f.poster_path).length ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-          {data.results.map((film, index) => (
-            <FilmPoster key={film.id} film={film} priority={index < 12} />
-          ))}
+          {data.results
+            .filter((f) => f.poster_path)
+            .map((film, index) => (
+              <FilmPoster key={film.id} film={film} priority={index < 12} />
+            ))}
         </div>
       ) : (
         <div className="text-text-secondary py-20 text-center">

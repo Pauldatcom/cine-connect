@@ -2,7 +2,8 @@ import { FilmPoster } from '@/components/features/FilmPoster';
 import { FilmStrip } from '@/components/ui/FilmStrip';
 import { StarRatingDisplay } from '@/components/ui/StarRating';
 import { useAuth } from '@/contexts/AuthContext';
-import { useIsInWatchlist, useRegisterFilm, useToggleWatchlist } from '@/hooks';
+import { useIsInWatchlist, useRecommendations, useRegisterFilm, useToggleWatchlist } from '@/hooks';
+import type { BackendFilm } from '@/lib/api/films';
 import {
   getImageUrl,
   getNowPlaying,
@@ -22,7 +23,27 @@ export const Route = createFileRoute('/')({
   component: HomePage,
 });
 
+/** Map backend recommendation film to TMDbMovie-like shape for FilmPoster */
+function backendFilmToTMDbMovie(f: BackendFilm): TMDbMovie {
+  return {
+    id: f.tmdbId,
+    title: f.title,
+    original_title: f.title,
+    overview: f.plot ?? '',
+    poster_path: f.poster ?? null,
+    backdrop_path: null,
+    release_date: f.year ? `${f.year}-01-01` : '',
+    vote_average: f.tmdbRating ? parseFloat(f.tmdbRating) : 0,
+    vote_count: 0,
+    popularity: 0,
+    genre_ids: [],
+    adult: false,
+    original_language: 'en',
+  };
+}
+
 function HomePage() {
+  const { isAuthenticated } = useAuth();
   const { data: trending } = useQuery({
     queryKey: ['movies', 'trending'],
     queryFn: () => getTrending('week'),
@@ -43,8 +64,11 @@ function HomePage() {
     queryFn: () => getTopRated(),
   });
 
+  const { data: recommendations, isLoading: recLoading } = useRecommendations(isAuthenticated);
+
   // Featured film (first trending)
   const featured = trending?.results[0];
+  const recommendedFilms = recommendations?.map(backendFilmToTMDbMovie) ?? [];
 
   return (
     <div className="animate-fade-in">
@@ -56,6 +80,18 @@ function HomePage() {
 
       {/* Content Sections */}
       <div className="mx-auto max-w-7xl space-y-16 px-4 py-12">
+        {/* Recommended for you (authenticated only) */}
+        {isAuthenticated && (
+          <FilmSection
+            title="Recommended for you"
+            icon={<Star className="text-letterboxd-green h-5 w-5" />}
+            films={recLoading ? undefined : recommendedFilms.slice(0, 10)}
+            linkTo="/films"
+            linkText="Browse all films"
+            emptyMessage="Rate or add films to your watchlist to get personalized recommendations."
+          />
+        )}
+
         {/* Trending This Week */}
         <FilmSection
           title="Trending This Week"
@@ -63,6 +99,7 @@ function HomePage() {
           films={trending?.results.slice(1, 11)}
           linkTo="/films"
           linkText="View all trending"
+          linkSearch={{ view: 'trending', page: 1 }}
         />
 
         {/* Film Strip Divider */}
@@ -75,6 +112,7 @@ function HomePage() {
           films={popular?.results.slice(0, 10)}
           linkTo="/films"
           linkText="Browse all films"
+          linkSearch={{ view: 'popular', page: 1 }}
         />
 
         {/* Top Rated */}
@@ -84,6 +122,7 @@ function HomePage() {
           films={topRated?.results.slice(0, 10)}
           linkTo="/films"
           linkText="See top rated"
+          linkSearch={{ view: 'top-rated', page: 1 }}
         />
 
         {/* Now Playing */}
@@ -93,6 +132,7 @@ function HomePage() {
           films={nowPlaying?.results.slice(0, 10)}
           linkTo="/films"
           linkText="What's playing"
+          linkSearch={{ view: 'popular', page: 1 }}
         />
       </div>
 
@@ -273,14 +313,21 @@ function FilmSection({
   films,
   linkTo,
   linkText,
+  emptyMessage,
+  linkSearch,
 }: {
   title: string;
   icon: React.ReactNode;
   films?: TMDbMovie[];
   linkTo: string;
   linkText?: string;
+  emptyMessage?: string;
+  linkSearch?: Record<string, string | number>;
 }) {
-  if (!films?.length) return null;
+  // Filter out films without posters
+  const filmsWithPosters = films?.filter((f) => f.poster_path);
+
+  if (!filmsWithPosters?.length && !emptyMessage) return null;
 
   return (
     <section>
@@ -292,6 +339,7 @@ function FilmSection({
         </div>
         <Link
           to={linkTo}
+          search={linkSearch}
           className="text-text-secondary hover:text-letterboxd-green group flex items-center gap-1 text-sm font-medium transition-colors"
         >
           {linkText || 'View all'}
@@ -299,12 +347,20 @@ function FilmSection({
         </Link>
       </div>
 
-      {/* Film Grid */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        {films.map((film, index) => (
-          <FilmPoster key={film.id} film={film} priority={index < 5} />
-        ))}
-      </div>
+      {/* Film Grid or empty state */}
+      {filmsWithPosters?.length ? (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          {filmsWithPosters.map((film, index) => (
+            <FilmPoster key={film.id} film={film} priority={index < 5} />
+          ))}
+        </div>
+      ) : (
+        emptyMessage && (
+          <p className="text-text-secondary border-border bg-bg-secondary/50 rounded-lg border px-4 py-6 text-center text-sm">
+            {emptyMessage}
+          </p>
+        )
+      )}
     </section>
   );
 }

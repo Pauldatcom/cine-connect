@@ -12,12 +12,17 @@ import {
   Users,
   MessageCircle,
   List,
-  Heart,
   Settings,
   LogOut,
   ChevronDown,
+  Sun,
+  Moon,
+  Loader2,
+  UserPlus,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
+import { usePendingFriendRequests, useRespondToFriendRequest } from '@/hooks/useFriends';
 
 /**
  * Main Navigation Bar - Exact Letterboxd style
@@ -27,11 +32,16 @@ export function Navbar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const notificationRef = useRef<HTMLDivElement>(null);
 
-  // Use real auth state
   const { isAuthenticated, user, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
+  const { data: pendingRequests = [], isLoading: pendingLoading } =
+    usePendingFriendRequests(isAuthenticated);
+  const respondToRequest = useRespondToFriendRequest();
 
   // Focus search input when opened
   useEffect(() => {
@@ -40,11 +50,15 @@ export function Navbar() {
     }
   }, [searchOpen]);
 
-  // Close profile menu on outside click
+  // Close profile and notification menus on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (profileMenuRef.current && !profileMenuRef.current.contains(target)) {
         setProfileMenuOpen(false);
+      }
+      if (notificationRef.current && !notificationRef.current.contains(target)) {
+        setNotificationOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -60,7 +74,7 @@ export function Navbar() {
   };
 
   return (
-    <header className="bg-bg-nav/95 backdrop-blur-strong sticky top-0 z-50">
+    <header className="bg-bg-nav sticky top-0 z-50">
       {/* Main navbar */}
       <nav className="border-border border-b">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
@@ -147,20 +161,148 @@ export function Navbar() {
               )}
             </div>
 
-            {/* Notifications (authenticated only) */}
+            {/* Theme toggle */}
+            <button
+              type="button"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="text-text-secondary hover:text-text-primary focus:ring-letterboxd-green focus:ring-offset-bg-nav rounded p-2 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2"
+              aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+            >
+              {theme === 'dark' ? (
+                <Sun className="h-5 w-5" aria-hidden />
+              ) : (
+                <Moon className="h-5 w-5" aria-hidden />
+              )}
+            </button>
+
+            {/* Notifications: pending friend requests (authenticated only) */}
             {isAuthenticated && (
-              <button className="text-text-secondary hover:text-text-primary relative p-2 transition-colors">
-                <Bell className="h-5 w-5" />
-                <span className="bg-letterboxd-orange absolute right-1 top-1 h-2 w-2 rounded-full" />
-              </button>
+              <div ref={notificationRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setNotificationOpen(!notificationOpen)}
+                  className="text-text-secondary hover:text-text-primary focus:ring-letterboxd-green focus:ring-offset-bg-nav relative rounded p-2 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2"
+                  aria-label={
+                    pendingRequests.length > 0
+                      ? `${pendingRequests.length} friend request(s)`
+                      : 'Notifications'
+                  }
+                >
+                  <Bell className="h-5 w-5" />
+                  {pendingRequests.length > 0 && (
+                    <span className="bg-letterboxd-orange absolute right-1 top-1 h-2 w-2 rounded-full" />
+                  )}
+                </button>
+                {notificationOpen && (
+                  <div className="bg-bg-secondary border-border absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-lg border shadow-xl">
+                    <div className="border-border border-b p-3">
+                      <h3 className="text-text-primary flex items-center gap-2 font-medium">
+                        <UserPlus className="h-4 w-4" />
+                        Friend requests
+                      </h3>
+                    </div>
+                    <div className="max-h-72 overflow-y-auto">
+                      {pendingLoading ? (
+                        <div className="flex justify-center py-6">
+                          <Loader2 className="text-letterboxd-green h-6 w-6 animate-spin" />
+                        </div>
+                      ) : pendingRequests.length === 0 ? (
+                        <p className="text-text-tertiary p-4 text-center text-sm">
+                          No pending requests
+                        </p>
+                      ) : (
+                        <ul className="py-1">
+                          {pendingRequests.map((req) => (
+                            <li
+                              key={req.id}
+                              className="border-border hover:bg-bg-tertiary flex items-center gap-3 border-b px-4 py-3 last:border-b-0"
+                            >
+                              <Link
+                                to="/user/$id"
+                                params={{ id: req.user.id }}
+                                onClick={() => setNotificationOpen(false)}
+                                className="min-w-0 flex-1"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="bg-bg-tertiary flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full">
+                                    {req.user.avatarUrl ? (
+                                      <img
+                                        src={req.user.avatarUrl}
+                                        alt=""
+                                        className="h-full w-full object-cover"
+                                      />
+                                    ) : (
+                                      <User className="text-text-tertiary h-4 w-4" />
+                                    )}
+                                  </div>
+                                  <span className="text-text-primary truncate text-sm font-medium">
+                                    {req.user.username}
+                                  </span>
+                                </div>
+                              </Link>
+                              <div className="flex shrink-0 gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    respondToRequest.mutate(
+                                      { requestId: req.id, accept: true },
+                                      { onSettled: () => setNotificationOpen(false) }
+                                    )
+                                  }
+                                  disabled={respondToRequest.isPending}
+                                  className="bg-letterboxd-green hover:bg-letterboxd-green-dark text-bg-primary rounded px-2 py-1.5 text-xs font-medium transition-colors disabled:opacity-50"
+                                >
+                                  {respondToRequest.isPending ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    'Accept'
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    respondToRequest.mutate(
+                                      { requestId: req.id, accept: false },
+                                      { onSettled: () => setNotificationOpen(false) }
+                                    )
+                                  }
+                                  disabled={respondToRequest.isPending}
+                                  className="text-text-tertiary rounded px-2 py-1.5 text-xs transition-colors hover:text-red-400 disabled:opacity-50"
+                                >
+                                  Decline
+                                </button>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                    {pendingRequests.length > 0 && (
+                      <div className="border-border border-t p-2">
+                        <Link
+                          to="/members"
+                          onClick={() => setNotificationOpen(false)}
+                          className="text-letterboxd-green hover:text-letterboxd-green-dark block text-center text-sm font-medium"
+                        >
+                          View all in Members →
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Profile / Auth */}
             {isAuthenticated ? (
               <div ref={profileMenuRef} className="relative">
                 <button
+                  type="button"
                   onClick={() => setProfileMenuOpen(!profileMenuOpen)}
                   className="hover:bg-bg-tertiary flex items-center gap-2 rounded-full p-1.5 transition-colors"
+                  aria-expanded={profileMenuOpen}
+                  aria-haspopup="menu"
+                  data-testid="profile-menu-trigger"
                 >
                   <div className="bg-bg-tertiary border-border flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border">
                     {user?.avatarUrl ? (
@@ -186,8 +328,8 @@ export function Navbar() {
                       <DropdownLink to="/films" icon={<Film className="h-4 w-4" />}>
                         Films
                       </DropdownLink>
-                      <DropdownLink to="/likes" icon={<Heart className="h-4 w-4" />}>
-                        Likes
+                      <DropdownLink to="/members" icon={<Users className="h-4 w-4" />}>
+                        Members
                       </DropdownLink>
                       <DropdownLink to="/lists" icon={<List className="h-4 w-4" />}>
                         Lists

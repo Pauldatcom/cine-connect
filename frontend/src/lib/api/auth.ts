@@ -32,6 +32,21 @@ export interface RegisterCredentials {
   password: string;
 }
 
+export interface UpdateProfileInput {
+  username?: string;
+  avatarUrl?: string | null;
+}
+
+export interface ChangePasswordInput {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ChangeEmailInput {
+  newEmail: string;
+  currentPassword: string;
+}
+
 /**
  * Register a new user
  */
@@ -81,26 +96,60 @@ export async function getCurrentUser(): Promise<User> {
 }
 
 /**
+ * Update current user profile (username, avatar URL)
+ */
+export async function updateProfile(input: UpdateProfileInput): Promise<User> {
+  return api.patch<User>('/api/v1/users/me', input);
+}
+
+/**
+ * Change password. Requires current password.
+ */
+export async function changePassword(input: ChangePasswordInput): Promise<void> {
+  await api.post<{ message: string }>('/api/v1/auth/change-password', input);
+}
+
+/**
+ * Change email. Requires current password. Returns new user and access token; caller should update auth state.
+ */
+export async function changeEmail(input: ChangeEmailInput): Promise<AuthResponse> {
+  const response = await api.post<AuthResponse>('/api/v1/auth/change-email', input);
+  tokenStorage.setAccessToken(response.accessToken);
+  return response;
+}
+
+/**
  * Check if user is authenticated (has valid tokens)
  */
 export function isAuthenticated(): boolean {
   return tokenStorage.hasTokens();
 }
 
+/** In-flight refresh promise so we don't send duplicate refresh requests (e.g. Strict Mode, multiple consumers). */
+let refreshPromise: Promise<AuthResponse> | null = null;
+
 /**
  * Refresh access token using httpOnly cookie
- * Called on page load to restore session
+ * Called on page load to restore session. Dedupes concurrent calls.
  */
 export async function refreshToken(): Promise<AuthResponse> {
-  // No need to send refresh token - it's in the httpOnly cookie
-  const response = await api.post<AuthResponse>('/api/v1/auth/refresh', undefined, {
-    skipAuth: true,
-  });
+  if (refreshPromise) {
+    return refreshPromise;
+  }
 
-  // Store new access token in memory
-  tokenStorage.setAccessToken(response.accessToken);
+  refreshPromise = (async () => {
+    try {
+      const response = await api.post<AuthResponse>('/api/v1/auth/refresh', undefined, {
+        skipAuth: true,
+      });
+      tokenStorage.setAccessToken(response.accessToken);
+      return response;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
 
-  return response;
+  return refreshPromise;
 }
 
 export const authApi = {
@@ -108,6 +157,9 @@ export const authApi = {
   login,
   logout,
   getCurrentUser,
+  updateProfile,
+  changePassword,
+  changeEmail,
   isAuthenticated,
   refreshToken,
 };
