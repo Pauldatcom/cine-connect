@@ -1,39 +1,57 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
-import {
-  MessageCircle,
-  Send,
-  User,
-  Search,
-  MoreVertical,
-  Phone,
-  Video,
-  LogIn,
-  Loader2,
-} from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   useConversations,
-  useMessages,
-  useSendMessage,
+  useFriends,
   useMarkMessagesRead,
-  useSocket,
+  useMessages,
   useOnlineUsers,
+  useSendMessage,
+  useSocket,
   useTypingUsers,
+  useUserById,
 } from '@/hooks';
+import { createFileRoute, Link, useNavigate, useSearch } from '@tanstack/react-router';
+import {
+  Loader2,
+  LogIn,
+  MessageCircle,
+  MoreVertical,
+  Phone,
+  Search,
+  Send,
+  User,
+  UserPlus,
+  Video,
+} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { z } from 'zod';
+
+const discussionSearchSchema = z.object({
+  with: z.string().uuid().optional(),
+});
 
 /**
  * Real-time chat/discussion page with Socket.io integration
  */
 export const Route = createFileRoute('/discussion')({
   component: DiscussionPage,
+  validateSearch: discussionSearchSchema,
 });
+
+/** Partner display shape used by both conversation list and fetched user */
+interface SelectedPartnerInfo {
+  partnerId: string;
+  partner: { id: string; username: string; avatarUrl: string | null };
+}
 
 function DiscussionPage() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const navigate = useNavigate();
+  const search = useSearch({ from: '/discussion' });
   const [message, setMessage] = useState('');
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showFriendPicker, setShowFriendPicker] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Socket.io hooks
@@ -43,18 +61,51 @@ function DiscussionPage() {
 
   // API hooks
   const { data: conversations, isLoading: conversationsLoading } = useConversations();
+  const { data: friends = [] } = useFriends(isAuthenticated);
   const { data: messages, isLoading: messagesLoading } = useMessages(
     selectedConversation ?? undefined
   );
   const sendMessageMutation = useSendMessage();
   const markReadMutation = useMarkMessagesRead();
 
+  // When selected user is not in conversations (new thread), fetch partner info
+  const selectedInList = conversations?.find((c) => c.partnerId === selectedConversation);
+  const needPartnerFetch = !!selectedConversation && !selectedInList;
+  const {
+    data: fetchedUser,
+    isLoading: partnerLoading,
+    isError: partnerError,
+  } = useUserById(needPartnerFetch ? selectedConversation : undefined);
+
+  // Resolve selected partner: from conversation list or from fetched user
+  const selectedPartner: SelectedPartnerInfo | null = selectedInList
+    ? { partnerId: selectedInList.partnerId, partner: selectedInList.partner }
+    : fetchedUser
+      ? {
+          partnerId: fetchedUser.id,
+          partner: {
+            id: fetchedUser.id,
+            username: fetchedUser.username,
+            avatarUrl: fetchedUser.avatarUrl,
+          },
+        }
+      : null;
+
+  // Pre-select conversation from URL ?with=userId (e.g. from Members "Message" link)
+  useEffect(() => {
+    if (search.with) {
+      setSelectedConversation(search.with);
+      setShowFriendPicker(false);
+      navigate({ from: '/discussion', search: {} });
+    }
+  }, [search.with, navigate]);
+
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Mark messages as read when conversation is selected
+  // Mark messages as read when conversation is selected (safe for new threads; backend no-ops)
   useEffect(() => {
     if (selectedConversation) {
       markReadMutation.mutate(selectedConversation);
@@ -125,7 +176,6 @@ function DiscussionPage() {
     conv.partner.username.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const selectedUser = conversations?.find((c) => c.partnerId === selectedConversation);
   const isPartnerOnline = selectedConversation ? onlineUsers.includes(selectedConversation) : false;
   const isPartnerTyping = selectedConversation ? !!typingUsers[selectedConversation] : false;
 
@@ -143,10 +193,63 @@ function DiscussionPage() {
         <div className="grid h-full lg:grid-cols-[320px,1fr]">
           {/* Sidebar - Conversations */}
           <div className="border-border flex flex-col border-r">
-            {/* Header */}
-            <div className="border-border border-b p-4">
+            {/* Header + New message */}
+            <div className="border-border flex items-center justify-between gap-2 border-b p-4">
               <h2 className="font-display text-text-primary text-lg font-semibold">Messages</h2>
+              <button
+                type="button"
+                onClick={() => setShowFriendPicker(!showFriendPicker)}
+                className="btn-secondary flex items-center gap-1.5 px-3 py-1.5 text-sm"
+                aria-label={showFriendPicker ? 'Close new message' : 'New message'}
+              >
+                <UserPlus className="h-4 w-4" />
+                New message
+              </button>
             </div>
+
+            {/* Friend picker: start conversation with a friend */}
+            {showFriendPicker && (
+              <div className="border-border bg-bg-tertiary/50 max-h-48 overflow-y-auto border-b p-2">
+                <p className="text-text-tertiary mb-2 px-2 text-xs font-medium">
+                  Choose a friend to message
+                </p>
+                {friends.length === 0 ? (
+                  <p className="text-text-tertiary py-4 text-center text-sm">
+                    No friends yet. Add friends from Members.
+                  </p>
+                ) : (
+                  <ul className="space-y-0.5">
+                    {friends.map((friend) => (
+                      <li key={friend.user.id}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedConversation(friend.user.id);
+                            setShowFriendPicker(false);
+                          }}
+                          className="hover:bg-bg-tertiary flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors"
+                        >
+                          <div className="bg-bg-secondary flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full">
+                            {friend.user.avatarUrl ? (
+                              <img
+                                src={friend.user.avatarUrl}
+                                alt=""
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <User className="text-text-tertiary h-4 w-4" />
+                            )}
+                          </div>
+                          <span className="text-text-primary truncate text-sm font-medium">
+                            {friend.user.username}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
 
             {/* Search */}
             <div className="border-border border-b p-3">
@@ -222,16 +325,16 @@ function DiscussionPage() {
           </div>
 
           {/* Chat Area */}
-          {selectedConversation && selectedUser ? (
+          {selectedConversation && selectedPartner ? (
             <div className="flex flex-col">
               {/* Chat Header */}
               <div className="border-border flex items-center justify-between gap-3 border-b px-6 py-4">
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <div className="bg-bg-tertiary border-border flex h-10 w-10 items-center justify-center rounded-full border">
-                      {selectedUser.partner.avatarUrl ? (
+                      {selectedPartner.partner.avatarUrl ? (
                         <img
-                          src={selectedUser.partner.avatarUrl}
+                          src={selectedPartner.partner.avatarUrl}
                           alt=""
                           className="h-full w-full rounded-full object-cover"
                         />
@@ -245,7 +348,7 @@ function DiscussionPage() {
                   </div>
                   <div>
                     <h2 className="text-text-primary font-medium">
-                      {selectedUser.partner.username}
+                      {selectedPartner.partner.username}
                     </h2>
                     <p
                       className={`text-xs ${
@@ -274,7 +377,10 @@ function DiscussionPage() {
               </div>
 
               {/* Messages */}
-              <div className="scrollbar-thin flex-1 overflow-y-auto p-6">
+              <div
+                className="scrollbar-thin flex-1 overflow-y-auto p-6"
+                data-testid="chat-messages"
+              >
                 {messagesLoading ? (
                   <div className="flex justify-center py-8">
                     <Loader2 className="text-text-tertiary h-6 w-6 animate-spin" />
@@ -322,7 +428,7 @@ function DiscussionPage() {
               {/* Typing Indicator */}
               {isPartnerTyping && (
                 <div className="text-text-tertiary px-6 pb-2 text-sm">
-                  {selectedUser.partner.username} is typing...
+                  {selectedPartner.partner.username} is typing...
                 </div>
               )}
 
@@ -341,6 +447,7 @@ function DiscussionPage() {
                     type="submit"
                     className="btn-primary px-4"
                     disabled={!message.trim() || sendMessageMutation.isPending}
+                    aria-label="Send message"
                   >
                     {sendMessageMutation.isPending ? (
                       <Loader2 className="h-5 w-5 animate-spin" />
@@ -351,6 +458,24 @@ function DiscussionPage() {
                 </div>
               </form>
             </div>
+          ) : selectedConversation && needPartnerFetch && partnerLoading ? (
+            <div className="flex flex-1 items-center justify-center p-8">
+              <Loader2 className="text-letterboxd-green h-8 w-8 animate-spin" />
+            </div>
+          ) : selectedConversation && needPartnerFetch && partnerError ? (
+            <div className="flex flex-col items-center justify-center p-8 text-center">
+              <p className="text-text-secondary">
+                User not found or you are not friends. Start a conversation from the list or add
+                them as a friend first.
+              </p>
+              <button
+                type="button"
+                onClick={() => setSelectedConversation(null)}
+                className="btn-secondary mt-4"
+              >
+                Back to conversations
+              </button>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center p-8 text-center">
               <div className="bg-bg-tertiary flex h-20 w-20 items-center justify-center rounded-full">
@@ -360,7 +485,7 @@ function DiscussionPage() {
                 Your Messages
               </h2>
               <p className="text-text-secondary mt-2 max-w-xs text-sm">
-                Select a conversation to start chatting with your friends about films
+                Select a conversation or start a new message with a friend
               </p>
             </div>
           )}
