@@ -1,10 +1,28 @@
 import '@testing-library/jest-dom';
-import { afterEach, vi } from 'vitest';
+import { afterEach, beforeAll, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 
 // Cleanup after each test
 afterEach(() => {
   cleanup();
+});
+
+// JSDOM does not implement navigation (except hash). Prevent link clicks from throwing.
+beforeAll(() => {
+  if (typeof document !== 'undefined') {
+    document.addEventListener(
+      'click',
+      (e) => {
+        const target = e.target as HTMLElement;
+        const anchor = target.closest('a[href]');
+        const href = anchor?.getAttribute('href');
+        if (anchor && href && href.startsWith('/') && !href.startsWith('/#')) {
+          e.preventDefault();
+        }
+      },
+      true
+    );
+  }
 });
 
 // Mock window.matchMedia
