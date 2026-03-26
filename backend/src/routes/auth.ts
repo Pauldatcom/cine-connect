@@ -336,7 +336,6 @@ authRouter.post('/refresh', async (req, res, next) => {
       return next(ApiError.unauthorized('Invalid refresh token'));
     }
 
-<<<<<<< HEAD
     if (
       typeof decoded.userId !== 'string' ||
       decoded.userId.length === 0 ||
@@ -346,9 +345,7 @@ authRouter.post('/refresh', async (req, res, next) => {
       clearRefreshTokenCookie(res);
       return next(ApiError.unauthorized('Invalid refresh token payload'));
     }
-=======
     const refreshIssuedAt = new Date((decoded.iat ?? 0) * 1000);
->>>>>>> cd2d369 (feat(auth): add passwordChangedAt and invalidate refresh after credential change)
 
     const refreshUseCase = container.resolve<RefreshUseCase>(RefreshUseCase);
     const { user } = await refreshUseCase.execute({

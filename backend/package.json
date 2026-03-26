@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc && mkdir -p dist/infrastructure/email/templates && cp -R src/infrastructure/email/templates/. dist/infrastructure/email/templates/",
     "start": "node dist/index.js",
     "test": "vitest",
     "test:coverage": "vitest run --coverage --passWithNoTests",
