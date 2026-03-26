@@ -17,6 +17,9 @@ export const USERNAME_MAX_LENGTH = 30;
 export const PASSWORD_MIN_LENGTH = 8;
 export const COMMENT_MAX_LENGTH = 1000;
 
+/** bcrypt cost factor — keep in sync across register and password change. */
+export const PASSWORD_BCRYPT_ROUNDS = 12;
+
 // WebSocket Events
 export const WS_EVENTS = {
   CONNECT: 'connect',

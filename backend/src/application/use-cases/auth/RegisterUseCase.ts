@@ -6,6 +6,8 @@
 import { inject, injectable } from 'tsyringe';
 import bcrypt from 'bcryptjs';
 
+import { PASSWORD_BCRYPT_ROUNDS } from '@cine-connect/shared';
+
 import { IUserRepository } from '../../../domain/repositories/IUserRepository.js';
 import type { User } from '../../../domain/entities/User.js';
 
@@ -29,8 +31,6 @@ export class RegisterError extends Error {
   }
 }
 
-const BCRYPT_ROUNDS = 12;
-
 @injectable()
 export class RegisterUseCase {
   constructor(
@@ -47,7 +47,7 @@ export class RegisterUseCase {
       throw new RegisterError('Username already taken', 'USERNAME_TAKEN');
     }
 
-    const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
+    const passwordHash = await bcrypt.hash(input.password, PASSWORD_BCRYPT_ROUNDS);
     const user = await this.userRepository.create({
       email: input.email,
       username: input.username,

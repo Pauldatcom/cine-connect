@@ -62,6 +62,7 @@ export class ChangeEmailUseCase {
 
     const updated = await this.userRepository.update(input.userId, {
       email: input.newEmail,
+      passwordChangedAt: new Date(),
     });
     if (!updated) {
       throw new ChangeEmailError('Failed to update email', 'INVALID_PASSWORD');
