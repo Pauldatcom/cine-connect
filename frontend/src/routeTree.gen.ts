@@ -37,6 +37,7 @@ const MembersRoute = MembersRouteImport.update({
   path: '/members',
   getParentRoute: () => rootRouteImport,
 } as any);
+
 const ListsRoute = ListsRouteImport.update({
   id: '/lists',
   path: '/lists',
@@ -205,6 +206,7 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MembersRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+
     '/lists': {
       id: '/lists';
       path: '/lists';

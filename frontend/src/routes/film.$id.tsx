@@ -46,7 +46,7 @@ export const Route = createFileRoute('/film/$id')({
   component: FilmDetailPage,
 });
 
-function FilmDetailPage() {
+export function FilmDetailPage() {
   const { id } = Route.useParams();
   const { isAuthenticated, user } = useAuth();
 

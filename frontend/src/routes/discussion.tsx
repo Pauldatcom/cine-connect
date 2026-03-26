@@ -44,7 +44,7 @@ interface SelectedPartnerInfo {
   partner: { id: string; username: string; avatarUrl: string | null };
 }
 
-function DiscussionPage() {
+export function DiscussionPage() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const navigate = useNavigate();
   const search = useSearch({ from: '/discussion' });
