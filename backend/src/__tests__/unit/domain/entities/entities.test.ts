@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { Film } from '@/domain/entities/Film';
-import { User } from '@/domain/entities/User';
+import { User, type UserProps } from '@/domain/entities/User';
 import { Review } from '@/domain/entities/Review';
 import { ReviewComment } from '@/domain/entities/ReviewComment';
 import { ReviewLike } from '@/domain/entities/ReviewLike';
@@ -16,6 +16,7 @@ describe('Film Entity', () => {
     title: 'Test Movie',
     year: '2024',
     poster: '/poster.jpg',
+    backdrop: '/backdrop.jpg',
     plot: 'A test movie plot',
     director: 'Test Director',
     actors: 'Actor 1, Actor 2',
@@ -34,6 +35,7 @@ describe('Film Entity', () => {
     expect(film.title).toBe(mockFilmProps.title);
     expect(film.year).toBe(mockFilmProps.year);
     expect(film.poster).toBe(mockFilmProps.poster);
+    expect(film.backdrop).toBe(mockFilmProps.backdrop);
     expect(film.plot).toBe(mockFilmProps.plot);
     expect(film.director).toBe(mockFilmProps.director);
     expect(film.actors).toBe(mockFilmProps.actors);
@@ -53,6 +55,7 @@ describe('Film Entity', () => {
       title: 'Test Movie',
       year: '2024',
       poster: '/poster.jpg',
+      backdrop: '/backdrop.jpg',
     });
   });
 
@@ -61,6 +64,7 @@ describe('Film Entity', () => {
       ...mockFilmProps,
       year: null,
       poster: null,
+      backdrop: null,
     });
     const summary = filmWithNulls.toSummary();
 
@@ -69,6 +73,7 @@ describe('Film Entity', () => {
       title: 'Test Movie',
       year: null,
       poster: null,
+      backdrop: null,
     });
   });
 });
@@ -79,10 +84,11 @@ describe('User Entity', () => {
     email: 'test@example.com',
     username: 'testuser',
     passwordHash: '$2a$10$hashedpassword',
+    passwordChangedAt: new Date('2024-01-01'),
     avatarUrl: '/avatar.jpg',
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-15'),
-  };
+  } satisfies UserProps;
 
   it('should create a User entity with all properties', () => {
     const user = new User(mockUserProps);
@@ -91,6 +97,7 @@ describe('User Entity', () => {
     expect(user.email).toBe(mockUserProps.email);
     expect(user.username).toBe(mockUserProps.username);
     expect(user.passwordHash).toBe(mockUserProps.passwordHash);
+    expect(user.passwordChangedAt).toEqual(mockUserProps.passwordChangedAt);
     expect(user.avatarUrl).toBe(mockUserProps.avatarUrl);
     expect(user.createdAt).toEqual(mockUserProps.createdAt);
     expect(user.updatedAt).toEqual(mockUserProps.updatedAt);
@@ -109,6 +116,7 @@ describe('User Entity', () => {
       updatedAt: mockUserProps.updatedAt,
     });
     expect(publicUser).not.toHaveProperty('passwordHash');
+    expect(publicUser).not.toHaveProperty('passwordChangedAt');
   });
 
   it('should return summary via toSummary()', () => {
