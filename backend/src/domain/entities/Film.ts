@@ -9,6 +9,7 @@ export interface FilmProps {
   title: string;
   year: string | null;
   poster: string | null;
+  backdrop: string | null;
   plot: string | null;
   director: string | null;
   actors: string | null;
@@ -24,6 +25,7 @@ export interface CreateFilmProps {
   title: string;
   year?: string | null;
   poster?: string | null;
+  backdrop?: string | null;
   plot?: string | null;
   director?: string | null;
   actors?: string | null;
@@ -38,6 +40,7 @@ export class Film {
   readonly title: string;
   readonly year: string | null;
   readonly poster: string | null;
+  readonly backdrop: string | null;
   readonly plot: string | null;
   readonly director: string | null;
   readonly actors: string | null;
@@ -53,6 +56,7 @@ export class Film {
     this.title = props.title;
     this.year = props.year;
     this.poster = props.poster;
+    this.backdrop = props.backdrop;
     this.plot = props.plot;
     this.director = props.director;
     this.actors = props.actors;
@@ -66,12 +70,19 @@ export class Film {
   /**
    * Returns summary for lists/cards
    */
-  toSummary(): { id: string; title: string; year: string | null; poster: string | null } {
+  toSummary(): {
+    id: string;
+    title: string;
+    year: string | null;
+    poster: string | null;
+    backdrop: string | null;
+  } {
     return {
       id: this.id,
       title: this.title,
       year: this.year,
       poster: this.poster,
+      backdrop: this.backdrop,
     };
   }
 }
