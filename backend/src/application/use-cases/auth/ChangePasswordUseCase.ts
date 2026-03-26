@@ -6,6 +6,8 @@
 import { inject, injectable } from 'tsyringe';
 import bcrypt from 'bcryptjs';
 
+import { PASSWORD_BCRYPT_ROUNDS } from '@cine-connect/shared';
+
 import { IUserRepository } from '../../../domain/repositories/IUserRepository.js';
 
 export interface ChangePasswordInput {
@@ -25,8 +27,6 @@ export class ChangePasswordError extends Error {
   }
 }
 
-const BCRYPT_ROUNDS = 12;
-
 @injectable()
 export class ChangePasswordUseCase {
   constructor(
@@ -45,8 +45,9 @@ export class ChangePasswordUseCase {
       throw new ChangePasswordError('Current password is incorrect');
     }
 
-    const passwordHash = await bcrypt.hash(input.newPassword, BCRYPT_ROUNDS);
-    await this.userRepository.update(input.userId, { passwordHash });
+    const passwordHash = await bcrypt.hash(input.newPassword, PASSWORD_BCRYPT_ROUNDS);
+    const now = new Date();
+    await this.userRepository.update(input.userId, { passwordHash, passwordChangedAt: now });
 
     return { success: true };
   }

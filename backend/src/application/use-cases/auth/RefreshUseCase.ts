@@ -11,6 +11,11 @@ import type { User } from '../../../domain/entities/User.js';
 
 export interface RefreshInput {
   userId: string;
+  /**
+   * Refresh JWT `iat` (issued-at), as a Date — must be after the user's last password/credential change
+   * or the session is treated as revoked (common enterprise practice after reset / password change).
+   */
+  refreshIssuedAt: Date;
 }
 
 export interface RefreshOutput {
@@ -35,6 +40,9 @@ export class RefreshUseCase {
     const user = await this.userRepository.findById(input.userId);
     if (!user) {
       throw new RefreshError();
+    }
+    if (user.passwordChangedAt.getTime() > input.refreshIssuedAt.getTime()) {
+      throw new RefreshError('Please sign in again');
     }
     return { user };
   }
