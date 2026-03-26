@@ -8,6 +8,7 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
+<<<<<<< HEAD
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -29,6 +30,23 @@ import { Route as PersonIdRouteImport } from './routes/person.$id'
 import { Route as FilmsCategorieRouteImport } from './routes/films.$categorie'
 import { Route as FilmIdRouteImport } from './routes/film.$id'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+=======
+import { Route as rootRouteImport } from './routes/__root';
+import { Route as SettingsRouteImport } from './routes/settings';
+import { Route as ResetPasswordRouteImport } from './routes/reset-password';
+import { Route as ProfilRouteImport } from './routes/profil';
+import { Route as MembersRouteImport } from './routes/members';
+import { Route as ListsRouteImport } from './routes/lists';
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password';
+import { Route as FilmsRouteImport } from './routes/films';
+import { Route as DiscussionRouteImport } from './routes/discussion';
+import { Route as IndexRouteImport } from './routes/index';
+import { Route as FilmsIndexRouteImport } from './routes/films.index';
+import { Route as UserIdRouteImport } from './routes/user.$id';
+import { Route as PersonIdRouteImport } from './routes/person.$id';
+import { Route as FilmsCategorieRouteImport } from './routes/films.$categorie';
+import { Route as FilmIdRouteImport } from './routes/film.$id';
+>>>>>>> bc8023e (feat(frontend): add forgot and reset password UI)
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -39,7 +57,16 @@ const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
   getParentRoute: () => rootRouteImport,
+<<<<<<< HEAD
 } as any)
+=======
+} as any);
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any);
+>>>>>>> bc8023e (feat(frontend): add forgot and reset password UI)
 const ProfilRoute = ProfilRouteImport.update({
   id: '/profil',
   path: '/profil',
@@ -59,12 +86,21 @@ const ListsRoute = ListsRouteImport.update({
   id: '/lists',
   path: '/lists',
   getParentRoute: () => rootRouteImport,
+<<<<<<< HEAD
 } as any)
 const HelpRoute = HelpRouteImport.update({
   id: '/help',
   path: '/help',
   getParentRoute: () => rootRouteImport,
 } as any)
+=======
+} as any);
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any);
+>>>>>>> bc8023e (feat(frontend): add forgot and reset password UI)
 const FilmsRoute = FilmsRouteImport.update({
   id: '/films',
   path: '/films',
@@ -132,6 +168,7 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
+<<<<<<< HEAD
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/api-docs': typeof ApiDocsRoute
@@ -196,6 +233,54 @@ export interface FileRoutesById {
   '/person/$id': typeof PersonIdRoute
   '/user/$id': typeof UserIdRoute
   '/films/': typeof FilmsIndexRoute
+=======
+  '/': typeof IndexRoute;
+  '/discussion': typeof DiscussionRoute;
+  '/films': typeof FilmsRouteWithChildren;
+  '/forgot-password': typeof ForgotPasswordRoute;
+  '/lists': typeof ListsRoute;
+  '/members': typeof MembersRoute;
+  '/profil': typeof ProfilRoute;
+  '/reset-password': typeof ResetPasswordRoute;
+  '/settings': typeof SettingsRoute;
+  '/film/$id': typeof FilmIdRoute;
+  '/films/$categorie': typeof FilmsCategorieRoute;
+  '/person/$id': typeof PersonIdRoute;
+  '/user/$id': typeof UserIdRoute;
+  '/films/': typeof FilmsIndexRoute;
+}
+export interface FileRoutesByTo {
+  '/': typeof IndexRoute;
+  '/discussion': typeof DiscussionRoute;
+  '/forgot-password': typeof ForgotPasswordRoute;
+  '/lists': typeof ListsRoute;
+  '/members': typeof MembersRoute;
+  '/profil': typeof ProfilRoute;
+  '/reset-password': typeof ResetPasswordRoute;
+  '/settings': typeof SettingsRoute;
+  '/film/$id': typeof FilmIdRoute;
+  '/films/$categorie': typeof FilmsCategorieRoute;
+  '/person/$id': typeof PersonIdRoute;
+  '/user/$id': typeof UserIdRoute;
+  '/films': typeof FilmsIndexRoute;
+}
+export interface FileRoutesById {
+  __root__: typeof rootRouteImport;
+  '/': typeof IndexRoute;
+  '/discussion': typeof DiscussionRoute;
+  '/films': typeof FilmsRouteWithChildren;
+  '/forgot-password': typeof ForgotPasswordRoute;
+  '/lists': typeof ListsRoute;
+  '/members': typeof MembersRoute;
+  '/profil': typeof ProfilRoute;
+  '/reset-password': typeof ResetPasswordRoute;
+  '/settings': typeof SettingsRoute;
+  '/film/$id': typeof FilmIdRoute;
+  '/films/$categorie': typeof FilmsCategorieRoute;
+  '/person/$id': typeof PersonIdRoute;
+  '/user/$id': typeof UserIdRoute;
+  '/films/': typeof FilmsIndexRoute;
+>>>>>>> bc8023e (feat(frontend): add forgot and reset password UI)
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -207,11 +292,16 @@ export interface FileRouteTypes {
     | '/cookies'
     | '/discussion'
     | '/films'
+<<<<<<< HEAD
     | '/help'
+=======
+    | '/forgot-password'
+>>>>>>> bc8023e (feat(frontend): add forgot and reset password UI)
     | '/lists'
     | '/members'
     | '/privacy'
     | '/profil'
+    | '/reset-password'
     | '/settings'
     | '/terms'
     | '/auth/callback'
@@ -228,11 +318,16 @@ export interface FileRouteTypes {
     | '/contact'
     | '/cookies'
     | '/discussion'
+<<<<<<< HEAD
     | '/help'
+=======
+    | '/forgot-password'
+>>>>>>> bc8023e (feat(frontend): add forgot and reset password UI)
     | '/lists'
     | '/members'
     | '/privacy'
     | '/profil'
+    | '/reset-password'
     | '/settings'
     | '/terms'
     | '/auth/callback'
@@ -250,11 +345,16 @@ export interface FileRouteTypes {
     | '/cookies'
     | '/discussion'
     | '/films'
+<<<<<<< HEAD
     | '/help'
+=======
+    | '/forgot-password'
+>>>>>>> bc8023e (feat(frontend): add forgot and reset password UI)
     | '/lists'
     | '/members'
     | '/privacy'
     | '/profil'
+    | '/reset-password'
     | '/settings'
     | '/terms'
     | '/auth/callback'
@@ -266,6 +366,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+<<<<<<< HEAD
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   ApiDocsRoute: typeof ApiDocsRoute
@@ -284,6 +385,20 @@ export interface RootRouteChildren {
   FilmIdRoute: typeof FilmIdRoute
   PersonIdRoute: typeof PersonIdRoute
   UserIdRoute: typeof UserIdRoute
+=======
+  IndexRoute: typeof IndexRoute;
+  DiscussionRoute: typeof DiscussionRoute;
+  FilmsRoute: typeof FilmsRouteWithChildren;
+  ForgotPasswordRoute: typeof ForgotPasswordRoute;
+  ListsRoute: typeof ListsRoute;
+  MembersRoute: typeof MembersRoute;
+  ProfilRoute: typeof ProfilRoute;
+  ResetPasswordRoute: typeof ResetPasswordRoute;
+  SettingsRoute: typeof SettingsRoute;
+  FilmIdRoute: typeof FilmIdRoute;
+  PersonIdRoute: typeof PersonIdRoute;
+  UserIdRoute: typeof UserIdRoute;
+>>>>>>> bc8023e (feat(frontend): add forgot and reset password UI)
 }
 
 declare module '@tanstack/react-router' {
@@ -296,12 +411,28 @@ declare module '@tanstack/react-router' {
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
+<<<<<<< HEAD
       id: '/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+=======
+      id: '/settings';
+      path: '/settings';
+      fullPath: '/settings';
+      preLoaderRoute: typeof SettingsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/reset-password': {
+      id: '/reset-password';
+      path: '/reset-password';
+      fullPath: '/reset-password';
+      preLoaderRoute: typeof ResetPasswordRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+>>>>>>> bc8023e (feat(frontend): add forgot and reset password UI)
     '/profil': {
       id: '/profil'
       path: '/profil'
@@ -324,6 +455,7 @@ declare module '@tanstack/react-router' {
       parentRoute: typeof rootRouteImport
     }
     '/lists': {
+<<<<<<< HEAD
       id: '/lists'
       path: '/lists'
       fullPath: '/lists'
@@ -337,6 +469,21 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HelpRouteImport
       parentRoute: typeof rootRouteImport
     }
+=======
+      id: '/lists';
+      path: '/lists';
+      fullPath: '/lists';
+      preLoaderRoute: typeof ListsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/forgot-password': {
+      id: '/forgot-password';
+      path: '/forgot-password';
+      fullPath: '/forgot-password';
+      preLoaderRoute: typeof ForgotPasswordRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+>>>>>>> bc8023e (feat(frontend): add forgot and reset password UI)
     '/films': {
       id: '/films'
       path: '/films'
@@ -451,11 +598,16 @@ const rootRouteChildren: RootRouteChildren = {
   CookiesRoute: CookiesRoute,
   DiscussionRoute: DiscussionRoute,
   FilmsRoute: FilmsRouteWithChildren,
+<<<<<<< HEAD
   HelpRoute: HelpRoute,
+=======
+  ForgotPasswordRoute: ForgotPasswordRoute,
+>>>>>>> bc8023e (feat(frontend): add forgot and reset password UI)
   ListsRoute: ListsRoute,
   MembersRoute: MembersRoute,
   PrivacyRoute: PrivacyRoute,
   ProfilRoute: ProfilRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SettingsRoute: SettingsRoute,
   TermsRoute: TermsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
