@@ -28,6 +28,7 @@ const mockFilm = new Film({
   title: 'Fight Club',
   year: '1999',
   poster: '/poster.jpg',
+  backdrop: '/backdrop.jpg',
   plot: null,
   director: null,
   actors: null,
@@ -56,6 +57,7 @@ const mockWatchlistWithFilm = {
     title: 'Fight Club',
     year: '1999',
     poster: '/poster.jpg',
+    backdrop: '/backdrop.jpg',
   },
 };
 
