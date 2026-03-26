@@ -16,7 +16,9 @@ export const users = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     email: varchar('email', { length: 255 }).notNull().unique(),
     username: varchar('username', { length: 50 }).notNull().unique(),
-    passwordHash: varchar('password_hash', { length: 255 }),
+    passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+    /** When the password was last set; refresh tokens issued before this are rejected (session invalidation). */
+    passwordChangedAt: timestamp('password_changed_at').defaultNow().notNull(),
     avatarUrl: text('avatar_url'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -27,6 +29,21 @@ export const users = pgTable(
     index('users_email_idx').on(table.email),
     index('users_username_idx').on(table.username),
   ]
+);
+
+/** Opaque reset tokens are stored hashed (SHA-256 hex); raw token is only sent by email. */
+export const passwordResetTokens = pgTable(
+  'password_reset_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tokenHash: varchar('token_hash', { length: 64 }).notNull().unique(),
+    expiresAt: timestamp('expires_at').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [index('password_reset_tokens_user_id_idx').on(table.userId)]
 );
 
 export const categories = pgTable('categories', {
@@ -43,6 +60,8 @@ export const films = pgTable(
     title: varchar('title', { length: 500 }).notNull(),
     year: varchar('year', { length: 10 }),
     poster: text('poster'),
+    /** TMDb backdrop (hero/banner); full image.tmdb.org URL when present. */
+    backdrop: text('backdrop'),
     plot: text('plot'),
     director: varchar('director', { length: 500 }),
     actors: text('actors'),
@@ -191,6 +210,14 @@ export const usersRelations = relations(users, ({ many }) => ({
   sentFriendRequests: many(friends, { relationName: 'sender' }),
   receivedFriendRequests: many(friends, { relationName: 'receiver' }),
   watchlist: many(watchlists),
+  passwordResetTokens: many(passwordResetTokens),
+}));
+
+export const passwordResetTokensRelations = relations(passwordResetTokens, ({ one }) => ({
+  user: one(users, {
+    fields: [passwordResetTokens.userId],
+    references: [users.id],
+  }),
 }));
 
 export const filmsRelations = relations(films, ({ many }) => ({
