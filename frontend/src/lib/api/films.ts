@@ -46,7 +46,7 @@ export interface RegisterFilmResponse {
  * Returns the internal film UUID for use with reviews
  */
 export async function registerFilm(input: RegisterFilmInput): Promise<BackendFilm> {
-  return api.post<BackendFilm>('/api/v1/films/tmdb', input);
+  return api.post<BackendFilm>('/films/tmdb', input);
 }
 
 /**
@@ -54,7 +54,7 @@ export async function registerFilm(input: RegisterFilmInput): Promise<BackendFil
  */
 export async function getFilmByTmdbId(tmdbId: number): Promise<BackendFilm | null> {
   try {
-    return await api.get<BackendFilm>(`/api/v1/films/tmdb/${tmdbId}`);
+    return await api.get<BackendFilm>(`/films/tmdb/${tmdbId}`);
   } catch {
     return null;
   }
@@ -64,14 +64,14 @@ export async function getFilmByTmdbId(tmdbId: number): Promise<BackendFilm | nul
  * Get a film by internal UUID
  */
 export async function getFilmById(id: string): Promise<BackendFilm> {
-  return api.get<BackendFilm>(`/api/v1/films/${id}`);
+  return api.get<BackendFilm>(`/films/${id}`);
 }
 
 /**
  * Get personalized film recommendations (requires auth)
  */
 export async function getRecommendations(limit = 20): Promise<BackendFilm[]> {
-  return api.get<BackendFilm[]>(`/api/v1/recommendations?limit=${limit}`);
+  return api.get<BackendFilm[]>(`/recommendations?limit=${limit}`);
 }
 
 export const filmsApi = {

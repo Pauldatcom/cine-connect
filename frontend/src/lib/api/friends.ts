@@ -29,40 +29,40 @@ export interface PublicUser {
   createdAt: string;
 }
 
-/** GET /api/v1/friends - list accepted friends */
+/** GET /friends - list accepted friends */
 export async function getFriends(): Promise<FriendWithUser[]> {
-  return api.get<FriendWithUser[]>('/api/v1/friends');
+  return api.get<FriendWithUser[]>('/friends');
 }
 
-/** GET /api/v1/friends/requests - list pending requests (received) */
+/** GET /friends/requests - list pending requests (received) */
 export async function getPendingRequests(): Promise<PendingRequest[]> {
-  return api.get<PendingRequest[]>('/api/v1/friends/requests');
+  return api.get<PendingRequest[]>('/friends/requests');
 }
 
-/** POST /api/v1/friends/request - send friend request by userId or username */
+/** POST /friends/request - send friend request by userId or username */
 export async function sendFriendRequest(body: {
   userId?: string;
   username?: string;
 }): Promise<void> {
-  await api.post('/api/v1/friends/request', body);
+  await api.post('/friends/request', body);
 }
 
-/** PATCH /api/v1/friends/requests/:id - accept or decline a request */
+/** PATCH /friends/requests/:id - accept or decline a request */
 export async function respondToFriendRequest(
   requestId: string,
   accept: boolean
 ): Promise<{ id: string; status: string }> {
-  return api.patch<{ id: string; status: string }>(`/api/v1/friends/requests/${requestId}`, {
+  return api.patch<{ id: string; status: string }>(`/friends/requests/${requestId}`, {
     accept,
   });
 }
 
-/** DELETE /api/v1/friends/:id - remove a friend (friendship id) */
+/** DELETE /friends/:id - remove a friend (friendship id) */
 export async function removeFriend(friendshipId: string): Promise<void> {
-  await api.delete(`/api/v1/friends/${friendshipId}`);
+  await api.delete(`/friends/${friendshipId}`);
 }
 
-/** GET /api/v1/users/:id - get public user profile (for viewing a member) */
+/** GET /users/:id - get public user profile (for viewing a member) */
 export async function getUserById(id: string): Promise<PublicUser> {
-  return api.get<PublicUser>(`/api/v1/users/${id}`);
+  return api.get<PublicUser>(`/users/${id}`);
 }
