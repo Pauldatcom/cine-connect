@@ -306,7 +306,12 @@ export function Navbar() {
                 >
                   <div className="bg-bg-tertiary border-border flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border">
                     {user?.avatarUrl ? (
-                      <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
+                      <img
+                        src={user.avatarUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
                     ) : (
                       <User className="text-text-secondary h-4 w-4" />
                     )}

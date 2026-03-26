@@ -19,23 +19,62 @@ import {
   Mail,
   Settings,
   Star,
-  User,
   UserMinus,
   UserPlus,
   Users,
 } from 'lucide-react';
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { z } from 'zod';
+import { useEffect, useState, type FormEvent } from 'react';
 
-// Search params schema
-const searchSchema = z.object({
-  mode: z.enum(['login', 'register']).optional().catch('login'),
-});
+type SearchMode = 'login' | 'register';
 
+/**
+ * User profile / Authentication page
+ */
 export const Route = createFileRoute('/profil')({
   component: ProfilPage,
-  validateSearch: searchSchema,
+  validateSearch: (search: Record<string, unknown>): { mode?: SearchMode } => ({
+    mode: search.mode === 'register' ? 'register' : search.mode === 'login' ? 'login' : undefined,
+  }),
 });
+
+function Avatar({
+  avatarUrl,
+  username,
+  size = 'lg',
+}: {
+  avatarUrl?: string | null;
+  username: string;
+  size?: 'sm' | 'md' | 'lg';
+}) {
+  const [hasError, setHasError] = useState(false);
+
+  const sizeClasses = {
+    sm: 'h-10 w-10 text-sm',
+    md: 'h-12 w-12 text-base',
+    lg: 'h-24 w-24 text-2xl',
+  };
+
+  if (!avatarUrl || hasError) {
+    return (
+      <div
+        className={`bg-letterboxd-green/20 text-letterboxd-green flex items-center justify-center rounded-full font-bold ${sizeClasses[size]}`}
+        aria-label={username}
+      >
+        {username.charAt(0).toUpperCase()}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={avatarUrl}
+      alt={username}
+      className={`${sizeClasses[size]} rounded-full object-cover`}
+      onError={() => setHasError(true)}
+      referrerPolicy="no-referrer"
+    />
+  );
+}
 
 /** Profile page component – exported for tests */
 export function ProfilPage() {
@@ -53,7 +92,6 @@ export function ProfilPage() {
     return <AuthForm />;
   }
 
-  // Defensive: auth says we're in but user not loaded yet (e.g. race)
   if (!user) {
     return (
       <div className="mx-auto max-w-md px-4 py-16">
@@ -71,10 +109,11 @@ export function ProfilPage() {
   return <ProfileView />;
 }
 
-// --- AuthForm Component ---
 function AuthForm() {
-  const { mode: initialMode } = useSearch({ from: '/profil' });
-  const [mode, setMode] = useState<'login' | 'register'>(initialMode || 'login');
+  const search = useSearch({ from: '/profil' });
+  const initialMode: SearchMode = search.mode ?? 'login';
+
+  const [mode, setMode] = useState<SearchMode>(initialMode);
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -84,12 +123,10 @@ function AuthForm() {
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const { login, register, isLoading, error, clearError } = useAuth();
-  const apiUrl = import.meta.env.VITE_API_URL;
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
 
   useEffect(() => {
-    if (initialMode) {
-      setMode(initialMode);
-    }
+    setMode(initialMode);
   }, [initialMode]);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -97,7 +134,6 @@ function AuthForm() {
     setValidationError(null);
     clearError();
 
-    // Validation Frontend
     if (mode === 'register') {
       if (formData.password !== formData.confirmPassword) {
         setValidationError('Passwords do not match');
@@ -114,21 +150,17 @@ function AuthForm() {
     }
 
     try {
-      // CORRECTION : On nettoie les données avant l'envoi
-      const cleanEmail = formData.email.trim().toLowerCase();
-      const cleanUsername = formData.username.trim();
-
       if (mode === 'login') {
-        await login({ email: cleanEmail, password: formData.password });
+        await login({ email: formData.email, password: formData.password });
       } else {
         await register({
-          email: cleanEmail,
-          username: cleanUsername,
+          email: formData.email,
+          username: formData.username,
           password: formData.password,
         });
       }
     } catch {
-      // Error is handled by auth context
+      // handled by auth context
     }
   };
 
@@ -139,7 +171,7 @@ function AuthForm() {
     };
 
   const toggleMode = () => {
-    setMode(mode === 'login' ? 'register' : 'login');
+    setMode((prev) => (prev === 'login' ? 'register' : 'login'));
     setValidationError(null);
     clearError();
   };
@@ -262,11 +294,27 @@ function AuthForm() {
           </button>
         </form>
 
+        <div className="mt-4">
+          <div className="text-text-tertiary mb-4 text-center text-sm">or</div>
+
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = `${apiUrl}/auth/google`;
+            }}
+            className="btn-secondary w-full"
+            disabled={isLoading}
+          >
+            Continue with Google
+          </button>
+        </div>
+
         <div className="mt-6 text-center">
           <p className="text-text-secondary text-sm">
             {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}
           </p>
           <button
+            type="button"
             onClick={toggleMode}
             className="text-letterboxd-green hover:text-letterboxd-green-dark mt-2 text-sm font-medium transition-colors"
             disabled={isLoading}
@@ -279,44 +327,9 @@ function AuthForm() {
   );
 }
 
-/**
- * Typed TanStack Router links for profile (avoids `as any` on `to` / `params` under strict ESLint).
- */
-function LinkToSettings({ className, children }: { className?: string; children: ReactNode }) {
-  return (
-    <Link to="/settings" className={className}>
-      {children}
-    </Link>
-  );
-}
-
-function LinkToMembers({ className, children }: { className?: string; children: ReactNode }) {
-  return (
-    <Link to="/members" className={className}>
-      {children}
-    </Link>
-  );
-}
-
-function LinkToUserPublicProfile({
-  userId,
-  className,
-  children,
-}: {
-  userId: string;
-  className?: string;
-  children: ReactNode;
-}) {
-  return (
-    <Link to="/user/$id" params={{ id: userId }} className={className}>
-      {children}
-    </Link>
-  );
-}
-
-// --- ProfileView Component ---
 function ProfileView() {
   const { user, logout } = useAuth();
+
   const { data: userReviews, isLoading: reviewsLoading } = useUserReviews(user?.id);
   const { data: watchlistData, isLoading: watchlistLoading } = useWatchlist();
   const { data: friendsList, isLoading: friendsLoading, isError: friendsError } = useFriends();
@@ -345,23 +358,14 @@ function ProfileView() {
   const reviewsCount = userReviews?.length ?? 0;
   const watchlistCount = watchlistData?.count ?? 0;
   const friendsCount = friendsList?.length ?? 0;
-  const isLoading = reviewsLoading || watchlistLoading;
+  const isStatsLoading = reviewsLoading || watchlistLoading;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       <div className="card">
         <div className="flex flex-col items-center gap-6 sm:flex-row">
-          <div className="bg-letterboxd-green/20 flex h-24 w-24 items-center justify-center rounded-full">
-            {user.avatarUrl ? (
-              <img
-                src={user.avatarUrl}
-                alt={user.username}
-                className="h-24 w-24 rounded-full object-cover"
-              />
-            ) : (
-              <User className="text-letterboxd-green h-12 w-12" />
-            )}
-          </div>
+          <Avatar avatarUrl={user.avatarUrl} username={user.username} size="lg" />
+
           <div className="text-center sm:text-left">
             <h1 className="font-display text-text-primary text-2xl font-bold">{user.username}</h1>
             <p className="text-text-secondary flex items-center justify-center gap-2 sm:justify-start">
@@ -370,11 +374,12 @@ function ProfileView() {
             </p>
             <p className="text-text-tertiary mt-1 text-sm">Member since {memberSince}</p>
           </div>
+
           <div className="sm:ml-auto">
-            <LinkToSettings className="btn-secondary inline-flex items-center gap-2">
+            <Link to={'/settings' as any} className="btn-secondary inline-flex items-center gap-2">
               <Settings className="h-4 w-4" />
               Settings
-            </LinkToSettings>
+            </Link>
           </div>
         </div>
       </div>
@@ -383,7 +388,7 @@ function ProfileView() {
         <StatCard
           icon={<Film className="h-5 w-5" />}
           label="Watchlist"
-          value={isLoading ? '...' : String(watchlistCount)}
+          value={isStatsLoading ? '...' : String(watchlistCount)}
           color="green"
         />
         <StatCard
@@ -396,19 +401,22 @@ function ProfileView() {
         <StatCard
           icon={<Star className="h-5 w-5" />}
           label="Reviews"
-          value={isLoading ? '...' : String(reviewsCount)}
+          value={isStatsLoading ? '...' : String(reviewsCount)}
           color="green"
         />
       </div>
 
-      {/* Friends */}
       <div className="card mt-6" data-testid="profile-friends">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="section-header mb-0">Friends</h2>
-          <LinkToMembers className="text-letterboxd-green hover:text-letterboxd-green-dark text-sm font-medium">
+          <Link
+            to={'/members' as any}
+            className="text-letterboxd-green hover:text-letterboxd-green-dark text-sm font-medium"
+          >
             Find members
-          </LinkToMembers>
+          </Link>
         </div>
+
         {friendsError || pendingError ? (
           <p className="text-text-tertiary py-4 text-center text-sm">
             Could not load friends. Check your connection and try again.
@@ -428,25 +436,21 @@ function ProfileView() {
                       key={req.id}
                       className="bg-bg-tertiary flex items-center justify-between gap-3 rounded-lg p-3"
                     >
-                      <LinkToUserPublicProfile
-                        userId={req.user.id}
+                      <Link
+                        to={'/user/$id' as any}
+                        params={{ id: req.user.id } as any}
                         className="flex min-w-0 flex-1 items-center gap-3"
                       >
-                        <div className="bg-letterboxd-green/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
-                          {req.user.avatarUrl ? (
-                            <img
-                              src={req.user.avatarUrl}
-                              alt=""
-                              className="h-10 w-10 rounded-full object-cover"
-                            />
-                          ) : (
-                            <User className="text-letterboxd-green h-5 w-5" />
-                          )}
-                        </div>
+                        <Avatar
+                          avatarUrl={req.user.avatarUrl}
+                          username={req.user.username}
+                          size="sm"
+                        />
                         <span className="text-text-primary truncate font-medium">
                           {req.user.username}
                         </span>
-                      </LinkToUserPublicProfile>
+                      </Link>
+
                       <div className="flex shrink-0 gap-2">
                         <button
                           type="button"
@@ -477,10 +481,12 @@ function ProfileView() {
                 </ul>
               </div>
             )}
+
             <div>
               <h3 className="text-text-secondary mb-2 text-sm font-medium">
                 Your friends ({friendsList?.length ?? 0})
               </h3>
+
               {friendsList && friendsList.length > 0 ? (
                 <ul className="space-y-2">
                   {friendsList.map((f: FriendWithUser) => (
@@ -488,25 +494,17 @@ function ProfileView() {
                       key={f.id}
                       className="bg-bg-tertiary flex items-center justify-between gap-3 rounded-lg p-3"
                     >
-                      <LinkToUserPublicProfile
-                        userId={f.user.id}
+                      <Link
+                        to={'/user/$id' as any}
+                        params={{ id: f.user.id } as any}
                         className="flex min-w-0 flex-1 items-center gap-3"
                       >
-                        <div className="bg-letterboxd-green/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
-                          {f.user.avatarUrl ? (
-                            <img
-                              src={f.user.avatarUrl}
-                              alt=""
-                              className="h-10 w-10 rounded-full object-cover"
-                            />
-                          ) : (
-                            <User className="text-letterboxd-green h-5 w-5" />
-                          )}
-                        </div>
+                        <Avatar avatarUrl={f.user.avatarUrl} username={f.user.username} size="sm" />
                         <span className="text-text-primary truncate font-medium">
                           {f.user.username}
                         </span>
-                      </LinkToUserPublicProfile>
+                      </Link>
+
                       <button
                         type="button"
                         onClick={() => removeFriendMutation.mutate(f.id)}
@@ -523,9 +521,9 @@ function ProfileView() {
               ) : (
                 <p className="text-text-tertiary py-4 text-center text-sm">
                   No friends yet.{' '}
-                  <LinkToMembers className="text-letterboxd-green hover:underline">
+                  <Link to={'/members' as any} className="text-letterboxd-green hover:underline">
                     Find members
-                  </LinkToMembers>{' '}
+                  </Link>{' '}
                   to add.
                 </p>
               )}
@@ -534,7 +532,6 @@ function ProfileView() {
         )}
       </div>
 
-      {/* Recent Reviews */}
       <div className="card mt-6">
         <h2 className="section-header mb-4">Recent Reviews</h2>
         {reviewsLoading ? (
@@ -561,7 +558,9 @@ function ProfileView() {
                   </p>
                 </div>
               );
+
               const filmTmdbId = review.film?.tmdbId;
+
               return (filmTmdbId ?? null) !== null ? (
                 <Link
                   key={review.id}
@@ -628,7 +627,10 @@ function ProfileView() {
 
       <div className="mt-6 flex justify-end">
         <button
-          onClick={logout}
+          type="button"
+          onClick={() => {
+            void logout();
+          }}
           className="btn-ghost text-red-400 hover:bg-red-500/10 hover:text-red-400"
           data-testid="sign-out-button"
         >
@@ -640,7 +642,6 @@ function ProfileView() {
   );
 }
 
-// --- StatCard Component ---
 function StatCard({
   icon,
   label,
