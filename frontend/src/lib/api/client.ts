@@ -53,6 +53,14 @@ export class ApiError extends Error {
   }
 }
 
+/** `error` field from JSON error responses, for form messages; otherwise `fallback`. */
+export function apiErrorMessageFromResponse(err: unknown, fallback: string): string {
+  if (err instanceof ApiError && err.data && typeof err.data === 'object' && 'error' in err.data) {
+    return String((err.data as { error?: string }).error ?? err.message);
+  }
+  return fallback;
+}
+
 // Request options type
 interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;

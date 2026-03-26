@@ -40,7 +40,9 @@ playwright-report/
 
 # Sensitive (do not commit)
 cookies.txt
-.sync-films-cursor.json
+
+# TMDb sync resume cursors + IDE variants (e.g. .sync-films-cursor-<id>.json); never commit
+**/.sync-films-cursor*.json
 
 # Misc
 *.tsbuildinfo

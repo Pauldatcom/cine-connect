@@ -44,6 +44,7 @@ const mockFilmData = {
   title: 'Test Movie',
   year: '2024',
   poster: null,
+  backdrop: null,
   plot: null,
   director: null,
   actors: null,

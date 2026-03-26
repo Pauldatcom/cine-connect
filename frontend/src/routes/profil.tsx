@@ -222,6 +222,16 @@ function AuthForm() {
               disabled={isLoading}
               required
             />
+            {mode === 'login' && (
+              <div className="mt-2 text-right">
+                <Link
+                  to="/forgot-password"
+                  className="text-letterboxd-green text-sm font-medium hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+            )}
           </div>
           {mode === 'register' && (
             <div>

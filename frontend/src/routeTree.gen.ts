@@ -10,9 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root';
 import { Route as SettingsRouteImport } from './routes/settings';
+import { Route as ResetPasswordRouteImport } from './routes/reset-password';
 import { Route as ProfilRouteImport } from './routes/profil';
 import { Route as MembersRouteImport } from './routes/members';
 import { Route as ListsRouteImport } from './routes/lists';
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password';
 import { Route as FilmsRouteImport } from './routes/films';
 import { Route as DiscussionRouteImport } from './routes/discussion';
 import { Route as IndexRouteImport } from './routes/index';
@@ -25,6 +27,11 @@ import { Route as FilmIdRouteImport } from './routes/film.$id';
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any);
 const ProfilRoute = ProfilRouteImport.update({
@@ -40,6 +47,11 @@ const MembersRoute = MembersRouteImport.update({
 const ListsRoute = ListsRouteImport.update({
   id: '/lists',
   path: '/lists',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any);
 const FilmsRoute = FilmsRouteImport.update({
@@ -87,9 +99,11 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
   '/discussion': typeof DiscussionRoute;
   '/films': typeof FilmsRouteWithChildren;
+  '/forgot-password': typeof ForgotPasswordRoute;
   '/lists': typeof ListsRoute;
   '/members': typeof MembersRoute;
   '/profil': typeof ProfilRoute;
+  '/reset-password': typeof ResetPasswordRoute;
   '/settings': typeof SettingsRoute;
   '/film/$id': typeof FilmIdRoute;
   '/films/$categorie': typeof FilmsCategorieRoute;
@@ -100,9 +114,11 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
   '/discussion': typeof DiscussionRoute;
+  '/forgot-password': typeof ForgotPasswordRoute;
   '/lists': typeof ListsRoute;
   '/members': typeof MembersRoute;
   '/profil': typeof ProfilRoute;
+  '/reset-password': typeof ResetPasswordRoute;
   '/settings': typeof SettingsRoute;
   '/film/$id': typeof FilmIdRoute;
   '/films/$categorie': typeof FilmsCategorieRoute;
@@ -115,9 +131,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute;
   '/discussion': typeof DiscussionRoute;
   '/films': typeof FilmsRouteWithChildren;
+  '/forgot-password': typeof ForgotPasswordRoute;
   '/lists': typeof ListsRoute;
   '/members': typeof MembersRoute;
   '/profil': typeof ProfilRoute;
+  '/reset-password': typeof ResetPasswordRoute;
   '/settings': typeof SettingsRoute;
   '/film/$id': typeof FilmIdRoute;
   '/films/$categorie': typeof FilmsCategorieRoute;
@@ -131,9 +149,11 @@ export interface FileRouteTypes {
     | '/'
     | '/discussion'
     | '/films'
+    | '/forgot-password'
     | '/lists'
     | '/members'
     | '/profil'
+    | '/reset-password'
     | '/settings'
     | '/film/$id'
     | '/films/$categorie'
@@ -144,9 +164,11 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/discussion'
+    | '/forgot-password'
     | '/lists'
     | '/members'
     | '/profil'
+    | '/reset-password'
     | '/settings'
     | '/film/$id'
     | '/films/$categorie'
@@ -158,9 +180,11 @@ export interface FileRouteTypes {
     | '/'
     | '/discussion'
     | '/films'
+    | '/forgot-password'
     | '/lists'
     | '/members'
     | '/profil'
+    | '/reset-password'
     | '/settings'
     | '/film/$id'
     | '/films/$categorie'
@@ -173,9 +197,11 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
   DiscussionRoute: typeof DiscussionRoute;
   FilmsRoute: typeof FilmsRouteWithChildren;
+  ForgotPasswordRoute: typeof ForgotPasswordRoute;
   ListsRoute: typeof ListsRoute;
   MembersRoute: typeof MembersRoute;
   ProfilRoute: typeof ProfilRoute;
+  ResetPasswordRoute: typeof ResetPasswordRoute;
   SettingsRoute: typeof SettingsRoute;
   FilmIdRoute: typeof FilmIdRoute;
   PersonIdRoute: typeof PersonIdRoute;
@@ -189,6 +215,13 @@ declare module '@tanstack/react-router' {
       path: '/settings';
       fullPath: '/settings';
       preLoaderRoute: typeof SettingsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/reset-password': {
+      id: '/reset-password';
+      path: '/reset-password';
+      fullPath: '/reset-password';
+      preLoaderRoute: typeof ResetPasswordRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     '/profil': {
@@ -210,6 +243,13 @@ declare module '@tanstack/react-router' {
       path: '/lists';
       fullPath: '/lists';
       preLoaderRoute: typeof ListsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/forgot-password': {
+      id: '/forgot-password';
+      path: '/forgot-password';
+      fullPath: '/forgot-password';
+      preLoaderRoute: typeof ForgotPasswordRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     '/films': {
@@ -287,9 +327,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DiscussionRoute: DiscussionRoute,
   FilmsRoute: FilmsRouteWithChildren,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   ListsRoute: ListsRoute,
   MembersRoute: MembersRoute,
   ProfilRoute: ProfilRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SettingsRoute: SettingsRoute,
   FilmIdRoute: FilmIdRoute,
   PersonIdRoute: PersonIdRoute,
