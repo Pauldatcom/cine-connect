@@ -78,6 +78,30 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
 /**
  * Logout - clear tokens and call backend to clear cookie
  */
+/**
+ * Request password reset (always succeeds with generic message from API when email format is valid).
+ */
+export async function requestPasswordReset(email: string): Promise<{ message: string }> {
+  return api.post<{ message: string }>(
+    '/api/v1/auth/forgot-password',
+    { email },
+    { skipAuth: true }
+  );
+}
+
+/**
+ * Complete password reset. Token is optional when the user arrived via the email link (httpOnly cookie set by API).
+ */
+export async function resetPassword(input: {
+  newPassword: string;
+  token?: string;
+}): Promise<{ message: string }> {
+  const body: { newPassword: string; token?: string } = { newPassword: input.newPassword };
+  const t = input.token?.trim();
+  if (t) body.token = t;
+  return api.post<{ message: string }>('/api/v1/auth/reset-password', body, { skipAuth: true });
+}
+
 export async function logout(): Promise<void> {
   try {
     // Call backend to clear the httpOnly cookie
@@ -155,6 +179,8 @@ export async function refreshToken(): Promise<AuthResponse> {
 export const authApi = {
   register,
   login,
+  requestPasswordReset,
+  resetPassword,
   logout,
   getCurrentUser,
   updateProfile,
