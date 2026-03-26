@@ -21,6 +21,7 @@ import { Route as UserIdRouteImport } from './routes/user.$id';
 import { Route as PersonIdRouteImport } from './routes/person.$id';
 import { Route as FilmsCategorieRouteImport } from './routes/films.$categorie';
 import { Route as FilmIdRouteImport } from './routes/film.$id';
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback';
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
@@ -37,7 +38,6 @@ const MembersRoute = MembersRouteImport.update({
   path: '/members',
   getParentRoute: () => rootRouteImport,
 } as any);
-
 const ListsRoute = ListsRouteImport.update({
   id: '/lists',
   path: '/lists',
@@ -83,6 +83,11 @@ const FilmIdRoute = FilmIdRouteImport.update({
   path: '/film/$id',
   getParentRoute: () => rootRouteImport,
 } as any);
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any);
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
@@ -92,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/members': typeof MembersRoute;
   '/profil': typeof ProfilRoute;
   '/settings': typeof SettingsRoute;
+  '/auth/callback': typeof AuthCallbackRoute;
   '/film/$id': typeof FilmIdRoute;
   '/films/$categorie': typeof FilmsCategorieRoute;
   '/person/$id': typeof PersonIdRoute;
@@ -105,6 +111,7 @@ export interface FileRoutesByTo {
   '/members': typeof MembersRoute;
   '/profil': typeof ProfilRoute;
   '/settings': typeof SettingsRoute;
+  '/auth/callback': typeof AuthCallbackRoute;
   '/film/$id': typeof FilmIdRoute;
   '/films/$categorie': typeof FilmsCategorieRoute;
   '/person/$id': typeof PersonIdRoute;
@@ -120,6 +127,7 @@ export interface FileRoutesById {
   '/members': typeof MembersRoute;
   '/profil': typeof ProfilRoute;
   '/settings': typeof SettingsRoute;
+  '/auth/callback': typeof AuthCallbackRoute;
   '/film/$id': typeof FilmIdRoute;
   '/films/$categorie': typeof FilmsCategorieRoute;
   '/person/$id': typeof PersonIdRoute;
@@ -136,6 +144,7 @@ export interface FileRouteTypes {
     | '/members'
     | '/profil'
     | '/settings'
+    | '/auth/callback'
     | '/film/$id'
     | '/films/$categorie'
     | '/person/$id'
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
     | '/members'
     | '/profil'
     | '/settings'
+    | '/auth/callback'
     | '/film/$id'
     | '/films/$categorie'
     | '/person/$id'
@@ -163,6 +173,7 @@ export interface FileRouteTypes {
     | '/members'
     | '/profil'
     | '/settings'
+    | '/auth/callback'
     | '/film/$id'
     | '/films/$categorie'
     | '/person/$id'
@@ -178,6 +189,7 @@ export interface RootRouteChildren {
   MembersRoute: typeof MembersRoute;
   ProfilRoute: typeof ProfilRoute;
   SettingsRoute: typeof SettingsRoute;
+  AuthCallbackRoute: typeof AuthCallbackRoute;
   FilmIdRoute: typeof FilmIdRoute;
   PersonIdRoute: typeof PersonIdRoute;
   UserIdRoute: typeof UserIdRoute;
@@ -206,7 +218,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MembersRouteImport;
       parentRoute: typeof rootRouteImport;
     };
-
     '/lists': {
       id: '/lists';
       path: '/lists';
@@ -270,6 +281,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FilmIdRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    '/auth/callback': {
+      id: '/auth/callback';
+      path: '/auth/callback';
+      fullPath: '/auth/callback';
+      preLoaderRoute: typeof AuthCallbackRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
   }
 }
 
@@ -293,6 +311,7 @@ const rootRouteChildren: RootRouteChildren = {
   MembersRoute: MembersRoute,
   ProfilRoute: ProfilRoute,
   SettingsRoute: SettingsRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
   FilmIdRoute: FilmIdRoute,
   PersonIdRoute: PersonIdRoute,
   UserIdRoute: UserIdRoute,

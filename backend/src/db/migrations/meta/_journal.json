@@ -15,6 +15,13 @@
       "when": 1768810994988,
       "tag": "0001_fuzzy_onslaught",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774523528993,
+      "tag": "0002_nosy_argent",
+      "breakpoints": true
     }
   ]
 }

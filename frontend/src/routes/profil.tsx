@@ -84,6 +84,7 @@ function AuthForm() {
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const { login, register, isLoading, error, clearError } = useAuth();
+  const apiUrl = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     if (initialMode) {
@@ -190,6 +191,7 @@ function AuthForm() {
               />
             </div>
           )}
+
           <div>
             <label htmlFor="email" className="text-text-secondary mb-1 block text-sm font-medium">
               Email
@@ -205,6 +207,7 @@ function AuthForm() {
               required
             />
           </div>
+
           <div>
             <label
               htmlFor="password"
@@ -223,6 +226,7 @@ function AuthForm() {
               required
             />
           </div>
+
           {mode === 'register' && (
             <div>
               <label
@@ -243,6 +247,7 @@ function AuthForm() {
               />
             </div>
           )}
+
           <button type="submit" className="btn-primary w-full" disabled={isLoading}>
             {isLoading ? (
               <span className="flex items-center justify-center gap-2">
