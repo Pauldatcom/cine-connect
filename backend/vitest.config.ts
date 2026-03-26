@@ -45,6 +45,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
+      // Use shared package source in tests so new constants work without a prior `shared` build.
+      '@cine-connect/shared': resolve(__dirname, '../shared/src/index.ts'),
     },
   },
 });
