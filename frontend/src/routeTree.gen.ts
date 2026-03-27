@@ -9,12 +9,19 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ProfilRouteImport } from './routes/profil'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as MembersRouteImport } from './routes/members'
 import { Route as ListsRouteImport } from './routes/lists'
+import { Route as HelpRouteImport } from './routes/help'
 import { Route as FilmsRouteImport } from './routes/films'
 import { Route as DiscussionRouteImport } from './routes/discussion'
+import { Route as CookiesRouteImport } from './routes/cookies'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as ApiDocsRouteImport } from './routes/api-docs'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as FilmsIndexRouteImport } from './routes/films.index'
 import { Route as UserIdRouteImport } from './routes/user.$id'
@@ -23,6 +30,11 @@ import { Route as FilmsCategorieRouteImport } from './routes/films.$categorie'
 import { Route as FilmIdRouteImport } from './routes/film.$id'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -31,6 +43,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const ProfilRoute = ProfilRouteImport.update({
   id: '/profil',
   path: '/profil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MembersRoute = MembersRouteImport.update({
@@ -43,6 +60,11 @@ const ListsRoute = ListsRouteImport.update({
   path: '/lists',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FilmsRoute = FilmsRouteImport.update({
   id: '/films',
   path: '/films',
@@ -51,6 +73,26 @@ const FilmsRoute = FilmsRouteImport.update({
 const DiscussionRoute = DiscussionRouteImport.update({
   id: '/discussion',
   path: '/discussion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CookiesRoute = CookiesRouteImport.update({
+  id: '/cookies',
+  path: '/cookies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDocsRoute = ApiDocsRouteImport.update({
+  id: '/api-docs',
+  path: '/api-docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -91,12 +133,19 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/api-docs': typeof ApiDocsRoute
+  '/contact': typeof ContactRoute
+  '/cookies': typeof CookiesRoute
   '/discussion': typeof DiscussionRoute
   '/films': typeof FilmsRouteWithChildren
+  '/help': typeof HelpRoute
   '/lists': typeof ListsRoute
   '/members': typeof MembersRoute
+  '/privacy': typeof PrivacyRoute
   '/profil': typeof ProfilRoute
   '/settings': typeof SettingsRoute
+  '/terms': typeof TermsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/film/$id': typeof FilmIdRoute
   '/films/$categorie': typeof FilmsCategorieRoute
@@ -106,11 +155,18 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/api-docs': typeof ApiDocsRoute
+  '/contact': typeof ContactRoute
+  '/cookies': typeof CookiesRoute
   '/discussion': typeof DiscussionRoute
+  '/help': typeof HelpRoute
   '/lists': typeof ListsRoute
   '/members': typeof MembersRoute
+  '/privacy': typeof PrivacyRoute
   '/profil': typeof ProfilRoute
   '/settings': typeof SettingsRoute
+  '/terms': typeof TermsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/film/$id': typeof FilmIdRoute
   '/films/$categorie': typeof FilmsCategorieRoute
@@ -121,12 +177,19 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/api-docs': typeof ApiDocsRoute
+  '/contact': typeof ContactRoute
+  '/cookies': typeof CookiesRoute
   '/discussion': typeof DiscussionRoute
   '/films': typeof FilmsRouteWithChildren
+  '/help': typeof HelpRoute
   '/lists': typeof ListsRoute
   '/members': typeof MembersRoute
+  '/privacy': typeof PrivacyRoute
   '/profil': typeof ProfilRoute
   '/settings': typeof SettingsRoute
+  '/terms': typeof TermsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/film/$id': typeof FilmIdRoute
   '/films/$categorie': typeof FilmsCategorieRoute
@@ -138,12 +201,19 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
+    | '/api-docs'
+    | '/contact'
+    | '/cookies'
     | '/discussion'
     | '/films'
+    | '/help'
     | '/lists'
     | '/members'
+    | '/privacy'
     | '/profil'
     | '/settings'
+    | '/terms'
     | '/auth/callback'
     | '/film/$id'
     | '/films/$categorie'
@@ -153,11 +223,18 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
+    | '/api-docs'
+    | '/contact'
+    | '/cookies'
     | '/discussion'
+    | '/help'
     | '/lists'
     | '/members'
+    | '/privacy'
     | '/profil'
     | '/settings'
+    | '/terms'
     | '/auth/callback'
     | '/film/$id'
     | '/films/$categorie'
@@ -167,12 +244,19 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/about'
+    | '/api-docs'
+    | '/contact'
+    | '/cookies'
     | '/discussion'
     | '/films'
+    | '/help'
     | '/lists'
     | '/members'
+    | '/privacy'
     | '/profil'
     | '/settings'
+    | '/terms'
     | '/auth/callback'
     | '/film/$id'
     | '/films/$categorie'
@@ -183,12 +267,19 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
+  ApiDocsRoute: typeof ApiDocsRoute
+  ContactRoute: typeof ContactRoute
+  CookiesRoute: typeof CookiesRoute
   DiscussionRoute: typeof DiscussionRoute
   FilmsRoute: typeof FilmsRouteWithChildren
+  HelpRoute: typeof HelpRoute
   ListsRoute: typeof ListsRoute
   MembersRoute: typeof MembersRoute
+  PrivacyRoute: typeof PrivacyRoute
   ProfilRoute: typeof ProfilRoute
   SettingsRoute: typeof SettingsRoute
+  TermsRoute: typeof TermsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   FilmIdRoute: typeof FilmIdRoute
   PersonIdRoute: typeof PersonIdRoute
@@ -197,6 +288,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -209,6 +307,13 @@ declare module '@tanstack/react-router' {
       path: '/profil'
       fullPath: '/profil'
       preLoaderRoute: typeof ProfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/members': {
@@ -225,6 +330,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ListsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/films': {
       id: '/films'
       path: '/films'
@@ -237,6 +349,34 @@ declare module '@tanstack/react-router' {
       path: '/discussion'
       fullPath: '/discussion'
       preLoaderRoute: typeof DiscussionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cookies': {
+      id: '/cookies'
+      path: '/cookies'
+      fullPath: '/cookies'
+      preLoaderRoute: typeof CookiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api-docs': {
+      id: '/api-docs'
+      path: '/api-docs'
+      fullPath: '/api-docs'
+      preLoaderRoute: typeof ApiDocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -305,12 +445,19 @@ const FilmsRouteWithChildren = FilmsRoute._addFileChildren(FilmsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
+  ApiDocsRoute: ApiDocsRoute,
+  ContactRoute: ContactRoute,
+  CookiesRoute: CookiesRoute,
   DiscussionRoute: DiscussionRoute,
   FilmsRoute: FilmsRouteWithChildren,
+  HelpRoute: HelpRoute,
   ListsRoute: ListsRoute,
   MembersRoute: MembersRoute,
+  PrivacyRoute: PrivacyRoute,
   ProfilRoute: ProfilRoute,
   SettingsRoute: SettingsRoute,
+  TermsRoute: TermsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   FilmIdRoute: FilmIdRoute,
   PersonIdRoute: PersonIdRoute,
