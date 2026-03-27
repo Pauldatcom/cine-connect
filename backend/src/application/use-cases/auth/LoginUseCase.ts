@@ -38,7 +38,12 @@ export class LoginUseCase {
       throw new LoginError();
     }
 
-    const valid = await bcrypt.compare(input.password, user.passwordHash);
+    const passwordHash = user.passwordHash;
+    if (passwordHash === null) {
+      throw new LoginError();
+    }
+
+    const valid = await bcrypt.compare(input.password, passwordHash);
     if (!valid) {
       throw new LoginError();
     }
