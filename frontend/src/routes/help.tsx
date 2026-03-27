@@ -82,7 +82,7 @@ export function HelpPage() {
       <section className="card mb-8">
         <h2 className="text-text-primary mb-2 text-xl font-bold">Frequently Asked Questions</h2>
         <p className="text-text-secondary mb-6 text-sm">
-          Can't find the answer you're looking for?{' '}
+          Can&apos;t find the answer you&apos;re looking for?{' '}
           <Link to="/contact" className="text-letterboxd-green hover:underline">
             Contact us
           </Link>
@@ -98,8 +98,8 @@ export function HelpPage() {
       <section className="card">
         <h2 className="text-text-primary mb-3 text-xl font-bold">Still need help?</h2>
         <p className="text-text-secondary mb-4 text-sm">
-          Our team is small but responsive. Send us a message and we'll get back to you as soon as
-          possible.
+          Our team is small but responsive. Send us a message and we&apos;ll get back to you as soon
+          as possible.
         </p>
         <Link to="/contact" className="btn-primary inline-block">
           Contact us

@@ -27,7 +27,7 @@ export function TermsPage() {
         <Section title="3. User Accounts">
           You must provide accurate information when creating an account. You are responsible for
           maintaining the security of your account credentials. You may not share your account or
-          use another person's account without permission. We reserve the right to suspend or
+          use another person&apos;s account without permission. We reserve the right to suspend or
           terminate accounts that violate these terms.
         </Section>
 
@@ -45,9 +45,9 @@ export function TermsPage() {
         </Section>
 
         <Section title="6. Limitation of Liability">
-          CinéConnect is provided "as is" without warranties of any kind. As a student project, the
-          service may be unavailable at times or contain errors. The authors are not liable for any
-          damages arising from the use of or inability to use the service.
+          CinéConnect is provided &quot;as is&quot; without warranties of any kind. As a student
+          project, the service may be unavailable at times or contain errors. The authors are not
+          liable for any damages arising from the use of or inability to use the service.
         </Section>
 
         <Section title="7. Changes to Terms">

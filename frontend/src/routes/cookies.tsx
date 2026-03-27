@@ -85,7 +85,7 @@ export function CookiesPage() {
             You can disable cookies in your browser settings. However, disabling the{' '}
             <code className="bg-bg-tertiary rounded px-1">refresh_token</code> cookie will prevent
             you from staying logged in between sessions. You can clear your session at any time by
-            clicking "Sign Out" on your{' '}
+            clicking &quot;Sign Out&quot; on your{' '}
             <Link to="/profil" className="text-letterboxd-green hover:underline">
               profile page
             </Link>

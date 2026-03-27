@@ -31,7 +31,7 @@ export function ContactPage() {
         </div>
         <h1 className="font-display text-text-primary text-4xl font-bold">Contact Us</h1>
         <p className="text-text-secondary mt-3">
-          Have a question, found a bug, or want to give feedback? We'd love to hear from you.
+          Have a question, found a bug, or want to give feedback? We&apos;d love to hear from you.
         </p>
       </div>
 
@@ -76,7 +76,7 @@ export function ContactPage() {
               </div>
               <h2 className="text-text-primary text-xl font-bold">Message sent!</h2>
               <p className="text-text-secondary text-sm">
-                Your email client should have opened. We'll reply as soon as possible.
+                Your email client should have opened. We&apos;ll reply as soon as possible.
               </p>
               <button className="btn-secondary mt-2" onClick={() => setSent(false)}>
                 Send another message
