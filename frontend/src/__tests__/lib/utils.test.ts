@@ -103,7 +103,7 @@ describe('formatRelativeTime', () => {
   it('handles Date objects', () => {
     const date = new Date('2024-01-15T11:00:00Z');
 
-    expect(formatRelativeTime(date)).toBe('1 hours ago');
+    expect(formatRelativeTime(date)).toBe('1 hour ago');
   });
 });
 
