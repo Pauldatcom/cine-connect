@@ -6,7 +6,22 @@
  * Refresh token is stored as httpOnly cookie by the backend
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+/**
+ * Backend origin only (no `/api/v1` suffix). Endpoints in this codebase use `/api/v1/...` paths.
+ * Strips a trailing `/api/v1` from `VITE_API_URL` if present so URLs are not doubled.
+ */
+const API_BASE_URL = (() => {
+  const raw = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
+  return raw.endsWith('/api/v1') ? raw.slice(0, -'/api/v1'.length) : raw;
+})();
+
+/**
+ * Full URL for a path under `/api/v1` (e.g. browser redirect to OAuth).
+ */
+export function apiV1AbsoluteUrl(path: string): string {
+  const suffix = path.startsWith('/') ? path : `/${path}`;
+  return `${API_BASE_URL}/api/v1${suffix}`;
+}
 
 // In-memory token storage (more secure than localStorage)
 let accessToken: string | null = null;

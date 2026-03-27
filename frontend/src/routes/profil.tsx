@@ -1,4 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { apiV1AbsoluteUrl } from '@/lib/api/client';
 import type { PendingRequest } from '@/hooks';
 import {
   useFriends,
@@ -123,7 +124,6 @@ function AuthForm() {
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const { login, register, isLoading, error, clearError } = useAuth();
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
 
   useEffect(() => {
     setMode(initialMode);
@@ -300,7 +300,7 @@ function AuthForm() {
           <button
             type="button"
             onClick={() => {
-              window.location.href = `${apiUrl}/auth/google`;
+              window.location.href = apiV1AbsoluteUrl('/auth/google');
             }}
             className="btn-secondary w-full"
             disabled={isLoading}
