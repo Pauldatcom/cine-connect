@@ -93,9 +93,8 @@ export async function getFilmReviews(
   page = 1,
   pageSize = 20
 ): Promise<PaginatedResponse<Review>> {
-  return api.get<PaginatedResponse<Review>>(
-    `/reviews/film/${filmId}?page=${page}&pageSize=${pageSize}`
-  );
+  const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  return api.get<PaginatedResponse<Review>>(`/reviews/film/${filmId}?${params}`);
 }
 
 /**
@@ -137,7 +136,8 @@ export async function likeReview(reviewId: string): Promise<LikeResponse> {
  * Get users who liked a review
  */
 export async function getReviewLikes(reviewId: string, limit = 10): Promise<LikesResponse> {
-  return api.get<LikesResponse>(`/reviews/${reviewId}/likes?limit=${limit}`);
+  const params = new URLSearchParams({ limit: String(limit) });
+  return api.get<LikesResponse>(`/reviews/${reviewId}/likes?${params}`);
 }
 
 /**
@@ -155,9 +155,8 @@ export async function getReviewComments(
   page = 1,
   pageSize = 20
 ): Promise<PaginatedResponse<ReviewComment>> {
-  return api.get<PaginatedResponse<ReviewComment>>(
-    `/reviews/${reviewId}/comments?page=${page}&pageSize=${pageSize}`
-  );
+  const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  return api.get<PaginatedResponse<ReviewComment>>(`/reviews/${reviewId}/comments?${params}`);
 }
 
 /**
