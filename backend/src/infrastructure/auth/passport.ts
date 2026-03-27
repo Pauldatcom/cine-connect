@@ -33,12 +33,21 @@ async function generateUniqueUsername(base: string) {
 }
 
 if (isGoogleOAuthConfigured) {
+  const clientID = process.env.GOOGLE_CLIENT_ID?.trim();
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
+  const callbackURL = process.env.GOOGLE_CALLBACK_URL?.trim();
+  if (!clientID || !clientSecret || !callbackURL) {
+    throw new Error(
+      'Google OAuth: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_CALLBACK_URL must be set when isGoogleOAuthConfigured is true'
+    );
+  }
+
   passport.use(
     new GoogleStrategy(
       {
-        clientID: process.env.GOOGLE_CLIENT_ID!.trim(),
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET!.trim(),
-        callbackURL: process.env.GOOGLE_CALLBACK_URL!.trim(),
+        clientID,
+        clientSecret,
+        callbackURL,
       },
       async (_accessToken, _refreshToken, profile, done) => {
         try {
@@ -111,5 +120,16 @@ if (isGoogleOAuthConfigured) {
   );
 }
 
-passport.serializeUser((user: any, done) => done(null, user.id));
-passport.deserializeUser((user: any, done) => done(null, user));
+/** Store user id in session; OAuth routes use `session: false`, so this is rarely used. */
+passport.serializeUser((user: Express.User, done) => {
+  const uid = user.id ?? user.userId;
+  if (!uid) {
+    return done(new Error('Cannot serialize user without id'));
+  }
+  done(null, uid);
+});
+
+/** Not loading full user from id — Google callback does not rely on passport session. */
+passport.deserializeUser((_id: string, done) => {
+  done(null, false);
+});
