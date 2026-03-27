@@ -10,7 +10,13 @@ import { container } from 'tsyringe';
 import passport from 'passport';
 
 import { isGoogleOAuthConfigured } from '../infrastructure/auth/passport.js';
-import { authenticate, generateTokens, getAuthUser, type JwtPayload } from '../middleware/auth.js';
+import {
+  authenticate,
+  generateTokens,
+  getAuthUser,
+  getJwtSecret,
+  type JwtPayload,
+} from '../middleware/auth.js';
 import { ApiError } from '../middleware/errorHandler.js';
 import {
   LoginUseCase,
@@ -250,9 +256,11 @@ authRouter.post('/refresh', async (req, res, next) => {
       throw ApiError.unauthorized('No refresh token provided');
     }
 
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-      throw new Error('JWT_SECRET environment variable is required');
+    let secret: string;
+    try {
+      secret = getJwtSecret();
+    } catch {
+      return next(ApiError.internal('JWT_SECRET is not configured on the server'));
     }
 
     let decoded: JwtPayload;
@@ -264,6 +272,16 @@ authRouter.post('/refresh', async (req, res, next) => {
         return next(ApiError.unauthorized('Refresh token expired'));
       }
       return next(ApiError.unauthorized('Invalid refresh token'));
+    }
+
+    if (
+      typeof decoded.userId !== 'string' ||
+      decoded.userId.length === 0 ||
+      typeof decoded.email !== 'string' ||
+      decoded.email.length === 0
+    ) {
+      clearRefreshTokenCookie(res);
+      return next(ApiError.unauthorized('Invalid refresh token payload'));
     }
 
     const refreshUseCase = container.resolve<RefreshUseCase>(RefreshUseCase);

@@ -121,7 +121,7 @@ describe('api', () => {
         json: async () => ({ success: true, data: {} }),
       });
 
-      await api.post('/auth/login', { email: 'test@test.com' }, { skipAuth: true });
+      await api.post('/api/v1/auth/login', { email: 'test@test.com' }, { skipAuth: true });
 
       const callArgs = mockFetch.mock.calls[0] as [string, RequestInit];
       const headers = callArgs[1].headers as Record<string, string>;

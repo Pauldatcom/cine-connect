@@ -4,7 +4,7 @@ import type { TMDbPersonMovieCredits } from '@/lib/api/tmdb';
 import { getImageUrl } from '@/lib/api/tmdb';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { ArrowLeft, Calendar, Film, MapPin, User } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 type CastFilm = TMDbPersonMovieCredits['cast'][number];
 type CrewFilm = TMDbPersonMovieCredits['crew'][number];
@@ -16,8 +16,11 @@ export const Route = createFileRoute('/person/$id')({
   component: PersonDetailPage,
 });
 
+const CAST_PAGE_SIZE = 24;
+
 export function PersonDetailPage() {
   const { id } = Route.useParams() as { id: string };
+  const [castVisible, setCastVisible] = useState(CAST_PAGE_SIZE);
 
   // Fetch person details and credits
   const { data: person, isLoading, error } = usePerson(id);
@@ -179,19 +182,23 @@ export function PersonDetailPage() {
               As Actor
               <span className="text-text-tertiary text-base font-normal">({castFilms.length})</span>
             </h2>
-            {castFilms.length > 0 ? (
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                {castFilms.slice(0, 24).map((film: CastFilm) => (
-                  <FilmPoster key={film.credit_id} film={film} showTitle />
-                ))}
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+              {castFilms.slice(0, castVisible).map((film: CastFilm) => (
+                <FilmPoster key={film.credit_id} film={film} showTitle />
+              ))}
+            </div>
+            {castVisible < castFilms.length && (
+              <div className="mt-6 text-center">
+                <p className="text-text-tertiary mb-3 text-sm">
+                  Showing {castVisible} of {castFilms.length} films
+                </p>
+                <button
+                  className="btn-secondary"
+                  onClick={() => setCastVisible((v) => v + CAST_PAGE_SIZE)}
+                >
+                  Show more
+                </button>
               </div>
-            ) : (
-              <p className="text-text-tertiary py-8 text-center">No acting credits found.</p>
-            )}
-            {castFilms.length > 24 && (
-              <p className="text-text-secondary mt-6 text-center text-sm">
-                Showing 24 of {castFilms.length} films
-              </p>
             )}
           </section>
         )}

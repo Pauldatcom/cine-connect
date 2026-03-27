@@ -65,7 +65,7 @@ describe('Auth API', () => {
       });
 
       expect(mockApi.post).toHaveBeenCalledWith(
-        '/auth/register',
+        '/api/v1/auth/register',
         { email: 'test@test.com', username: 'testuser', password: 'password123' },
         { skipAuth: true }
       );
@@ -88,7 +88,7 @@ describe('Auth API', () => {
       });
 
       expect(mockApi.post).toHaveBeenCalledWith(
-        '/auth/login',
+        '/api/v1/auth/login',
         { email: 'test@test.com', password: 'password123' },
         { skipAuth: true }
       );
@@ -121,7 +121,7 @@ describe('Auth API', () => {
 
       const result = await getCurrentUser();
 
-      expect(mockApi.get).toHaveBeenCalledWith('/users/me');
+      expect(mockApi.get).toHaveBeenCalledWith('/api/v1/users/me');
       expect(result).toEqual(mockUser);
     });
   });
@@ -154,7 +154,7 @@ describe('Auth API', () => {
 
       const result = await refreshToken();
 
-      expect(mockApi.post).toHaveBeenCalledWith('/auth/refresh', undefined, {
+      expect(mockApi.post).toHaveBeenCalledWith('/api/v1/auth/refresh', undefined, {
         skipAuth: true,
       });
       expect(mockTokenStorage.setAccessToken).toHaveBeenCalledWith('new-access-token');
