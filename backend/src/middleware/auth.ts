@@ -63,12 +63,18 @@ export function tryGetAuthUser(req: Request): JwtPayload | undefined {
 /**
  * Get JWT secret from environment - throws if not set
  */
-function getJwtSecret(): string {
+export function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
     throw new Error('JWT_SECRET environment variable is required');
   }
   return secret;
+}
+
+/** Avoid passing empty string to jwt.sign `expiresIn` (throws at runtime → 500 on refresh). */
+function resolveJwtExpiresIn(envValue: string | undefined, fallback: string): string {
+  const trimmed = envValue?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : fallback;
 }
 
 /**
@@ -128,8 +134,8 @@ export const optionalAuth: RequestHandler = (req, _res, next) => {
  */
 export function generateTokens(payload: JwtPayload) {
   const secret = getJwtSecret();
-  const accessExpiresIn = process.env.JWT_EXPIRES_IN ?? '7d';
-  const refreshExpiresIn = process.env.JWT_REFRESH_EXPIRES_IN ?? '30d';
+  const accessExpiresIn = resolveJwtExpiresIn(process.env.JWT_EXPIRES_IN, '7d');
+  const refreshExpiresIn = resolveJwtExpiresIn(process.env.JWT_REFRESH_EXPIRES_IN, '30d');
 
   const accessToken = jwt.sign(payload, secret, {
     expiresIn: accessExpiresIn,
