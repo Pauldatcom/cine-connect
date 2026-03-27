@@ -13,9 +13,12 @@ const {
   mockUseMessages,
   mockUseSendMessage,
   mockUseMarkMessagesRead,
+  mockUseFriends,
+  mockUseUserById,
   mockSetTyping,
   mockSendMutate,
   mockMarkReadMutate,
+  mockNavigate,
 } = vi.hoisted(() => ({
   mockUseAuth: vi.fn(),
   mockUseSocket: vi.fn(),
@@ -25,13 +28,18 @@ const {
   mockUseMessages: vi.fn(),
   mockUseSendMessage: vi.fn(),
   mockUseMarkMessagesRead: vi.fn(),
+  mockUseFriends: vi.fn(),
+  mockUseUserById: vi.fn(),
   mockSetTyping: vi.fn(),
   mockSendMutate: vi.fn(),
   mockMarkReadMutate: vi.fn(),
+  mockNavigate: vi.fn(),
 }));
 
 vi.mock('@tanstack/react-router', () => ({
   createFileRoute: () => () => ({}),
+  useNavigate: () => mockNavigate,
+  useSearch: () => ({}),
   Link: ({
     children,
     to,
@@ -65,6 +73,8 @@ vi.mock('@/hooks', () => ({
   useMessages: mockUseMessages,
   useSendMessage: mockUseSendMessage,
   useMarkMessagesRead: mockUseMarkMessagesRead,
+  useFriends: mockUseFriends,
+  useUserById: mockUseUserById,
 }));
 
 const conversations = [
@@ -138,6 +148,17 @@ describe('DiscussionPage', () => {
 
     mockUseMarkMessagesRead.mockReturnValue({
       mutate: mockMarkReadMutate,
+    });
+
+    mockUseFriends.mockReturnValue({
+      data: [],
+      isLoading: false,
+    });
+
+    mockUseUserById.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
     });
   });
 
@@ -246,7 +267,9 @@ describe('DiscussionPage', () => {
     render(<DiscussionPage />);
 
     expect(screen.getByText(/your messages/i)).toBeInTheDocument();
-    expect(screen.getByText(/select a conversation to start chatting/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/select a conversation or start a new message with a friend/i)
+    ).toBeInTheDocument();
   });
 
   it('ouvre une conversation et marque les messages comme lus', async () => {

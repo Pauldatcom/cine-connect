@@ -9,6 +9,7 @@ const {
   mockUseRegisterFilm,
   mockUseIsInWatchlist,
   mockUseToggleWatchlist,
+  mockUseRecommendations,
   mockGetTrending,
   mockGetPopular,
   mockGetNowPlaying,
@@ -20,6 +21,7 @@ const {
   mockUseRegisterFilm: vi.fn(),
   mockUseIsInWatchlist: vi.fn(),
   mockUseToggleWatchlist: vi.fn(),
+  mockUseRecommendations: vi.fn(),
   mockGetTrending: vi.fn(),
   mockGetPopular: vi.fn(),
   mockGetNowPlaying: vi.fn(),
@@ -59,6 +61,7 @@ vi.mock('@/hooks', () => ({
   useRegisterFilm: mockUseRegisterFilm,
   useIsInWatchlist: mockUseIsInWatchlist,
   useToggleWatchlist: mockUseToggleWatchlist,
+  useRecommendations: mockUseRecommendations,
 }));
 
 vi.mock('@/lib/api/tmdb', () => ({
@@ -193,6 +196,11 @@ describe('HomePage', () => {
 
     mockUseToggleWatchlist.mockReturnValue({
       toggleWatchlist: vi.fn(),
+      isLoading: false,
+    });
+
+    mockUseRecommendations.mockReturnValue({
+      data: undefined,
       isLoading: false,
     });
 

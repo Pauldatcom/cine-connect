@@ -210,8 +210,8 @@ const videos = {
 
 const similar = {
   results: [
-    { id: 1, title: 'Se7en' },
-    { id: 2, title: 'The Game' },
+    { id: 1, title: 'Se7en', poster_path: '/se7en.jpg' },
+    { id: 2, title: 'The Game', poster_path: '/game.jpg' },
   ],
 };
 
@@ -264,17 +264,24 @@ describe('FilmDetailPage', () => {
 
     mockUseWatchProviders.mockReturnValue({
       data: {
-        flatrate: [
-          {
-            provider_id: 8,
-            provider_name: 'Netflix',
-            logo_path: '/netflix.png',
-          },
-        ],
-        rent: [],
-        buy: [],
+        result: {
+          flatrate: [
+            {
+              provider_id: 8,
+              provider_name: 'Netflix',
+              logo_path: '/netflix.png',
+            },
+          ],
+          rent: [],
+          buy: [],
+        },
+        region: 'FR',
+        isFallback: false,
+        tmdbWatchPageUrl: 'https://www.themoviedb.org/movie/550/watch',
+        hasLists: true,
       },
       isLoading: false,
+      isError: false,
     });
 
     mockUseRegisterFilm.mockReturnValue({
