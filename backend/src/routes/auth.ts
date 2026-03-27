@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { container } from 'tsyringe';
 import passport from 'passport';
 
+import { isGoogleOAuthConfigured } from '../infrastructure/auth/passport.js';
 import { authenticate, generateTokens, getAuthUser, type JwtPayload } from '../middleware/auth.js';
 import { ApiError } from '../middleware/errorHandler.js';
 import {
@@ -166,6 +167,16 @@ authRouter.post('/login', async (req, res, next) => {
  */
 authRouter.get(
   '/google',
+  (_req, res, next) => {
+    if (!isGoogleOAuthConfigured) {
+      return res.status(503).json({
+        success: false,
+        error:
+          'Google sign-in is not configured. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_CALLBACK_URL on the server.',
+      });
+    }
+    next();
+  },
   passport.authenticate('google', {
     scope: ['profile', 'email'],
     session: false,
@@ -181,6 +192,16 @@ authRouter.get(
  */
 authRouter.get(
   '/google/callback',
+  (_req, res, next) => {
+    if (!isGoogleOAuthConfigured) {
+      return res.status(503).json({
+        success: false,
+        error:
+          'Google sign-in is not configured. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_CALLBACK_URL on the server.',
+      });
+    }
+    next();
+  },
   passport.authenticate('google', {
     failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/profil?googleAuth=failed`,
     session: false,
