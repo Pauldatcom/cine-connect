@@ -51,13 +51,11 @@ export interface ChangeEmailInput {
  * Register a new user
  */
 export async function register(credentials: RegisterCredentials): Promise<AuthResponse> {
-  const response = await api.post<AuthResponse>('/api/v1/auth/register', credentials, {
+  const response = await api.post<AuthResponse>('/auth/register', credentials, {
     skipAuth: true,
   });
 
-  // Store access token in memory (refresh token is in httpOnly cookie)
   tokenStorage.setAccessToken(response.accessToken);
-
   return response;
 }
 
@@ -65,13 +63,11 @@ export async function register(credentials: RegisterCredentials): Promise<AuthRe
  * Login with email and password
  */
 export async function login(credentials: LoginCredentials): Promise<AuthResponse> {
-  const response = await api.post<AuthResponse>('/api/v1/auth/login', credentials, {
+  const response = await api.post<AuthResponse>('/auth/login', credentials, {
     skipAuth: true,
   });
 
-  // Store access token in memory (refresh token is in httpOnly cookie)
   tokenStorage.setAccessToken(response.accessToken);
-
   return response;
 }
 
@@ -80,11 +76,11 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
  */
 export async function logout(): Promise<void> {
   try {
-    // Call backend to clear the httpOnly cookie
-    await api.post('/api/v1/auth/logout', undefined, { skipAuth: true });
+    await api.post('/auth/logout', undefined, { skipAuth: true });
   } catch {
     // Ignore errors during logout
   }
+
   tokenStorage.clearTokens();
 }
 
@@ -92,28 +88,28 @@ export async function logout(): Promise<void> {
  * Get current user profile
  */
 export async function getCurrentUser(): Promise<User> {
-  return api.get<User>('/api/v1/users/me');
+  return api.get<User>('/users/me');
 }
 
 /**
  * Update current user profile (username, avatar URL)
  */
 export async function updateProfile(input: UpdateProfileInput): Promise<User> {
-  return api.patch<User>('/api/v1/users/me', input);
+  return api.patch<User>('/users/me', input);
 }
 
 /**
  * Change password. Requires current password.
  */
 export async function changePassword(input: ChangePasswordInput): Promise<void> {
-  await api.post<{ message: string }>('/api/v1/auth/change-password', input);
+  await api.post<{ message: string }>('/auth/change-password', input);
 }
 
 /**
  * Change email. Requires current password. Returns new user and access token; caller should update auth state.
  */
 export async function changeEmail(input: ChangeEmailInput): Promise<AuthResponse> {
-  const response = await api.post<AuthResponse>('/api/v1/auth/change-email', input);
+  const response = await api.post<AuthResponse>('/auth/change-email', input);
   tokenStorage.setAccessToken(response.accessToken);
   return response;
 }
@@ -125,7 +121,7 @@ export function isAuthenticated(): boolean {
   return tokenStorage.hasTokens();
 }
 
-/** In-flight refresh promise so we don't send duplicate refresh requests (e.g. Strict Mode, multiple consumers). */
+/** In-flight refresh promise so we don't send duplicate refresh requests */
 let refreshPromise: Promise<AuthResponse> | null = null;
 
 /**
@@ -139,7 +135,7 @@ export async function refreshToken(): Promise<AuthResponse> {
 
   refreshPromise = (async () => {
     try {
-      const response = await api.post<AuthResponse>('/api/v1/auth/refresh', undefined, {
+      const response = await api.post<AuthResponse>('/auth/refresh', undefined, {
         skipAuth: true,
       });
       tokenStorage.setAccessToken(response.accessToken);

@@ -42,7 +42,15 @@ export class ChangeEmailUseCase {
       throw new ChangeEmailError('User not found', 'INVALID_PASSWORD');
     }
 
-    const valid = await bcrypt.compare(input.currentPassword, user.passwordHash);
+    const currentHash = user.passwordHash;
+    if (currentHash === null) {
+      throw new ChangeEmailError(
+        'This account uses Google sign-in; password cannot be used for this action',
+        'INVALID_PASSWORD'
+      );
+    }
+
+    const valid = await bcrypt.compare(input.currentPassword, currentHash);
     if (!valid) {
       throw new ChangeEmailError('Current password is incorrect', 'INVALID_PASSWORD');
     }

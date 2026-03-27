@@ -13,7 +13,7 @@ export const Route = createFileRoute('/lists')({
   component: ListsPage,
 });
 
-function ListsPage() {
+export function ListsPage() {
   const { isAuthenticated, user } = useAuth();
 
   if (!isAuthenticated) {

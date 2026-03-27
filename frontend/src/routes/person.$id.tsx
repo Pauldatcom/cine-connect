@@ -16,7 +16,7 @@ export const Route = createFileRoute('/person/$id')({
   component: PersonDetailPage,
 });
 
-function PersonDetailPage() {
+export function PersonDetailPage() {
   const { id } = Route.useParams() as { id: string };
 
   // Fetch person details and credits

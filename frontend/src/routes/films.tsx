@@ -9,7 +9,7 @@ export const Route = createFileRoute('/films')({
   component: FilmsLayout,
 });
 
-function FilmsLayout() {
+export function FilmsLayout() {
   const { data: genresData } = useQuery({
     queryKey: ['genres'],
     queryFn: getGenres,

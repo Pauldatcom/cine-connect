@@ -11,7 +11,7 @@ export const Route = createFileRoute('/user/$id')({
   component: UserProfilePage,
 });
 
-function UserProfilePage() {
+export function UserProfilePage() {
   const { id } = Route.useParams() as { id: string };
   const { data: user, isLoading: userLoading, error: userError } = useUserById(id);
   const { data: reviews = [], isLoading: reviewsLoading } = useUserReviews(user?.id);

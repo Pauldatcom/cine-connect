@@ -136,7 +136,7 @@ describe('Auth Middleware', () => {
     it('should return user payload when req.user is set', () => {
       const req = {
         user: { userId: 'user-123', email: 'test@example.com' },
-      } as Request;
+      } as unknown as Request;
 
       const result = getAuthUser(req);
 

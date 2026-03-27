@@ -8,6 +8,35 @@ export interface JwtPayload {
 }
 
 /**
+ * Shape stored on req.user: JWT middleware sets { userId, email }; Passport OAuth sets DB user ({ id, email, ... }).
+ * Passport's @types merge defines Request.user as Express.User — we extend that single interface to avoid conflicts.
+ */
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace Express {
+    interface User {
+      email: string;
+      /** Present after JWT verify (authenticate / optionalAuth). */
+      userId?: string;
+      /** Present after Passport strategies that attach a DB row. */
+      id?: string;
+      username?: string;
+      avatarUrl?: string | null;
+      createdAt?: Date;
+      updatedAt?: Date;
+    }
+  }
+}
+
+function requestUserToJwtPayload(user: Express.User): JwtPayload {
+  const userId = user.userId ?? user.id;
+  if (!userId) {
+    throw ApiError.unauthorized('User not authenticated');
+  }
+  return { userId, email: user.email };
+}
+
+/**
  * Get authenticated user from request - throws if not authenticated
  * Use this in routes that use the authenticate middleware
  */
@@ -15,7 +44,7 @@ export function getAuthUser(req: Request): JwtPayload {
   if (!req.user) {
     throw ApiError.unauthorized('User not authenticated');
   }
-  return req.user;
+  return requestUserToJwtPayload(req.user);
 }
 
 /**
@@ -23,16 +52,11 @@ export function getAuthUser(req: Request): JwtPayload {
  * Use this in routes that use optionalAuth middleware
  */
 export function tryGetAuthUser(req: Request): JwtPayload | undefined {
-  return req.user;
-}
-
-// Extend Express Request to include user
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace Express {
-    interface Request {
-      user?: JwtPayload;
-    }
+  if (!req.user) return undefined;
+  try {
+    return requestUserToJwtPayload(req.user);
+  } catch {
+    return undefined;
   }
 }
 

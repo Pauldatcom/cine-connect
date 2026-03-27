@@ -80,6 +80,7 @@ function createAuthWrapper(isAuthenticated: boolean) {
     logout: vi.fn(),
     clearError: vi.fn(),
     updateUser: vi.fn(),
+    refreshUser: vi.fn(),
   };
 
   return ({ children }: { children: ReactNode }) => (
@@ -570,6 +571,7 @@ describe('SocketContext', () => {
         logout: vi.fn(),
         clearError: vi.fn(),
         updateUser: vi.fn(),
+        refreshUser: vi.fn(),
       };
 
       const DynamicWrapper = ({ children }: { children: ReactNode }) => (

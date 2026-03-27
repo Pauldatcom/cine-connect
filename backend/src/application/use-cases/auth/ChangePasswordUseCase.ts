@@ -40,13 +40,18 @@ export class ChangePasswordUseCase {
       throw new ChangePasswordError('User not found');
     }
 
-    const valid = await bcrypt.compare(input.currentPassword, user.passwordHash);
+    const currentHash = user.passwordHash;
+    if (currentHash === null) {
+      throw new ChangePasswordError('This account has no password (use Google sign-in)');
+    }
+
+    const valid = await bcrypt.compare(input.currentPassword, currentHash);
     if (!valid) {
       throw new ChangePasswordError('Current password is incorrect');
     }
 
-    const passwordHash = await bcrypt.hash(input.newPassword, BCRYPT_ROUNDS);
-    await this.userRepository.update(input.userId, { passwordHash });
+    const newPasswordHash = await bcrypt.hash(input.newPassword, BCRYPT_ROUNDS);
+    await this.userRepository.update(input.userId, { passwordHash: newPasswordHash });
 
     return { success: true };
   }

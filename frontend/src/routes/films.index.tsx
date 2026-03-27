@@ -54,12 +54,14 @@ export const Route = createFileRoute('/films/')({
 
 const RESULTS_PER_PAGE = 20;
 
-function FilmsIndexPage() {
+export function FilmsIndexPage() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { page: urlPage, view: urlView } = useSearch({ from: '/films/' });
   const page = urlPage ?? 1;
   const view = (urlView ?? 'popular') as 'popular' | 'trending' | 'top-rated' | 'for-you';
+
+  // Search state
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSearch, setActiveSearch] = useState('');

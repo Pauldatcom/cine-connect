@@ -42,7 +42,6 @@ export function getImageUrl(
   if (!path) return '/placeholder-poster.jpg';
   return `${TMDB_IMAGE_BASE}/${IMAGE_SIZES[type][size]}${path}`;
 }
-
 /**
  * Fetch independent/arthouse films
  * Filter: Recent releases with lower vote counts (excludes blockbusters)

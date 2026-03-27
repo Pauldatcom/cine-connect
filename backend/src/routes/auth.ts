@@ -7,7 +7,9 @@ import { Router, type Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { container } from 'tsyringe';
+import passport from 'passport';
 
+import { isGoogleOAuthConfigured } from '../infrastructure/auth/passport.js';
 import { authenticate, generateTokens, getAuthUser, type JwtPayload } from '../middleware/auth.js';
 import { ApiError } from '../middleware/errorHandler.js';
 import {
@@ -156,6 +158,83 @@ authRouter.post('/login', async (req, res, next) => {
     next(err);
   }
 });
+/**
+ * @swagger
+ * /api/v1/auth/google:
+ *   get:
+ *     tags: [Auth]
+ *     summary: Start Google OAuth login
+ */
+authRouter.get(
+  '/google',
+  (_req, res, next) => {
+    if (!isGoogleOAuthConfigured) {
+      return res.status(503).json({
+        success: false,
+        error:
+          'Google sign-in is not configured. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_CALLBACK_URL on the server.',
+      });
+    }
+    next();
+  },
+  passport.authenticate('google', {
+    scope: ['profile', 'email'],
+    session: false,
+  })
+);
+
+/**
+ * @swagger
+ * /api/v1/auth/google/callback:
+ *   get:
+ *     tags: [Auth]
+ *     summary: Google OAuth callback
+ */
+authRouter.get(
+  '/google/callback',
+  (_req, res, next) => {
+    if (!isGoogleOAuthConfigured) {
+      return res.status(503).json({
+        success: false,
+        error:
+          'Google sign-in is not configured. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_CALLBACK_URL on the server.',
+      });
+    }
+    next();
+  },
+  passport.authenticate('google', {
+    failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/profil?googleAuth=failed`,
+    session: false,
+  }),
+  async (req, res, next) => {
+    try {
+      const user = req.user as {
+        id: string;
+        email: string;
+        username: string;
+        avatarUrl: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+      };
+
+      const { accessToken, refreshToken } = generateTokens({
+        userId: user.id,
+        email: user.email,
+      });
+
+      setRefreshTokenCookie(res, refreshToken);
+
+      const frontendUrl = new URL(
+        `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback`
+      );
+      frontendUrl.searchParams.set('token', accessToken);
+
+      return res.redirect(frontendUrl.toString());
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 /**
  * @swagger

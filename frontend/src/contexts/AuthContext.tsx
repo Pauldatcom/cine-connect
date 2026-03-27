@@ -5,6 +5,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import {
   authApi,
+  getCurrentUser,
   type User,
   type LoginCredentials,
   type RegisterCredentials,
@@ -27,6 +28,7 @@ interface AuthActions {
   clearError: () => void;
   /** Update the current user in state (e.g. after profile or email change) */
   updateUser: (user: User) => void;
+  refreshUser: () => Promise<void>;
 }
 
 // Full context type
@@ -55,8 +57,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        // Try to refresh token using httpOnly cookie
-        // This will fail if there's no valid refresh token cookie
         const response = await authApi.refreshToken();
         setState({
           user: response.user,
@@ -65,7 +65,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
           error: null,
         });
       } catch {
-        // No valid session - user needs to login
         tokenStorage.clearTokens();
         setState({
           user: null,
@@ -76,10 +75,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     };
 
-    initAuth();
+    void initAuth();
   }, []);
 
-  // Login action
   const login = useCallback(async (credentials: LoginCredentials) => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
@@ -102,11 +100,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         isLoading: false,
         error: message,
       }));
-      // Error is stored in state - no need to re-throw
     }
   }, []);
 
-  // Register action
   const register = useCallback(async (credentials: RegisterCredentials) => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
@@ -129,11 +125,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         isLoading: false,
         error: message,
       }));
-      // Error is stored in state - no need to re-throw
     }
   }, []);
 
-  // Logout action
   const logout = useCallback(async () => {
     await authApi.logout();
     setState({
@@ -152,6 +146,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setState((prev) => (prev.user ? { ...prev, user } : prev));
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+    try {
+      const user = await getCurrentUser();
+      setState({
+        user,
+        isLoading: false,
+        isAuthenticated: true,
+        error: null,
+      });
+    } catch {
+      tokenStorage.clearTokens();
+      setState({
+        user: null,
+        isLoading: false,
+        isAuthenticated: false,
+        error: null,
+      });
+    }
+  }, []);
+
   const value: AuthContextType = {
     ...state,
     login,
@@ -159,6 +175,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logout,
     clearError,
     updateUser,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

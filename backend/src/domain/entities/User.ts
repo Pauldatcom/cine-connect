@@ -7,7 +7,8 @@ export interface UserProps {
   id: string;
   email: string;
   username: string;
-  passwordHash: string;
+  /** Null for OAuth-only accounts (no local password). */
+  passwordHash: string | null;
   avatarUrl: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -24,7 +25,7 @@ export class User {
   readonly id: string;
   readonly email: string;
   readonly username: string;
-  readonly passwordHash: string;
+  readonly passwordHash: string | null;
   readonly avatarUrl: string | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;

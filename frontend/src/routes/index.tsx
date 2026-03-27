@@ -52,7 +52,7 @@ function backendFilmToTMDbMovie(f: BackendFilm): TMDbMovie {
   };
 }
 
-function HomePage() {
+export function HomePage() {
   const { isAuthenticated } = useAuth();
   const { data: trending } = useQuery({
     queryKey: ['movies', 'trending'],
@@ -73,13 +73,13 @@ function HomePage() {
     queryKey: ['movies', 'top-rated'],
     queryFn: () => getTopRated(),
   });
-
-  const { data: recommendations, isLoading: recLoading } = useRecommendations(isAuthenticated);
   // Independent films
   const { data: independent } = useQuery({
     queryKey: ['movies', 'independent'],
     queryFn: () => getIndependentFilms(),
   });
+
+  const { data: recommendations, isLoading: recLoading } = useRecommendations(isAuthenticated);
 
   // Featured film (first trending)
   const featured = trending?.results[0];
@@ -89,10 +89,8 @@ function HomePage() {
     <div className="animate-fade-in">
       {/* Hero Section with Featured Film */}
       {featured && <HeroSection film={featured} />}
-
       {/* Welcome / CTA Section */}
       <WelcomeSection />
-
       {/* Content Sections */}
       <div className="mx-auto max-w-7xl space-y-16 px-4 py-12">
         {/* Recommended for you (authenticated only) */}
@@ -150,16 +148,15 @@ function HomePage() {
           linkSearch={{ view: 'popular', page: 1 }}
         />
 
-        {/* Independent Cinemas */}
+        {/* Independent / arthouse picks */}
         <FilmSection
-          title="Independent Cinemas"
+          title="Independent Productions"
           icon={<Clapperboard className="h-5 w-5 text-purple-400" />}
           films={independent?.results.slice(0, 10)}
           linkTo="/films"
           linkText="Discover more"
         />
       </div>
-
       {/* Bottom CTA */}
       <BottomCTA />
     </div>

@@ -8,7 +8,8 @@ import cors from 'cors';
 import express from 'express';
 import { rateLimit } from 'express-rate-limit';
 import helmet from 'helmet';
-
+import passport from 'passport';
+import session from 'express-session';
 import { setupSwagger } from './config/swagger.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
@@ -35,7 +36,7 @@ export function createApp() {
               'http://localhost:5173',
               'http://localhost:5174',
               'http://localhost:5175',
-              'http://localhost:3000',
+              'http://localhost:3001',
             ],
       credentials: true,
     })
@@ -107,6 +108,21 @@ export function createApp() {
     }
     res.redirect(302, `${frontendUrl}${req.originalUrl}`);
   });
+  app.use(
+    session({
+      secret: process.env.SESSION_SECRET || 'dev_secret_change_me',
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        sameSite: 'lax',
+      },
+    })
+  );
+
+  app.use(passport.initialize());
+  app.use(passport.session());
 
   // Error handling - must be last
   app.use(errorHandler);
