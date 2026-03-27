@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
-import { getMoviesByGenre, getGenres, GENRE_MAP } from '@/lib/api/tmdb';
+import { getMoviesByGenre, getGenres, GENRE_MAP, type TMDbMovie } from '@/lib/api/tmdb';
 import { FilmPoster } from '@/components/features/FilmPoster';
 
 export const Route = createFileRoute('/films/$categorie')({
@@ -14,7 +14,7 @@ export function FilmsCategoryPage() {
   const { categorie } = Route.useParams();
 
   const [page, setPage] = useState(1);
-  const [movies, setMovies] = useState<any[]>([]);
+  const [movies, setMovies] = useState<TMDbMovie[]>([]);
 
   // 🔹 Get genres
   const { data: genresData } = useQuery({

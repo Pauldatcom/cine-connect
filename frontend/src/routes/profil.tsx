@@ -376,7 +376,7 @@ function ProfileView() {
           </div>
 
           <div className="sm:ml-auto">
-            <Link to={'/settings' as any} className="btn-secondary inline-flex items-center gap-2">
+            <Link to="/settings" className="btn-secondary inline-flex items-center gap-2">
               <Settings className="h-4 w-4" />
               Settings
             </Link>
@@ -410,7 +410,7 @@ function ProfileView() {
         <div className="mb-4 flex items-center justify-between">
           <h2 className="section-header mb-0">Friends</h2>
           <Link
-            to={'/members' as any}
+            to="/members"
             className="text-letterboxd-green hover:text-letterboxd-green-dark text-sm font-medium"
           >
             Find members
@@ -437,8 +437,8 @@ function ProfileView() {
                       className="bg-bg-tertiary flex items-center justify-between gap-3 rounded-lg p-3"
                     >
                       <Link
-                        to={'/user/$id' as any}
-                        params={{ id: req.user.id } as any}
+                        to="/user/$id"
+                        params={{ id: req.user.id }}
                         className="flex min-w-0 flex-1 items-center gap-3"
                       >
                         <Avatar
@@ -495,8 +495,8 @@ function ProfileView() {
                       className="bg-bg-tertiary flex items-center justify-between gap-3 rounded-lg p-3"
                     >
                       <Link
-                        to={'/user/$id' as any}
-                        params={{ id: f.user.id } as any}
+                        to="/user/$id"
+                        params={{ id: f.user.id }}
                         className="flex min-w-0 flex-1 items-center gap-3"
                       >
                         <Avatar avatarUrl={f.user.avatarUrl} username={f.user.username} size="sm" />
@@ -521,7 +521,7 @@ function ProfileView() {
               ) : (
                 <p className="text-text-tertiary py-4 text-center text-sm">
                   No friends yet.{' '}
-                  <Link to={'/members' as any} className="text-letterboxd-green hover:underline">
+                  <Link to="/members" className="text-letterboxd-green hover:underline">
                     Find members
                   </Link>{' '}
                   to add.
