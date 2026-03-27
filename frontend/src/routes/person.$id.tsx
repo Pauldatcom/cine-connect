@@ -12,7 +12,7 @@ type CrewFilm = TMDbPersonMovieCredits['crew'][number];
 /**
  * Person detail page - Shows biography and filmography
  */
-export const Route = createFileRoute('/person/$id' as any)({
+export const Route = createFileRoute('/person/$id')({
   component: PersonDetailPage,
 });
 

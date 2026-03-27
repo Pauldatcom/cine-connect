@@ -11,7 +11,8 @@ export const Route = createFileRoute('/films/$categorie')({
   component: FilmsCategoryPage,
 });
 
-function FilmsCategoryPage() {
+/** Exported for unit tests; route registration uses this as `component`. */
+export function FilmsCategoryPage() {
   const { categorie } = Route.useParams();
 
   // Get all genres to find the matching one

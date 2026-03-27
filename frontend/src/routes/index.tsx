@@ -10,11 +10,21 @@ import {
   getPopular,
   getTopRated,
   getTrending,
+  getIndependentFilms,
   type TMDbMovie,
 } from '@/lib/api/tmdb';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { ArrowRight, Clock, Film, Sparkles, Star, TrendingUp, Users } from 'lucide-react'; // 2. Icône ajoutée
+import {
+  ArrowRight,
+  Clock,
+  Film,
+  Sparkles,
+  Star,
+  TrendingUp,
+  Users,
+  Clapperboard,
+} from 'lucide-react';
 
 /**
  * Home page - Letterboxd-inspired design with hero, sections, and film strip
@@ -65,6 +75,11 @@ function HomePage() {
   });
 
   const { data: recommendations, isLoading: recLoading } = useRecommendations(isAuthenticated);
+  // Independent films
+  const { data: independent } = useQuery({
+    queryKey: ['movies', 'independent'],
+    queryFn: () => getIndependentFilms(),
+  });
 
   // Featured film (first trending)
   const featured = trending?.results[0];
@@ -133,6 +148,15 @@ function HomePage() {
           linkTo="/films"
           linkText="What's playing"
           linkSearch={{ view: 'popular', page: 1 }}
+        />
+
+        {/* Independent Cinemas */}
+        <FilmSection
+          title="Independent Cinemas"
+          icon={<Clapperboard className="h-5 w-5 text-purple-400" />}
+          films={independent?.results.slice(0, 10)}
+          linkTo="/films"
+          linkText="Discover more"
         />
       </div>
 

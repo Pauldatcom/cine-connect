@@ -31,6 +31,7 @@ import {
   type TMDbPersonMovieCredits,
   type TMDbSearchResponse,
   type TMDbVideo,
+  // Type pour le retour du hook
 } from '@/lib/api/tmdb';
 import { useQuery } from '@tanstack/react-query';
 
