@@ -63,27 +63,6 @@ export async function getIndependentFilms(page = 1): Promise<TMDbSearchResponse>
   return response.json();
 }
 
-/**
- * Fetch independent/arthouse films
- * Filter: Recent releases with lower vote counts (excludes blockbusters)
- */
-export async function getIndependentFilms(page = 1): Promise<TMDbSearchResponse> {
-  const today = new Date().toISOString().split('T')[0];
-  const twoMonthsAgo = new Date();
-  twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
-  const formattedDate = twoMonthsAgo.toISOString().split('T')[0];
-
-  const response = await fetch(
-    `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&sort_by=release_date.desc&include_adult=false&include_video=false&page=${page}&release_date.gte=${formattedDate}&release_date.lte=${today}&vote_count.lte=100`
-  );
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch independent films');
-  }
-
-  return response.json();
-}
-
 // ============================================
 // Types
 // ============================================

@@ -80,11 +80,6 @@ export function HomePage() {
   });
 
   const { data: recommendations, isLoading: recLoading } = useRecommendations(isAuthenticated);
-  // Independent films
-  const { data: independent } = useQuery({
-    queryKey: ['movies', 'independent'],
-    queryFn: () => getIndependentFilms(),
-  });
 
   // Featured film (first trending)
   const featured = trending?.results[0];
@@ -152,21 +147,8 @@ export function HomePage() {
           linkText="What's playing"
           linkSearch={{ view: 'popular', page: 1 }}
         />
-<<<<<<< HEAD
 
-        {/* Independent Cinemas */}
-        <FilmSection
-          title="Independent Cinemas"
-          icon={<Clapperboard className="h-5 w-5 text-purple-400" />}
-          films={independent?.results.slice(0, 10)}
-          linkTo="/films"
-          linkText="Discover more"
-        />
-      </div>
-=======
->>>>>>> 55cfa29 (test(frontend): add route  tests)
-
-        {/* Independent Production */}
+        {/* Independent / arthouse picks */}
         <FilmSection
           title="Independent Productions"
           icon={<Clapperboard className="h-5 w-5 text-purple-400" />}
@@ -174,8 +156,7 @@ export function HomePage() {
           linkTo="/films"
           linkText="Discover more"
         />
-      </div>{' '}
-      {/* Fin de mx-auto max-w-7xl ... */}
+      </div>
       {/* Bottom CTA */}
       <BottomCTA />
     </div>
