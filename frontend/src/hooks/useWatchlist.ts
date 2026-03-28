@@ -43,7 +43,7 @@ export function useWatchlist() {
   return useQuery({
     queryKey: ['watchlist'],
     queryFn: async () => {
-      const response = await api.get<WatchlistResponse>('/watchlist');
+      const response = await api.get<WatchlistResponse>('/api/v1/watchlist');
       return response;
     },
   });
@@ -57,7 +57,7 @@ export function useIsInWatchlist(filmId: string | undefined) {
     queryKey: ['watchlist', 'check', filmId],
     queryFn: async () => {
       if (!filmId) return { isInWatchlist: false };
-      const response = await api.get<CheckWatchlistResponse>(`/watchlist/check/${filmId}`);
+      const response = await api.get<CheckWatchlistResponse>(`/api/v1/watchlist/check/${filmId}`);
       return response;
     },
     enabled: !!filmId,
@@ -72,7 +72,7 @@ export function useAddToWatchlist() {
 
   return useMutation({
     mutationFn: async (input: AddToWatchlistInput) => {
-      return api.post('/watchlist', input);
+      return api.post('/api/v1/watchlist', input);
     },
     onSuccess: (_data, variables) => {
       // Invalidate watchlist queries
@@ -93,7 +93,7 @@ export function useRemoveFromWatchlist() {
 
   return useMutation({
     mutationFn: async (filmId: string) => {
-      return api.delete(`/watchlist/${filmId}`);
+      return api.delete(`/api/v1/watchlist/${filmId}`);
     },
     onSuccess: (_data, filmId) => {
       // Invalidate watchlist queries

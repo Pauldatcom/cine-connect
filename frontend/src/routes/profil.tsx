@@ -124,7 +124,6 @@ function AuthForm() {
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const { login, register, isLoading, error, clearError } = useAuth();
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
 
   useEffect(() => {
     setMode(initialMode);

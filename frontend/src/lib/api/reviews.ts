@@ -82,7 +82,7 @@ export interface LikesResponse {
  * Create a new review
  */
 export async function createReview(input: CreateReviewInput): Promise<Review> {
-  return api.post<Review>('/reviews', input);
+  return api.post<Review>('/api/v1/reviews', input);
 }
 
 /**
@@ -94,42 +94,42 @@ export async function getFilmReviews(
   pageSize = 20
 ): Promise<PaginatedResponse<Review>> {
   const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
-  return api.get<PaginatedResponse<Review>>(`/reviews/film/${filmId}?${params}`);
+  return api.get<PaginatedResponse<Review>>(`/api/v1/reviews/film/${filmId}?${params}`);
 }
 
 /**
  * Get a single review by ID
  */
 export async function getReview(reviewId: string): Promise<Review> {
-  return api.get<Review>(`/reviews/${reviewId}`);
+  return api.get<Review>(`/api/v1/reviews/${reviewId}`);
 }
 
 /**
  * Get reviews by a user
  */
 export async function getUserReviews(userId: string): Promise<Review[]> {
-  return api.get<Review[]>(`/reviews/user/${userId}`);
+  return api.get<Review[]>(`/api/v1/reviews/user/${userId}`);
 }
 
 /**
  * Update a review
  */
 export async function updateReview(reviewId: string, input: UpdateReviewInput): Promise<Review> {
-  return api.patch<Review>(`/reviews/${reviewId}`, input);
+  return api.patch<Review>(`/api/v1/reviews/${reviewId}`, input);
 }
 
 /**
  * Delete a review
  */
 export async function deleteReview(reviewId: string): Promise<void> {
-  return api.delete<void>(`/reviews/${reviewId}`);
+  return api.delete<void>(`/api/v1/reviews/${reviewId}`);
 }
 
 /**
  * Toggle like on a review
  */
 export async function likeReview(reviewId: string): Promise<LikeResponse> {
-  return api.post<LikeResponse>(`/reviews/${reviewId}/like`);
+  return api.post<LikeResponse>(`/api/v1/reviews/${reviewId}/like`);
 }
 
 /**
@@ -137,14 +137,14 @@ export async function likeReview(reviewId: string): Promise<LikeResponse> {
  */
 export async function getReviewLikes(reviewId: string, limit = 10): Promise<LikesResponse> {
   const params = new URLSearchParams({ limit: String(limit) });
-  return api.get<LikesResponse>(`/reviews/${reviewId}/likes?${params}`);
+  return api.get<LikesResponse>(`/api/v1/reviews/${reviewId}/likes?${params}`);
 }
 
 /**
  * Add a comment to a review
  */
 export async function commentOnReview(reviewId: string, content: string): Promise<CommentResponse> {
-  return api.post<CommentResponse>(`/reviews/${reviewId}/comments`, { content });
+  return api.post<CommentResponse>(`/api/v1/reviews/${reviewId}/comments`, { content });
 }
 
 /**
@@ -156,14 +156,16 @@ export async function getReviewComments(
   pageSize = 20
 ): Promise<PaginatedResponse<ReviewComment>> {
   const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
-  return api.get<PaginatedResponse<ReviewComment>>(`/reviews/${reviewId}/comments?${params}`);
+  return api.get<PaginatedResponse<ReviewComment>>(
+    `/api/v1/reviews/${reviewId}/comments?${params}`
+  );
 }
 
 /**
  * Delete a comment
  */
 export async function deleteComment(reviewId: string, commentId: string): Promise<void> {
-  return api.delete<void>(`/reviews/${reviewId}/comments/${commentId}`);
+  return api.delete<void>(`/api/v1/reviews/${reviewId}/comments/${commentId}`);
 }
 
 export const reviewsApi = {
