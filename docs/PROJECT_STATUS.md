@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: December 24, 2024
+Last updated: March 2026
 
 ---
 
@@ -26,46 +26,56 @@ Last updated: December 24, 2024
 | Express setup   | ✅ Done | CORS, JSON parsing, error handling |
 | Drizzle ORM     | ✅ Done | 6 tables with relations            |
 | JWT auth        | ✅ Done | Access + refresh tokens            |
+| Google OAuth    | ✅ Done | Passport.js + Google strategy      |
 | Error handling  | ✅ Done | Centralized middleware             |
 | Request logging | ✅ Done | Dev-friendly logs                  |
 | Swagger docs    | ✅ Done | /api-docs endpoint                 |
-| Auth routes     | ✅ Done | Register, login, refresh           |
+| Auth routes     | ✅ Done | Register, login, refresh, Google   |
 | User routes     | ✅ Done | CRUD + profile                     |
-| Film routes     | ✅ Done | List, detail, by IMDb ID           |
+| Film routes     | ✅ Done | List, detail, by TMDb ID           |
 | Review routes   | ✅ Done | CRUD with user/film relations      |
 | Message routes  | ✅ Done | Send, list conversations           |
 | Friend routes   | ✅ Done | Request, accept, reject, list      |
-| Socket.io       | ✅ Done | Real-time events ready             |
+| Socket.io       | ✅ Done | Real-time events, auth middleware  |
 | Test coverage   | ✅ Done | 100% coverage                      |
 
 ---
 
-## Frontend 🔄 ~85%
+## Frontend ✅ ~95%
 
-| Feature             | Status     | Notes                         |
-| ------------------- | ---------- | ----------------------------- |
-| TanStack Router     | ✅ Done    | 6 routes + file-based routing |
-| TanStack Query      | ✅ Done    | Caching, refetch, devtools    |
-| TMDb Integration    | ✅ Done    | Movies, search, categories    |
-| Letterboxd theme    | ✅ Done    | Dark mode default             |
-| Navbar              | ✅ Done    | With auth state               |
-| Footer              | ✅ Done    |                               |
-| Film components     | ✅ Done    | Poster, Card, Strip, Rating   |
-| Filter Panel        | ✅ Done    | Genre, year, rating filters   |
-| Review Card         | ✅ Done    |                               |
-| Home Page           | ✅ Done    | Hero + trending films         |
-| Films List          | ✅ Done    | Grid with filters             |
-| Film Detail         | ✅ Done    | Full info + reviews           |
-| Category Filter     | ✅ Done    | /films/:categorie             |
-| **Auth Context**    | ✅ Done    | JWT token management          |
-| **API Client**      | ✅ Done    | Fetch wrapper with auth       |
-| **Login/Register**  | ✅ Done    | Forms on /profil              |
-| **ProtectedRoute**  | ✅ Done    | Redirect if not auth          |
-| Lists Page          | ⚠️ Partial | UI exists, not connected      |
-| Profile (logged in) | ⚠️ Partial | Shows form, needs user data   |
-| Discussion/Chat     | ❌ TODO    | Needs Socket.io integration   |
-| Light mode toggle   | ❌ TODO    | Optional                      |
-| Test coverage       | ✅ Done    | 100% coverage                 |
+| Feature               | Status     | Notes                                     |
+| --------------------- | ---------- | ----------------------------------------- |
+| TanStack Router       | ✅ Done    | 18 routes — file-based routing            |
+| TanStack Query        | ✅ Done    | Caching, refetch, devtools                |
+| TMDb Integration      | ✅ Done    | Movies, search, categories                |
+| Letterboxd theme      | ✅ Done    | Dark mode default                         |
+| Navbar                | ✅ Done    | Auth state, Google avatar                 |
+| Footer                | ✅ Done    | All links functional                      |
+| Film components       | ✅ Done    | Poster, Card, Strip, Rating               |
+| Filter Panel          | ✅ Done    | Genre, year, rating filters               |
+| Review Card           | ✅ Done    |                                           |
+| Home Page             | ✅ Done    | Hero + trending films                     |
+| Films List            | ✅ Done    | Grid with filters                         |
+| Film Detail           | ✅ Done    | Full info + reviews + share button        |
+| Category Filter       | ✅ Done    | /films/:categorie                         |
+| Auth Context          | ✅ Done    | JWT token management                      |
+| API Client            | ✅ Done    | Fetch wrapper with auth, correct base URL |
+| Login / Register      | ✅ Done    | Forms on /profil                          |
+| Google OAuth callback | ✅ Done    | /auth/callback — token storage + redirect |
+| Profile page          | ✅ Done    | Reviews, watchlist, friends, stats        |
+| Person detail page    | ✅ Done    | Bio, filmography, "Show more" pagination  |
+| About page            | ✅ Done    | Team, tech stack, features                |
+| Help page             | ✅ Done    | FAQ accordion                             |
+| API docs page         | ✅ Done    | Endpoint list + Swagger link              |
+| Contact page          | ✅ Done    | Form with mailto fallback                 |
+| Terms of Use          | ✅ Done    | Legal content                             |
+| Privacy Policy        | ✅ Done    | GDPR-style content                        |
+| Cookie Policy         | ✅ Done    | Cookie table + management info            |
+| Socket.io connection  | ✅ Done    | Fixed namespace — connects to origin only |
+| Lists Page            | ⚠️ Partial | UI exists, watchlist connected            |
+| Discussion / Chat     | ⚠️ Partial | Socket.io ready, UI in progress           |
+| Light mode toggle     | ❌ TODO    | Optional                                  |
+| Test coverage         | ✅ Done    | Unit + E2E                                |
 
 ---
 
@@ -78,8 +88,6 @@ users ──┬── reviews ──── films ──── film_categories �
 ```
 
 6 tables defined in `backend/src/db/schema/index.ts`
-
-**Note:** Migrations not yet generated. Run `pnpm db:generate` then `pnpm db:migrate`.
 
 ---
 
@@ -99,10 +107,9 @@ users ──┬── reviews ──── films ──── film_categories �
 - `socket/index.test.ts`
 - `config/env.test.ts`
 
-### Frontend (16 test files)
+### Frontend (unit — 16 test files)
 
 - `components/FilmPoster.test.tsx`
-- `components/ProtectedRoute.test.tsx`
 - `components/layout/Navbar.test.tsx`
 - `components/layout/Footer.test.tsx`
 - `components/ui/StarRating.test.tsx`
@@ -114,46 +121,57 @@ users ──┬── reviews ──── films ──── film_categories �
 - `lib/api/tmdb.test.ts`
 - `lib/api/client.test.ts`
 - `lib/api/auth.test.ts`
-- `lib/utils.test.ts`
-- `__tests__/routes/profil.test.tsx`
+- `lib/api/films.test.ts`
+- `lib/api/friends.test.ts`
+- `lib/api/reviews.test.ts`
+- `routes/profil.test.tsx`
+
+### E2E — Playwright (10 spec files)
+
+| File                          | Coverage                                                                |
+| ----------------------------- | ----------------------------------------------------------------------- |
+| `auth.spec.ts`                | Register, login, logout, session persistence                            |
+| `films.spec.ts`               | Browse, search, detail, watchlist toggle                                |
+| `reviews.spec.ts`             | Create, edit, delete, like reviews                                      |
+| `settings.spec.ts`            | Update profile, change password                                         |
+| `user-profile.spec.ts`        | Profile data — reviews, watchlist, stats                                |
+| `user-public-profile.spec.ts` | Public profile view, friend request                                     |
+| `user-journey.spec.ts`        | Full user journey end-to-end                                            |
+| `chat.spec.ts`                | Send messages, conversations                                            |
+| `static-pages.spec.ts`        | About, Help, API docs, Contact, Terms, Privacy, Cookies, /auth/callback |
+| `person.spec.ts`              | Person detail, filmography, "Show more" pagination                      |
+
+---
+
+## Bug Fixes Applied
+
+| Bug                                             | Fix                                                                                                                                    |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `z is not defined` on `/profil`                 | Added `import { z } from 'zod'` (later replaced with plain function)                                                                   |
+| `search` prop required on `<Link to="/profil">` | Made `mode` optional in `validateSearch` return type                                                                                   |
+| `/api/v1/api/v1/...` doubled URLs               | Removed `/api/v1` prefix from all endpoint strings in `films.ts`, `reviews.ts`, `friends.ts`, `useWatchlist.ts`, `useConversations.ts` |
+| Socket.io `Invalid namespace` error             | Strip path from `VITE_API_URL` using `new URL(rawUrl).origin` before connecting                                                        |
+| Google avatar not displaying in navbar          | Added `referrerPolicy="no-referrer"` to `<img>`                                                                                        |
+| `/auth/callback` showing placeholder            | Implemented token extraction, storage, and redirect                                                                                    |
 
 ---
 
 ## Remaining Work
 
-### Priority 1 (MVP) 🔥
+### Priority 1 🔥
 
-| Task                     | Effort | Description                                        |
-| ------------------------ | ------ | -------------------------------------------------- |
-| Discussion page          | Medium | Real-time chat UI using existing Socket.io backend |
-| Profile page (logged in) | Low    | Show user reviews, friends, stats                  |
-| Wire frontend to backend | Medium | Connect reviews, friends, messages APIs            |
+| Task              | Effort | Description                                     |
+| ----------------- | ------ | ----------------------------------------------- |
+| Discussion page   | Medium | Complete chat UI using existing Socket.io setup |
+| Light mode toggle | Low    | Theme switcher in Navbar                        |
 
-### Priority 2 (Nice to have)
-
-| Task                | Effort | Description                   |
-| ------------------- | ------ | ----------------------------- |
-| Light mode toggle   | Low    | Theme switcher in Navbar      |
-| Search results page | Low    | Show search results in a page |
-| Watchlist feature   | Medium | Save films to watch later     |
-
-### Priority 3 (Polish)
+### Priority 2
 
 | Task              | Effort | Description             |
 | ----------------- | ------ | ----------------------- |
 | Loading skeletons | Low    | Better loading states   |
 | Error boundaries  | Low    | Graceful error handling |
-| E2E tests         | Medium | Playwright or Cypress   |
-
----
-
-## Technical Debt
-
-| Issue            | Priority | Notes                    |
-| ---------------- | -------- | ------------------------ |
-| No rate limiting | High     | Add express-rate-limit   |
-| No E2E tests     | Medium   | Playwright recommended   |
-| No service layer | Low      | Routes do too much logic |
+| Final report      | Medium | 2-3 pages PDF           |
 
 ---
 
@@ -161,11 +179,11 @@ users ──┬── reviews ──── films ──── film_categories �
 
 ### React Module (25 pts)
 
-- [x] TanStack Router with 6 routes
+- [x] TanStack Router with 18 routes
 - [x] TanStack Query for API calls
 - [x] Film cards, navigation, filters
 - [x] Clean component structure
-- [x] 100% test coverage
+- [x] Unit + E2E test coverage
 
 ### UI Module (10 pts)
 
@@ -179,13 +197,13 @@ users ──┬── reviews ──── films ──── film_categories �
 
 - [x] PostgreSQL with Docker
 - [x] Drizzle schema with relations
-- [ ] Migrations generated
 - [x] All 6 tables defined
 
 ### Backend Module (35 pts)
 
 - [x] Express REST API
 - [x] JWT auth (register/login/refresh)
+- [x] Google OAuth (Passport.js)
 - [x] Socket.io for chat
 - [x] Swagger documentation
 - [x] 100% test coverage
@@ -207,10 +225,7 @@ users ──┬── reviews ──── films ──── film_categories �
 
 ## Next Steps
 
-1. ⬜ Generate and run database migrations
-2. ⬜ Implement Discussion page (chat UI)
-3. ⬜ Complete Profile page for logged-in users
-4. ⬜ Wire frontend components to backend APIs
-5. ⬜ Add light mode toggle
-6. ⬜ Write final report
-7. ⬜ Deploy MVP
+1. ⬜ Complete Discussion / Chat UI
+2. ⬜ Add light mode toggle
+3. ⬜ Write final report
+4. ⬜ Deploy MVP
