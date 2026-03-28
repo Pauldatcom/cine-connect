@@ -31,12 +31,12 @@ export interface PublicUser {
 
 /** GET /friends - list accepted friends */
 export async function getFriends(): Promise<FriendWithUser[]> {
-  return api.get<FriendWithUser[]>('/friends');
+  return api.get<FriendWithUser[]>('/api/v1/friends');
 }
 
 /** GET /friends/requests - list pending requests (received) */
 export async function getPendingRequests(): Promise<PendingRequest[]> {
-  return api.get<PendingRequest[]>('/friends/requests');
+  return api.get<PendingRequest[]>('/api/v1/friends/requests');
 }
 
 /** POST /friends/request - send friend request by userId or username */
@@ -44,7 +44,7 @@ export async function sendFriendRequest(body: {
   userId?: string;
   username?: string;
 }): Promise<void> {
-  await api.post('/friends/request', body);
+  await api.post('/api/v1/friends/request', body);
 }
 
 /** PATCH /friends/requests/:id - accept or decline a request */
@@ -52,17 +52,17 @@ export async function respondToFriendRequest(
   requestId: string,
   accept: boolean
 ): Promise<{ id: string; status: string }> {
-  return api.patch<{ id: string; status: string }>(`/friends/requests/${requestId}`, {
+  return api.patch<{ id: string; status: string }>(`/api/v1/friends/requests/${requestId}`, {
     accept,
   });
 }
 
 /** DELETE /friends/:id - remove a friend (friendship id) */
 export async function removeFriend(friendshipId: string): Promise<void> {
-  await api.delete(`/friends/${friendshipId}`);
+  await api.delete(`/api/v1/friends/${friendshipId}`);
 }
 
 /** GET /users/:id - get public user profile (for viewing a member) */
 export async function getUserById(id: string): Promise<PublicUser> {
-  return api.get<PublicUser>(`/users/${id}`);
+  return api.get<PublicUser>(`/api/v1/users/${id}`);
 }

@@ -311,7 +311,11 @@ export function FilmDetailPage() {
                 />
               </div>
 
-              <button className="btn-ghost mx-auto mt-4 w-full max-w-[288px] justify-center lg:mx-0">
+              <button
+                type="button"
+                className="btn-ghost mx-auto mt-4 w-full max-w-[288px] justify-center lg:mx-0"
+                onClick={() => void handleShare(film.title)}
+              >
                 <Share2 className="h-4 w-4" />
                 {shareCopied ? 'Link copied!' : 'Share'}
               </button>

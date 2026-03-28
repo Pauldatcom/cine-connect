@@ -51,7 +51,7 @@ export function useConversations() {
   return useQuery({
     queryKey: ['conversations'],
     queryFn: async () => {
-      const data = await api.get<Conversation[]>('/messages');
+      const data = await api.get<Conversation[]>('/api/v1/messages');
       return data ?? [];
     },
   });
@@ -65,7 +65,7 @@ export function useMessages(userId: string | undefined) {
     queryKey: ['messages', userId],
     queryFn: async () => {
       if (!userId) throw new Error('userId is required');
-      const response = await api.get<MessagesListData>(`/messages/${userId}`);
+      const response = await api.get<MessagesListData>(`/api/v1/messages/${userId}`);
       return response.items;
     },
     enabled: !!userId,
@@ -81,7 +81,7 @@ export function useSendMessage() {
 
   return useMutation({
     mutationFn: async (input: SendMessageInput) => {
-      return api.post<ChatMessage>('/messages', input);
+      return api.post<ChatMessage>('/api/v1/messages', input);
     },
     onSuccess: (_, { receiverId }) => {
       // Invalidate messages with this user and conversations list
@@ -99,7 +99,7 @@ export function useMarkMessagesRead() {
 
   return useMutation({
     mutationFn: async (userId: string) => {
-      return api.patch<void>(`/messages/${userId}/read`);
+      return api.patch<void>(`/api/v1/messages/${userId}/read`);
     },
     onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: ['messages', userId] });
