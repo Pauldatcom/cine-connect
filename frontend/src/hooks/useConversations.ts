@@ -31,7 +31,7 @@ export interface Conversation {
   unreadCount: number;
 }
 
-// Backend GET /api/v1/messages/:userId returns { success, data: { items, page, pageSize } }
+// Backend GET /messages/:userId returns { success, data: { items, page, pageSize } }
 // API client returns data.data, so we get { items, page, pageSize }
 interface MessagesListData {
   items: ChatMessage[];

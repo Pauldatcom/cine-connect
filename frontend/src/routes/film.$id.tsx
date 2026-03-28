@@ -38,7 +38,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 type TabId = 'cast' | 'crew' | 'details' | 'genres' | 'releases';
 
@@ -55,6 +55,22 @@ export function FilmDetailPage() {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [showTrailer, setShowTrailer] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
+
+  const handleShare = useCallback(async (title: string) => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, url });
+      } catch {
+        // user cancelled — do nothing
+      }
+    } else {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    }
+  }, []);
 
   const { data: film, isLoading, error } = useFilm(id);
   const { data: credits } = useFilmCredits(id, !!film);
@@ -295,9 +311,13 @@ export function FilmDetailPage() {
                 />
               </div>
 
-              <button className="btn-ghost mx-auto mt-4 w-full max-w-[288px] justify-center lg:mx-0">
+              <button
+                type="button"
+                className="btn-ghost mx-auto mt-4 w-full max-w-[288px] justify-center lg:mx-0"
+                onClick={() => void handleShare(film.title)}
+              >
                 <Share2 className="h-4 w-4" />
-                Share
+                {shareCopied ? 'Link copied!' : 'Share'}
               </button>
             </div>
 

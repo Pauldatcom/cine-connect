@@ -76,9 +76,11 @@ export function SocketProvider({ children }: SocketProviderProps) {
     const token = tokenStorage.getAccessToken();
     if (!token) return;
 
-    // Create socket connection
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-    const newSocket = io(apiUrl, {
+    // Create socket connection — use only the origin, not the /api/v1 path
+    // (socket.io-client interprets any path as a namespace)
+    const rawUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    const socketUrl = new URL(rawUrl).origin;
+    const newSocket = io(socketUrl, {
       auth: { token },
       transports: ['websocket', 'polling'],
       autoConnect: true,
