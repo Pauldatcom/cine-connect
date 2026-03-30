@@ -1,0 +1,38 @@
+# Cloud Build — monorepo backend image (backend/Dockerfile from repo root).
+#
+# Environment (dev vs prod) is NOT automatic: set _DEPLOY_ENV per trigger or manual submit.
+# Images are tagged: backend:{_DEPLOY_ENV}-{SHORT_SHA} and backend:{_DEPLOY_ENV}-latest
+#
+# Suggested GCP triggers (GitHub):
+#   1) Tag pattern dev/*     → substitutions _DEPLOY_ENV=dev
+#   2) Tag pattern v*        → substitutions _DEPLOY_ENV=prod
+#
+# Or branch develop → dev, branch main → prod (each trigger sets _DEPLOY_ENV).
+#
+# Artifact Registry (once): europe-west1, repo name _AR_REPO (default cine-connect)
+
+substitutions:
+  _REGION: europe-west1
+  _AR_REPO: cine-connect
+  # dev | prod — must match your Cloud Run service / secrets target
+  _DEPLOY_ENV: prod
+
+steps:
+  - id: build-backend
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - backend/Dockerfile
+      - -t
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/backend:${_DEPLOY_ENV}-${SHORT_SHA}
+      - -t
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/backend:${_DEPLOY_ENV}-latest
+      - .
+
+images:
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/backend:${_DEPLOY_ENV}-${SHORT_SHA}
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/backend:${_DEPLOY_ENV}-latest
+
+options:
+  logging: CLOUD_LOGGING_ONLY
