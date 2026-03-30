@@ -19,17 +19,20 @@ COPY tsconfig.base.json ./
 RUN pnpm --filter @cine-connect/shared build && pnpm --filter @cine-connect/backend build
 
 # Production image
+# pnpm keeps backend deps under backend/node_modules (symlinks into root .pnpm). Running from /app
+# with only root node_modules breaks ESM resolution (e.g. reflect-metadata). Mirror the monorepo
+# layout: /app/node_modules + /app/backend/{dist,node_modules,package.json} + /app/shared.
 FROM node:20-alpine
 
-WORKDIR /app
+WORKDIR /app/backend
 
 ENV NODE_ENV=production
 
-# Copy root node_modules (pnpm hoists; @cine-connect/shared may be symlinked)
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/shared ./shared
+COPY --from=builder /app/node_modules /app/node_modules
+COPY --from=builder /app/backend/node_modules ./node_modules
 COPY --from=builder /app/backend/dist ./dist
 COPY --from=builder /app/backend/package.json ./
+COPY --from=builder /app/shared /app/shared
 
 EXPOSE 3000
 
