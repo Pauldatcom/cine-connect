@@ -9,7 +9,6 @@ export interface UserProps {
   username: string;
   /** Null for OAuth-only accounts (no local password). */
   passwordHash: string | null;
-  passwordHash: string;
   /** Server-only: invalidates JWT refresh tokens issued before this instant. */
   passwordChangedAt: Date;
   avatarUrl: string | null;

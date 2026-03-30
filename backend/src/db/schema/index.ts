@@ -16,7 +16,8 @@ export const users = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     email: varchar('email', { length: 255 }).notNull().unique(),
     username: varchar('username', { length: 50 }).notNull().unique(),
-    passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+    /** Null for OAuth-only users (Google); local users always have a bcrypt hash. */
+    passwordHash: varchar('password_hash', { length: 255 }),
     /** When the password was last set; refresh tokens issued before this are rejected (session invalidation). */
     passwordChangedAt: timestamp('password_changed_at').defaultNow().notNull(),
     avatarUrl: text('avatar_url'),
