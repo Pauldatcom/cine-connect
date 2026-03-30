@@ -21,6 +21,7 @@ import { recommendationsRouter } from './routes/recommendations.js';
 import { reviewsRouter } from './routes/reviews.js';
 import { usersRouter } from './routes/users.js';
 import { watchlistRouter } from './routes/watchlist.js';
+import { tmdbProxyRouter } from './routes/tmdbProxy.js';
 
 export function createApp() {
   const app = express();
@@ -84,6 +85,8 @@ export function createApp() {
     skip: skipRateLimit,
   });
   apiRouter.use('/auth', authLimiter, authRouter);
+  /** TMDb read proxy — key stays on the server */
+  apiRouter.use('/tmdb', tmdbProxyRouter);
   apiRouter.use('/users', usersRouter);
   apiRouter.use('/films', filmsRouter);
   apiRouter.use('/friends', friendsRouter);
