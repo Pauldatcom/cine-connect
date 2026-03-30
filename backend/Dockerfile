@@ -13,6 +13,8 @@ RUN corepack enable pnpm && pnpm install --frozen-lockfile
 
 COPY shared ./shared
 COPY backend ./backend
+# Monorepo root config (shared/tsconfig.json and backend/tsconfig.json extend ../tsconfig.base.json)
+COPY tsconfig.base.json ./
 
 RUN pnpm --filter @cine-connect/shared build && pnpm --filter @cine-connect/backend build
 
