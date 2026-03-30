@@ -1,9 +1,9 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
-import { db } from '@/db';
-import { users } from '@/db/schema';
+import { db } from '../../db/index.js';
+import { users } from '../../db/schema/index.js';
 import { eq } from 'drizzle-orm';
-import { logger } from '@/lib/logger';
+import { logger } from '../../lib/logger.js';
 
 /** True when Google OAuth env vars are all set; strategy is only registered then. */
 export const isGoogleOAuthConfigured = (() => {

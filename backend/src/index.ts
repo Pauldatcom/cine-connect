@@ -6,7 +6,7 @@
 // IMPORTANT: reflect-metadata must be imported before anything that uses decorators
 import 'reflect-metadata';
 import 'dotenv/config';
-import '@/infrastructure/auth/passport';
+import './infrastructure/auth/passport.js';
 
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
