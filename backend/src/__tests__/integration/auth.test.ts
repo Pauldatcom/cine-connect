@@ -21,6 +21,7 @@ vi.mock('@/db/index.js', () => ({
     },
     insert: vi.fn(),
     update: vi.fn(),
+    delete: vi.fn(),
   },
   schema: {
     users: {
@@ -28,6 +29,7 @@ vi.mock('@/db/index.js', () => ({
       email: 'email',
       username: 'username',
       passwordHash: 'passwordHash',
+      passwordChangedAt: 'passwordChangedAt',
       avatarUrl: 'avatarUrl',
       createdAt: 'createdAt',
       updatedAt: 'updatedAt',
@@ -53,6 +55,7 @@ describe('Auth Routes', () => {
     email: 'test@example.com',
     username: 'testuser',
     passwordHash: '', // Will be set in beforeEach
+    passwordChangedAt: new Date('2020-01-01T00:00:00.000Z'),
     avatarUrl: null,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -62,6 +65,34 @@ describe('Auth Routes', () => {
     vi.clearAllMocks();
     // Pre-hash a password for login tests
     mockUser.passwordHash = await bcrypt.hash('password123', 12);
+
+    // Default insert: supports `.values().returning()` (register)
+    (db.insert as Mock).mockImplementation(() => {
+      const builder = {
+        values: vi.fn(),
+        returning: vi.fn().mockResolvedValue([
+          {
+            id: 'new-user-id',
+            email: 'newuser@example.com',
+            username: 'newuser',
+            passwordHash: 'mock_hash_password123',
+            passwordChangedAt: new Date(),
+            avatarUrl: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ]),
+        then(onF?: (v: unknown) => unknown, onR?: (e: unknown) => unknown) {
+          return Promise.resolve(undefined).then(onF, onR);
+        },
+      };
+      builder.values.mockImplementation(() => builder);
+      return builder;
+    });
+
+    (db.delete as Mock).mockImplementation(() => ({
+      where: vi.fn().mockResolvedValue({ rowCount: 1 }),
+    }));
   });
 
   describe('POST /api/v1/auth/register', () => {
@@ -78,6 +109,7 @@ describe('Auth Routes', () => {
               email: 'newuser@example.com',
               username: 'newuser',
               passwordHash: 'mock_hash_password123',
+              passwordChangedAt: new Date(),
               avatarUrl: null,
               createdAt: new Date(),
               updatedAt: new Date(),

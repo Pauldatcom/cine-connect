@@ -9,6 +9,8 @@ export interface UserProps {
   username: string;
   /** Null for OAuth-only accounts (no local password). */
   passwordHash: string | null;
+  /** Server-only: invalidates JWT refresh tokens issued before this instant. */
+  passwordChangedAt: Date;
   avatarUrl: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -19,6 +21,8 @@ export interface CreateUserProps {
   username: string;
   passwordHash: string;
   avatarUrl?: string | null;
+  /** Set on password / credential changes; omit on register to use DB default. */
+  passwordChangedAt?: Date;
 }
 
 export class User {
@@ -26,6 +30,7 @@ export class User {
   readonly email: string;
   readonly username: string;
   readonly passwordHash: string | null;
+  readonly passwordChangedAt: Date;
   readonly avatarUrl: string | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
@@ -35,6 +40,7 @@ export class User {
     this.email = props.email;
     this.username = props.username;
     this.passwordHash = props.passwordHash;
+    this.passwordChangedAt = props.passwordChangedAt;
     this.avatarUrl = props.avatarUrl;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
@@ -43,7 +49,7 @@ export class User {
   /**
    * Returns a public-safe representation (no password hash)
    */
-  toPublic(): Omit<UserProps, 'passwordHash'> {
+  toPublic(): Omit<UserProps, 'passwordHash' | 'passwordChangedAt'> {
     return {
       id: this.id,
       email: this.email,

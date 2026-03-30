@@ -10,6 +10,8 @@ import {
   logout,
   refreshToken,
   register,
+  requestPasswordReset,
+  resetPassword,
 } from '@/lib/api/auth';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -97,6 +99,42 @@ describe('Auth API', () => {
     });
   });
 
+  describe('requestPasswordReset', () => {
+    it('calls forgot-password with skipAuth', async () => {
+      mockApi.post.mockResolvedValueOnce({ message: 'If an account exists…' });
+      const result = await requestPasswordReset('a@b.com');
+      expect(mockApi.post).toHaveBeenCalledWith(
+        '/api/v1/auth/forgot-password',
+        { email: 'a@b.com' },
+        { skipAuth: true }
+      );
+      expect(result).toEqual({ message: 'If an account exists…' });
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('calls reset-password with skipAuth and token when provided', async () => {
+      mockApi.post.mockResolvedValueOnce({ message: 'Password updated.' });
+      const result = await resetPassword({ token: 'tok', newPassword: 'newpass123' });
+      expect(mockApi.post).toHaveBeenCalledWith(
+        '/api/v1/auth/reset-password',
+        { token: 'tok', newPassword: 'newpass123' },
+        { skipAuth: true }
+      );
+      expect(result).toEqual({ message: 'Password updated.' });
+    });
+
+    it('omits token in body when using cookie-only flow', async () => {
+      mockApi.post.mockResolvedValueOnce({ message: 'Password updated.' });
+      await resetPassword({ newPassword: 'newpass123' });
+      expect(mockApi.post).toHaveBeenCalledWith(
+        '/api/v1/auth/reset-password',
+        { newPassword: 'newpass123' },
+        { skipAuth: true }
+      );
+    });
+  });
+
   describe('logout', () => {
     it('clears stored tokens', async () => {
       mockApi.post.mockResolvedValueOnce(undefined);
@@ -166,6 +204,8 @@ describe('Auth API', () => {
     it('exports all auth functions', () => {
       expect(authApi.register).toBe(register);
       expect(authApi.login).toBe(login);
+      expect(authApi.requestPasswordReset).toBe(requestPasswordReset);
+      expect(authApi.resetPassword).toBe(resetPassword);
       expect(authApi.logout).toBe(logout);
       expect(authApi.getCurrentUser).toBe(getCurrentUser);
       expect(authApi.isAuthenticated).toBe(isAuthenticated);

@@ -51,6 +51,9 @@ export class DrizzleUserRepository implements IUserRepository {
         username: data.username,
         passwordHash: data.passwordHash,
         avatarUrl: data.avatarUrl ?? null,
+        ...(data.passwordChangedAt !== undefined
+          ? { passwordChangedAt: data.passwordChangedAt }
+          : {}),
       })
       .returning();
 
@@ -88,6 +91,7 @@ export class DrizzleUserRepository implements IUserRepository {
       email: row.email,
       username: row.username,
       passwordHash: row.passwordHash,
+      passwordChangedAt: row.passwordChangedAt,
       avatarUrl: row.avatarUrl,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
