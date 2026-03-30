@@ -3,5 +3,6 @@
  * Contains types, constants, and utilities shared between frontend and backend
  */
 
-export * from './types';
-export * from './constants';
+// Use explicit /index.js paths — Node ESM does not resolve directory imports like `./types`.
+export * from './types/index.js';
+export * from './constants/index.js';
