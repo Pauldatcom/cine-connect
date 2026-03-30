@@ -34,6 +34,9 @@ COPY --from=builder /app/backend/dist ./dist
 COPY --from=builder /app/backend/package.json ./
 COPY --from=builder /app/shared /app/shared
 
-EXPOSE 3000
+# Cloud Run sets PORT=8080; app uses process.env.PORT
+EXPOSE 8080
 
-CMD ["node", "dist/index.js"]
+# Absolute path so a stale Cloud Run "command" like `node /app/dist/index.js` is not required.
+# If the UI overrides the container command, clear it — image CMD must run this file.
+CMD ["node", "/app/backend/dist/index.js"]
