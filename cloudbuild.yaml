@@ -1,21 +1,19 @@
 # Cloud Build — monorepo backend image (backend/Dockerfile from repo root).
 #
-# Environment (dev vs prod) is NOT automatic: set _DEPLOY_ENV per trigger or manual submit.
-# Images are tagged: backend:{_DEPLOY_ENV}-{SHORT_SHA} and backend:{_DEPLOY_ENV}-latest
+# Environment (dev vs prod): set _DEPLOY_ENV per trigger (e.g. tag v* → prod, dev/* → dev).
+# Images: backend:{_DEPLOY_ENV}-{SHORT_SHA} and backend:{_DEPLOY_ENV}-latest
 #
-# Suggested GCP triggers (GitHub):
-#   1) Tag pattern dev/*     → substitutions _DEPLOY_ENV=dev
-#   2) Tag pattern v*        → substitutions _DEPLOY_ENV=prod
+# After push, deploys to Cloud Run (same pipeline). IAM required on Cloud Build SA:
+#   - roles/run.admin (or run.developer + deployer role as per GCP docs)
+#   - roles/iam.serviceAccountUser on the Cloud Run runtime service account
 #
-# Or branch develop → dev, branch main → prod (each trigger sets _DEPLOY_ENV).
-#
-# Artifact Registry: use _REGION + _AR_REPO. (europe-west1 failed create/push for this project;
-# europe-west4 + repo cine-connect-ar works — adjust trigger substitutions if you override these.)
+# Trigger substitutions: override _CLOUD_RUN_SERVICE for dev vs prod services if needed.
 
 substitutions:
   _REGION: europe-west4
   _AR_REPO: cine-connect-ar
-  # dev | prod — must match your Cloud Run service / secrets target
+  _CLOUD_RUN_SERVICE: backend
+  # dev | prod — must match your trigger (prod for v*, dev for dev/*)
   _DEPLOY_ENV: prod
 
 steps:
@@ -31,9 +29,29 @@ steps:
       - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/backend:${_DEPLOY_ENV}-latest
       - .
 
-images:
-  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/backend:${_DEPLOY_ENV}-${SHORT_SHA}
-  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/backend:${_DEPLOY_ENV}-latest
+  # Push before deploy — the old `images:` field runs only after ALL steps, so deploy would run too soon.
+  - id: push-revision-tag
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/backend:${_DEPLOY_ENV}-${SHORT_SHA}
+
+  - id: push-latest-tag
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/backend:${_DEPLOY_ENV}-latest
+
+  - id: deploy-cloud-run
+    name: gcr.io/cloud-builders/gcloud
+    args:
+      - run
+      - deploy
+      - ${_CLOUD_RUN_SERVICE}
+      - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/backend:${_DEPLOY_ENV}-${SHORT_SHA}
+      - --region=${_REGION}
+      - --platform=managed
+      - --quiet
 
 options:
   logging: CLOUD_LOGGING_ONLY
