@@ -1,13 +1,17 @@
 /**
- * TMDb (The Movie Database) API Client
- *
- * Get your free API key at: https://www.themoviedb.org/settings/api
- * TMDb is what Letterboxd uses for their film data.
+ * TMDb (The Movie Database) — client calls our backend proxy (`/api/v1/tmdb/...`).
+ * The API key lives only on the server (see `backend/src/routes/tmdbProxy.ts`).
+ * Images still load directly from image.tmdb.org (no key).
  */
 
-const TMDB_API_KEY = import.meta.env.VITE_TMDB_API_KEY || '';
-const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+import { apiV1AbsoluteUrl } from './client.js';
+
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p';
+
+/** Base URL for proxied TMDb v3 paths, e.g. .../api/v1/tmdb */
+function tmdbProxyRoot(): string {
+  return apiV1AbsoluteUrl('/tmdb');
+}
 
 // Image size helpers
 export const IMAGE_SIZES = {
@@ -47,14 +51,22 @@ export function getImageUrl(
  * Filter: Recent releases with lower vote counts (excludes blockbusters)
  */
 export async function getIndependentFilms(page = 1): Promise<TMDbSearchResponse> {
-  const today = new Date().toISOString().split('T')[0];
+  // ISO date YYYY-MM-DD (slice avoids split()[0] as string | undefined under noUncheckedIndexedAccess)
+  const today = new Date().toISOString().slice(0, 10);
   const twoMonthsAgo = new Date();
   twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
-  const formattedDate = twoMonthsAgo.toISOString().split('T')[0];
+  const formattedDate = twoMonthsAgo.toISOString().slice(0, 10);
 
-  const response = await fetch(
-    `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&sort_by=release_date.desc&include_adult=false&include_video=false&page=${page}&release_date.gte=${formattedDate}&release_date.lte=${today}&vote_count.lte=100`
-  );
+  const u = new URL(`${tmdbProxyRoot()}/discover/movie`);
+  u.searchParams.set('language', 'en-US');
+  u.searchParams.set('sort_by', 'release_date.desc');
+  u.searchParams.set('include_adult', 'false');
+  u.searchParams.set('include_video', 'false');
+  u.searchParams.set('page', String(page));
+  u.searchParams.set('release_date.gte', formattedDate);
+  u.searchParams.set('release_date.lte', today);
+  u.searchParams.set('vote_count.lte', '100');
+  const response = await fetch(u.toString());
 
   if (!response.ok) {
     throw new Error('Failed to fetch independent films');
@@ -234,9 +246,7 @@ export function pickWatchProvidersForRegion(
 export async function getMovieWatchProviders(
   tmdbId: string | number
 ): Promise<TMDbWatchProvidersResponse> {
-  const response = await fetch(
-    `${TMDB_BASE_URL}/movie/${tmdbId}/watch/providers?api_key=${TMDB_API_KEY}`
-  );
+  const response = await fetch(`${tmdbProxyRoot()}/movie/${tmdbId}/watch/providers`);
 
   if (!response.ok) {
     throw new Error('Failed to fetch watch providers');
@@ -311,9 +321,8 @@ export interface TMDbPersonMovieCredits {
 // ============================================
 
 async function fetchTMDb<T>(endpoint: string, params: Record<string, string> = {}): Promise<T> {
-  const url = new URL(`${TMDB_BASE_URL}${endpoint}`);
-  url.searchParams.set('api_key', TMDB_API_KEY);
-
+  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = new URL(`${tmdbProxyRoot()}${path}`);
   Object.entries(params).forEach(([key, value]) => {
     url.searchParams.set(key, value);
   });
@@ -428,7 +437,6 @@ export async function getRecommendations(movieId: number | string): Promise<TMDb
 export async function getGenres(): Promise<{ genres: TMDbGenre[] }> {
   return fetchTMDb('/genre/movie/list');
 }
-// À la fin de src/lib/api/tmdb.ts ou dans les exports nommés
 
 /**
  * Get person details by ID
