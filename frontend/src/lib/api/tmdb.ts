@@ -51,10 +51,11 @@ export function getImageUrl(
  * Filter: Recent releases with lower vote counts (excludes blockbusters)
  */
 export async function getIndependentFilms(page = 1): Promise<TMDbSearchResponse> {
-  const today = new Date().toISOString().split('T')[0];
+  // ISO date YYYY-MM-DD (slice avoids split()[0] as string | undefined under noUncheckedIndexedAccess)
+  const today = new Date().toISOString().slice(0, 10);
   const twoMonthsAgo = new Date();
   twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
-  const formattedDate = twoMonthsAgo.toISOString().split('T')[0];
+  const formattedDate = twoMonthsAgo.toISOString().slice(0, 10);
 
   const u = new URL(`${tmdbProxyRoot()}/discover/movie`);
   u.searchParams.set('language', 'en-US');
