@@ -1,46 +1,15 @@
 /**
- * Server Entry Point
- * Initializes and starts the HTTP server with Socket.IO support
+ * Entry: .env then optional GCP Secret Manager, then HTTP server.
+ * Secret loading MUST run before any module imports ./config/env.js (validateEnv).
  */
 
-// IMPORTANT: reflect-metadata must be imported before anything that uses decorators
 import 'reflect-metadata';
-import 'dotenv/config';
-import './infrastructure/auth/passport.js';
+import { config } from 'dotenv';
 
-import { createServer } from 'http';
-import { Server as SocketIOServer } from 'socket.io';
+config();
 
-import { createApp } from './app.js';
-import { setupSocketHandlers } from './socket/index.js';
-import { registerDependencies } from './infrastructure/container.js';
-import { logger } from './lib/logger.js';
-import { startScheduler } from './cron/scheduler.js';
+import { loadGcpSecretsIfNeeded } from './config/loadGcpSecrets.js';
 
-// Register DI container dependencies
-registerDependencies();
+await loadGcpSecretsIfNeeded();
 
-const app = createApp();
-const httpServer = createServer(app);
-
-// Socket.IO setup
-const io = new SocketIOServer(httpServer, {
-  cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-    methods: ['GET', 'POST'],
-    credentials: true,
-  },
-});
-
-// Socket.IO handlers
-setupSocketHandlers(io);
-
-// Start server
-const PORT = process.env.PORT || 3001;
-httpServer.listen(PORT, () => {
-  logger.info(`Server running on http://localhost:${PORT}`);
-  logger.info(`API docs at http://localhost:${PORT}/api-docs`);
-  startScheduler();
-});
-
-export { app, io };
+await import('./server.js');
