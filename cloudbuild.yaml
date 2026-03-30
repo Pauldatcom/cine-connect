@@ -9,11 +9,12 @@
 #
 # Or branch develop → dev, branch main → prod (each trigger sets _DEPLOY_ENV).
 #
-# Artifact Registry (once): europe-west1, repo name _AR_REPO (default cine-connect)
+# Artifact Registry: use _REGION + _AR_REPO. (europe-west1 failed create/push for this project;
+# europe-west4 + repo cine-connect-ar works — adjust trigger substitutions if you override these.)
 
 substitutions:
-  _REGION: europe-west1
-  _AR_REPO: cine-connect
+  _REGION: europe-west4
+  _AR_REPO: cine-connect-ar
   # dev | prod — must match your Cloud Run service / secrets target
   _DEPLOY_ENV: prod
 
