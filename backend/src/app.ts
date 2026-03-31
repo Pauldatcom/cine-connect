@@ -64,10 +64,11 @@ export function createApp() {
   // Skip rate limits when not in production (dev + E2E need many auth calls)
   const skipRateLimit = () => process.env.NODE_ENV !== 'production';
 
-  // Global API rate limit: reduce scraping and DoS (health is on app, not apiRouter, so excluded)
+  // Global API rate limit: reduce scraping and DoS (health is on app, not apiRouter, so excluded).
+  // SPAs hit many parallel endpoints (e.g. TMDb proxy); 200/15min per IP was too low for normal use.
   const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 200, // 200 requests per window per IP
+    max: 1000, // per IP — auth login/register use tighter per-route limits in auth.ts
     message: { success: false, error: 'Too many requests. Try again later.' },
     standardHeaders: true,
     legacyHeaders: false,
@@ -75,16 +76,8 @@ export function createApp() {
   });
   apiRouter.use(globalLimiter);
 
-  // Rate limit auth routes (login, register, refresh) to mitigate brute-force
-  const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 20, // 20 requests per window per IP
-    message: { success: false, error: 'Too many attempts. Please try again later.' },
-    standardHeaders: true,
-    legacyHeaders: false,
-    skip: skipRateLimit,
-  });
-  apiRouter.use('/auth', authLimiter, authRouter);
+  // Brute-force limits only on POST /login and POST /register (see auth.ts), not on refresh/OAuth.
+  apiRouter.use('/auth', authRouter);
   /** TMDb read proxy — key stays on the server */
   apiRouter.use('/tmdb', tmdbProxyRouter);
   apiRouter.use('/users', usersRouter);

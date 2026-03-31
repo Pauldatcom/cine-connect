@@ -130,6 +130,16 @@ const resetPasswordSchema = z.object({
 const skipStrictRateLimit = () => process.env.NODE_ENV !== 'production';
 
 /** Limit forgot-password abuse (per IP). */
+/** Shared counter per IP for login + register — does not apply to refresh, OAuth, or logout. */
+const credentialBruteForceLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { success: false, error: 'Too many attempts. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: skipStrictRateLimit,
+});
+
 const forgotPasswordLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 5,
@@ -174,7 +184,7 @@ function userToResponse(user: {
  *     tags: [Auth]
  *     summary: Register a new user
  */
-authRouter.post('/register', async (req, res, next) => {
+authRouter.post('/register', credentialBruteForceLimiter, async (req, res, next) => {
   try {
     const body = registerSchema.parse(req.body);
     const registerUseCase = container.resolve<RegisterUseCase>(RegisterUseCase);
@@ -213,7 +223,7 @@ authRouter.post('/register', async (req, res, next) => {
  *     tags: [Auth]
  *     summary: Login with email and password
  */
-authRouter.post('/login', async (req, res, next) => {
+authRouter.post('/login', credentialBruteForceLimiter, async (req, res, next) => {
   try {
     const body = loginSchema.parse(req.body);
     const loginUseCase = container.resolve<LoginUseCase>(LoginUseCase);
