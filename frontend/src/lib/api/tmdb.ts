@@ -337,14 +337,33 @@ async function fetchTMDb<T>(endpoint: string, params: Record<string, string> = {
 }
 
 /**
+ * Re-order search hits so widely-known titles rank above obscure matches.
+ * TMDB search order is relevance-based; without this, a query like "matrix" can list
+ * low-profile documentaries above the actual films.
+ *
+ * Primary: `popularity` (TMDb’s visibility score). Secondary: `vote_count` (how many rated it).
+ */
+export function sortMoviesBySearchProminence(movies: TMDbMovie[]): TMDbMovie[] {
+  return [...movies].sort((a, b) => {
+    if (b.popularity !== a.popularity) return b.popularity - a.popularity;
+    if (b.vote_count !== a.vote_count) return b.vote_count - a.vote_count;
+    return b.vote_average - a.vote_average;
+  });
+}
+
+/**
  * Search movies by query
  */
 export async function searchMovies(query: string, page = 1): Promise<TMDbSearchResponse> {
-  return fetchTMDb('/search/movie', {
+  const data = await fetchTMDb<TMDbSearchResponse>('/search/movie', {
     query,
     page: String(page),
     include_adult: 'false',
   });
+  return {
+    ...data,
+    results: sortMoviesBySearchProminence(data.results),
+  };
 }
 
 /**

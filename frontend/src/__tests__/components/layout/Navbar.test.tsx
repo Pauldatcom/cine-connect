@@ -2,7 +2,7 @@
  * Navbar Component Tests
  */
 
-import { createTestWrapper, routerMock } from '@/__tests__/test-utils';
+import { createTestWrapper, mockNavigate, routerMock } from '@/__tests__/test-utils';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
@@ -22,6 +22,7 @@ const mockUseAuth = useAuth as Mock;
 describe('Navbar', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockNavigate.mockClear();
     // Default: not authenticated
     mockUseAuth.mockReturnValue({
       isAuthenticated: false,
@@ -449,13 +450,6 @@ describe('Navbar', () => {
 
   describe('search submit', () => {
     it('submits search form with query', () => {
-      // Mock window.location.href
-      const originalLocation = window.location;
-      Object.defineProperty(window, 'location', {
-        writable: true,
-        value: { href: '' },
-      });
-
       const Wrapper = createTestWrapper();
       render(<Navbar />, { wrapper: Wrapper });
 
@@ -471,22 +465,10 @@ describe('Navbar', () => {
       const form = searchInput.closest('form');
       fireEvent.submit(form!);
 
-      expect(window.location.href).toBe('/films?q=Matrix');
-
-      // Restore
-      Object.defineProperty(window, 'location', {
-        writable: true,
-        value: originalLocation,
-      });
+      expect(mockNavigate).toHaveBeenCalledWith({ to: '/films', search: { q: 'Matrix', page: 1 } });
     });
 
     it('does not submit search with empty query', () => {
-      const originalLocation = window.location;
-      Object.defineProperty(window, 'location', {
-        writable: true,
-        value: { href: '' },
-      });
-
       const Wrapper = createTestWrapper();
       render(<Navbar />, { wrapper: Wrapper });
 
@@ -502,14 +484,22 @@ describe('Navbar', () => {
       const form = searchInput.closest('form');
       fireEvent.submit(form!);
 
-      // Should not navigate
-      expect(window.location.href).toBe('');
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
 
-      // Restore
-      Object.defineProperty(window, 'location', {
-        writable: true,
-        value: originalLocation,
-      });
+    it('does not submit search with a single character', () => {
+      const Wrapper = createTestWrapper();
+      render(<Navbar />, { wrapper: Wrapper });
+
+      const searchButton = screen.getByLabelText('Search');
+      fireEvent.click(searchButton);
+
+      const searchInput = screen.getByPlaceholderText('Search films...');
+      fireEvent.change(searchInput, { target: { value: 'M' } });
+
+      fireEvent.submit(searchInput.closest('form')!);
+
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
   });
 });
