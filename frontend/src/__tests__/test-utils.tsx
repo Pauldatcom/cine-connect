@@ -59,6 +59,9 @@ export function renderWithProviders(
  * TanStack Router mock configuration.
  * Use vi.mock('@tanstack/react-router', () => routerMock) in your test file.
  */
+/** Shared navigate mock — clear in `beforeEach` when asserting calls */
+export const mockNavigate: ReturnType<typeof vi.fn> = vi.fn();
+
 /**
  * Link mock: prevent real navigation (jsdom does not implement navigation).
  * Click is prevented so tests don't trigger "Not implemented: navigation (except hash changes)".
@@ -85,7 +88,7 @@ export const routerMock: Record<string, unknown> = {
       {children}
     </a>
   ),
-  useNavigate: () => vi.fn(),
+  useNavigate: () => mockNavigate,
   useRouter: () => ({ navigate: vi.fn() }),
   useParams: () => ({}),
   useSearch: () => ({}),

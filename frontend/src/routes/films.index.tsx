@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Search,
   Loader2,
@@ -23,6 +23,14 @@ const viewEnum = z.enum(['popular', 'trending', 'top-rated', 'for-you']);
 const filmsSearchSchema = z.object({
   page: z.coerce.number().int().min(1).optional().catch(1),
   view: viewEnum.optional().catch('popular'),
+  /** Film title search (TMDB); min 2 chars enforced in UI / API */
+  q: z
+    .string()
+    .optional()
+    .transform((s) => {
+      const t = s?.trim();
+      return t && t.length > 0 ? t : undefined;
+    }),
 });
 
 function backendFilmToTMDbMovie(f: BackendFilm): TMDbMovie {
@@ -57,27 +65,50 @@ const RESULTS_PER_PAGE = 20;
 export function FilmsIndexPage() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const { page: urlPage, view: urlView } = useSearch({ from: '/films/' });
+  const { page: urlPage, view: urlView, q: urlQ } = useSearch({ from: '/films/' });
   const page = urlPage ?? 1;
   const view = (urlView ?? 'popular') as 'popular' | 'trending' | 'top-rated' | 'for-you';
 
-  // Search state
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeSearch, setActiveSearch] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => (urlQ ?? '').trim());
+  const [activeSearch, setActiveSearch] = useState(() => {
+    const q = (urlQ ?? '').trim();
+    return q.length >= 2 ? q : '';
+  });
   const [filters, setFilters] = useState<FilmFilters>(defaultFilters);
   const [gridSize, setGridSize] = useState<'normal' | 'compact'>('normal');
 
-  // Debounced search-on-type: update activeSearch after 350ms of no typing (min 2 chars)
+  // Deep links / navbar: when ?q= changes, keep the form and results in sync (skip first run — state already seeded from URL)
+  const isFirstUrlEffect = useRef(true);
+  useEffect(() => {
+    if (isFirstUrlEffect.current) {
+      isFirstUrlEffect.current = false;
+      return;
+    }
+    const q = (urlQ ?? '').trim();
+    setSearchQuery(q);
+    setActiveSearch(q.length >= 2 ? q : '');
+  }, [urlQ]);
+
+  // Debounced search-on-type + persist `q` in the URL (min 2 chars; clear URL when input emptied)
   const SEARCH_DEBOUNCE_MS = 350;
   useEffect(() => {
-    if (searchQuery.trim().length < 2) {
+    const trimmed = searchQuery.trim();
+    if (trimmed.length < 2) {
       setActiveSearch((prev) => (prev ? '' : prev));
+      if (trimmed.length === 0) {
+        navigate({
+          from: '/films/',
+          search: (prev) => ({ ...prev, page: 1, q: undefined }),
+        });
+      }
       return;
     }
     const timer = setTimeout(() => {
-      setActiveSearch(searchQuery.trim());
-      navigate({ from: '/films/', search: (prev) => ({ ...prev, page: 1 }) });
+      setActiveSearch(trimmed);
+      navigate({
+        from: '/films/',
+        search: (prev) => ({ ...prev, page: 1, q: trimmed }),
+      });
     }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [searchQuery, navigate]);
@@ -112,14 +143,16 @@ export function FilmsIndexPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setActiveSearch(searchQuery);
-    navigate({ from: '/films/', search: { page: 1 } });
+    const trimmed = searchQuery.trim();
+    if (trimmed.length < 2) return;
+    setActiveSearch(trimmed);
+    navigate({ from: '/films/', search: (prev) => ({ ...prev, page: 1, q: trimmed }) });
   };
 
   const handleClear = () => {
     setSearchQuery('');
     setActiveSearch('');
-    navigate({ from: '/films/', search: { page: 1 } });
+    navigate({ from: '/films/', search: (prev) => ({ ...prev, page: 1, q: undefined }) });
   };
 
   const handleResetFilters = () => {
@@ -131,7 +164,10 @@ export function FilmsIndexPage() {
   };
 
   const setViewAndResetPage = (newView: 'popular' | 'trending' | 'top-rated' | 'for-you') => {
-    navigate({ from: '/films/', search: { view: newView, page: 1 } });
+    navigate({
+      from: '/films/',
+      search: { view: newView, page: 1, q: undefined },
+    });
   };
 
   const rawMovies: TMDbMovie[] = useMemo(() => {

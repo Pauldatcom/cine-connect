@@ -9,6 +9,7 @@ import {
   GENRE_MAP,
   GENRE_ID_TO_SLUG,
   searchMovies,
+  sortMoviesBySearchProminence,
   getTrending,
   getPopular,
   getTopRated,
@@ -156,6 +157,103 @@ describe('TMDb API Client', () => {
 
         const url = mockFetch.mock.calls[0]![0];
         expect(url).toContain('page=2');
+      });
+
+      it('reorders results by popularity then vote count', async () => {
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            page: 1,
+            total_pages: 1,
+            total_results: 3,
+            results: [
+              {
+                id: 99,
+                title: 'Tiny doc',
+                original_title: 'Tiny doc',
+                overview: '',
+                poster_path: null,
+                backdrop_path: null,
+                release_date: '',
+                vote_average: 8,
+                vote_count: 12,
+                popularity: 0.5,
+                genre_ids: [],
+                adult: false,
+                original_language: 'en',
+              },
+              {
+                id: 603,
+                title: 'The Matrix',
+                original_title: 'The Matrix',
+                overview: '',
+                poster_path: '/p.jpg',
+                backdrop_path: null,
+                release_date: '1999-03-31',
+                vote_average: 8.2,
+                vote_count: 20_000,
+                popularity: 45.2,
+                genre_ids: [28],
+                adult: false,
+                original_language: 'en',
+              },
+              {
+                id: 604,
+                title: 'The Matrix Reloaded',
+                original_title: 'The Matrix Reloaded',
+                overview: '',
+                poster_path: '/p2.jpg',
+                backdrop_path: null,
+                release_date: '2003-05-15',
+                vote_average: 7.1,
+                vote_count: 12_000,
+                popularity: 30.1,
+                genre_ids: [28],
+                adult: false,
+                original_language: 'en',
+              },
+            ],
+          }),
+        });
+
+        const res = await searchMovies('Matrix', 1);
+
+        expect(res.results.map((m) => m.id)).toEqual([603, 604, 99]);
+      });
+    });
+
+    describe('sortMoviesBySearchProminence', () => {
+      it('sorts by popularity, then vote_count, then vote_average', () => {
+        const a = {
+          id: 1,
+          title: 'A',
+          original_title: 'A',
+          overview: '',
+          poster_path: null,
+          backdrop_path: null,
+          release_date: '',
+          vote_average: 9,
+          vote_count: 100,
+          popularity: 10,
+          genre_ids: [],
+          adult: false,
+          original_language: 'en',
+        };
+        const b = {
+          ...a,
+          id: 2,
+          popularity: 20,
+          vote_count: 50,
+        };
+        const c = {
+          ...a,
+          id: 3,
+          popularity: 20,
+          vote_count: 100,
+          vote_average: 8,
+        };
+        const out = sortMoviesBySearchProminence([a, b, c]);
+        expect(out.map((m) => m.id)).toEqual([3, 2, 1]);
       });
     });
 

@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { useState, useRef, useEffect } from 'react';
 import {
   Film,
@@ -38,6 +38,7 @@ export function Navbar() {
   const notificationRef = useRef<HTMLDivElement>(null);
 
   const { isAuthenticated, user, logout } = useAuth();
+  const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const { data: pendingRequests = [], isLoading: pendingLoading } =
     usePendingFriendRequests(isAuthenticated);
@@ -67,10 +68,12 @@ export function Navbar() {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      // Navigate to search results
-      window.location.href = `/films?q=${encodeURIComponent(searchQuery)}`;
-    }
+    const q = searchQuery.trim();
+    // Same minimum as /films (TMDB search needs at least 2 characters)
+    if (q.length < 2) return;
+    void navigate({ to: '/films', search: { q, page: 1 } });
+    setSearchOpen(false);
+    setSearchQuery('');
   };
 
   return (
