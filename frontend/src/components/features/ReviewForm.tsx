@@ -2,7 +2,8 @@
  * Review Form Component - Modal for writing/editing reviews
  */
 
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Loader2, AlertCircle, Film } from 'lucide-react';
 import { StarRating } from '../ui/StarRating';
 
@@ -63,16 +64,37 @@ export function ReviewForm({
   const characterCount = comment.length;
   const maxCharacters = 2000;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="bg-bg-primary/80 absolute inset-0 backdrop-blur-sm" onClick={onClose} />
+  // Lock page scroll while open; portal keeps the overlay out of transformed ancestors (e.g. route wrappers).
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, []);
 
-      {/* Modal */}
-      <div className="bg-bg-secondary border-border animate-scale-in relative w-full max-w-lg rounded-lg border shadow-xl">
+  const modal = (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto p-4">
+      {/* Backdrop */}
+      <div
+        className="bg-bg-primary/80 absolute inset-0 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden
+      />
+
+      {/* Panel: max height so short viewports scroll inside the dialog, not the page behind */}
+      <div
+        className="bg-bg-secondary border-border animate-scale-in relative z-10 my-auto max-h-[min(90dvh,100vh)] w-full max-w-lg overflow-y-auto rounded-lg border shadow-xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="review-form-title"
+      >
         {/* Header */}
         <div className="border-border flex items-center justify-between border-b p-4">
-          <h2 className="font-display text-text-primary text-lg font-semibold">
+          <h2
+            id="review-form-title"
+            className="font-display text-text-primary text-lg font-semibold"
+          >
             {isEditing ? 'Edit Review' : 'Write a Review'}
           </h2>
           <button
@@ -178,6 +200,10 @@ export function ReviewForm({
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(modal, document.body);
 }
 
 export default ReviewForm;

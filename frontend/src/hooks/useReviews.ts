@@ -135,11 +135,12 @@ export function useDeleteReview(filmId?: string) {
 
   return useMutation({
     mutationFn: (reviewId: string) => deleteReview(reviewId),
-    onSuccess: () => {
-      // Invalidate film reviews to refetch
+    onSuccess: (_, reviewId) => {
+      queryClient.invalidateQueries({ queryKey: ['review', reviewId] });
       if (filmId) {
         queryClient.invalidateQueries({ queryKey: ['reviews', 'film', filmId] });
       }
+      queryClient.invalidateQueries({ queryKey: ['reviews', 'user'] });
     },
   });
 }
