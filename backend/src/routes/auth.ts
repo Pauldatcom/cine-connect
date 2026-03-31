@@ -45,23 +45,34 @@ export const authRouter = Router();
 const REFRESH_TOKEN_COOKIE = 'cineconnect_refresh';
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days in ms
 
+/**
+ * Refresh cookie must be readable on cross-origin `fetch(..., { credentials: 'include' })`
+ * when the SPA and API are on different hosts. SameSite=Lax blocks that; production uses None+Secure.
+ */
+function refreshTokenCookieOptions(): {
+  httpOnly: boolean;
+  secure: boolean;
+  sameSite: 'lax' | 'none';
+  path: string;
+} {
+  const isProd = process.env.NODE_ENV === 'production';
+  return {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
+    path: '/',
+  };
+}
+
 function setRefreshTokenCookie(res: Response, refreshToken: string): void {
   res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    ...refreshTokenCookieOptions(),
     maxAge: COOKIE_MAX_AGE,
-    path: '/',
   });
 }
 
 function clearRefreshTokenCookie(res: Response): void {
-  res.clearCookie(REFRESH_TOKEN_COOKIE, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-  });
+  res.clearCookie(REFRESH_TOKEN_COOKIE, refreshTokenCookieOptions());
 }
 
 const PASSWORD_RESET_SESSION_COOKIE = 'cineconnect_pwreset';
