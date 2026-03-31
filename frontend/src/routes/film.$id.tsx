@@ -812,6 +812,7 @@ export function FilmDetailPage() {
                 id={review.id}
                 film={film ?? undefined}
                 showFilm={true}
+                filmId={backendFilm?.id}
                 user={{
                   id: review.user?.id || review.userId,
                   name: review.user?.username || 'Anonymous',
@@ -824,6 +825,7 @@ export function FilmDetailPage() {
                 comments={review.commentsCount || 0}
                 isLiked={review.isLikedByCurrentUser || false}
                 onLike={handleLikeReview}
+                currentUserId={user?.id}
               />
             ))}
           </div>

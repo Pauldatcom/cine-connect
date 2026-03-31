@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Heart,
   MessageSquare,
@@ -12,7 +12,13 @@ import {
 } from 'lucide-react';
 import { getImageUrl, type TMDbMovie } from '@/lib/api/tmdb';
 import { StarRatingDisplay } from '../ui/StarRating';
-import { useReviewComments, useAddComment, useDeleteComment, type ReviewComment } from '@/hooks';
+import {
+  useReviewComments,
+  useAddComment,
+  useDeleteComment,
+  useDeleteReview,
+  type ReviewComment,
+} from '@/hooks';
 
 interface ReviewCardProps {
   /** Review ID for API calls */
@@ -47,8 +53,10 @@ interface ReviewCardProps {
   compact?: boolean;
   /** Callback when like button is clicked */
   onLike?: (reviewId: string) => void;
-  /** Current user ID for comment ownership */
+  /** Current user ID for comment ownership and review delete */
   currentUserId?: string;
+  /** Backend film ID — used to refresh film review list after delete */
+  filmId?: string;
 }
 
 /**
@@ -70,12 +78,15 @@ export function ReviewCard({
   compact = false,
   onLike,
   currentUserId,
+  filmId,
 }: ReviewCardProps) {
   const [spoilerRevealed, setSpoilerRevealed] = useState(false);
   const [liked, setLiked] = useState(isLiked);
   const [likeCount, setLikeCount] = useState(likes);
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
+  const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
+  const actionsMenuRef = useRef<HTMLDivElement>(null);
 
   // Comments hooks - only fetch when comments section is open
   const { data: reviewComments, isLoading: commentsLoading } = useReviewComments(
@@ -83,6 +94,29 @@ export function ReviewCard({
   );
   const addCommentMutation = useAddComment(id);
   const deleteCommentMutation = useDeleteComment(id);
+  const deleteReviewMutation = useDeleteReview(filmId);
+
+  const isOwnReview = Boolean(currentUserId && user.id && currentUserId === user.id && id);
+
+  useEffect(() => {
+    if (!actionsMenuOpen) return;
+    const handlePointerDown = (e: PointerEvent) => {
+      if (actionsMenuRef.current?.contains(e.target as Node)) return;
+      setActionsMenuOpen(false);
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [actionsMenuOpen]);
+
+  const handleDeleteReview = () => {
+    if (!id) return;
+    if (!window.confirm('Delete this review permanently? This cannot be undone.')) {
+      return;
+    }
+    deleteReviewMutation.mutate(id, {
+      onSuccess: () => setActionsMenuOpen(false),
+    });
+  };
 
   const handleLike = () => {
     // Optimistic update
@@ -210,10 +244,42 @@ export function ReviewCard({
           </div>
         </div>
 
-        {/* Actions menu */}
-        <button className="btn-ghost shrink-0 rounded-full p-1.5">
-          <MoreHorizontal className="h-4 w-4" />
-        </button>
+        {/* Actions menu — only for the signed-in author (delete); backend enforces ownership */}
+        {isOwnReview && (
+          <div className="relative shrink-0" ref={actionsMenuRef}>
+            <button
+              type="button"
+              onClick={() => setActionsMenuOpen((open) => !open)}
+              className="btn-ghost rounded-full p-1.5"
+              aria-expanded={actionsMenuOpen}
+              aria-haspopup="menu"
+              aria-label="Review actions"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+            {actionsMenuOpen && (
+              <div
+                className="border-border bg-bg-secondary absolute right-0 top-full z-20 mt-1 min-w-[180px] rounded-lg border py-1 shadow-xl"
+                role="menu"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="hover:bg-bg-tertiary flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-400 transition-colors hover:text-red-300 disabled:opacity-50"
+                  onClick={handleDeleteReview}
+                  disabled={deleteReviewMutation.isPending}
+                >
+                  {deleteReviewMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4 shrink-0" />
+                  )}
+                  Delete review
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Review content */}

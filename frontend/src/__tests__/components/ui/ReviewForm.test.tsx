@@ -75,10 +75,10 @@ describe('ReviewForm', () => {
 
     it('renders placeholder when no poster', () => {
       const filmNoPoster = { ...defaultFilm, posterUrl: null };
-      const { container } = render(<ReviewForm {...defaultProps} film={filmNoPoster} />);
+      render(<ReviewForm {...defaultProps} film={filmNoPoster} />);
 
-      // Should render Film icon as placeholder
-      expect(container.querySelector('svg')).toBeInTheDocument();
+      // Modal is portaled to document.body; Film icon is an SVG placeholder
+      expect(screen.getByRole('dialog').querySelector('svg')).toBeInTheDocument();
     });
 
     it('renders star rating component', () => {
@@ -207,20 +207,20 @@ describe('ReviewForm', () => {
     });
 
     it('calls onClose when clicking close (X) button', () => {
-      const { container } = render(<ReviewForm {...defaultProps} />);
+      render(<ReviewForm {...defaultProps} />);
 
-      // Find the X button in the header
-      const closeButton = container.querySelector('.border-border button');
+      const closeButton = screen.getByRole('dialog').querySelector('.border-b button');
+      expect(closeButton).toBeTruthy();
       fireEvent.click(closeButton!);
 
       expect(defaultProps.onClose).toHaveBeenCalled();
     });
 
     it('calls onClose when clicking backdrop', () => {
-      const { container } = render(<ReviewForm {...defaultProps} />);
+      render(<ReviewForm {...defaultProps} />);
 
-      // Click the backdrop
-      const backdrop = container.querySelector('.absolute.inset-0.backdrop-blur-sm');
+      const backdrop = document.body.querySelector('[aria-hidden="true"].backdrop-blur-sm');
+      expect(backdrop).toBeTruthy();
       fireEvent.click(backdrop!);
 
       expect(defaultProps.onClose).toHaveBeenCalled();
@@ -255,9 +255,9 @@ describe('ReviewForm', () => {
     });
 
     it('disables close button when submitting', () => {
-      const { container } = render(<ReviewForm {...defaultProps} isSubmitting />);
+      render(<ReviewForm {...defaultProps} isSubmitting />);
 
-      const closeButton = container.querySelector('.border-border button');
+      const closeButton = screen.getByRole('dialog').querySelector('.border-b button');
       expect(closeButton).toBeDisabled();
     });
 
@@ -277,10 +277,9 @@ describe('ReviewForm', () => {
     });
 
     it('shows error icon with error message', () => {
-      const { container } = render(<ReviewForm {...defaultProps} error="Error occurred" />);
+      render(<ReviewForm {...defaultProps} error="Error occurred" />);
 
-      // Should have error styling
-      expect(container.querySelector('.bg-red-500\\/10')).toBeInTheDocument();
+      expect(screen.getByRole('dialog').querySelector('.bg-red-500\\/10')).toBeInTheDocument();
     });
   });
 

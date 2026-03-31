@@ -108,12 +108,10 @@ describe('ReviewForm', () => {
   it('should call onClose when backdrop is clicked', async () => {
     const user = userEvent.setup();
 
-    const { container } = render(
-      <ReviewForm film={mockFilm} onSubmit={mockOnSubmit} onClose={mockOnClose} />
-    );
+    render(<ReviewForm film={mockFilm} onSubmit={mockOnSubmit} onClose={mockOnClose} />);
 
-    // Click backdrop (the blur overlay)
-    const backdrop = container.querySelector('.backdrop-blur-sm');
+    // Modal is portaled to document.body
+    const backdrop = document.body.querySelector('[aria-hidden="true"].backdrop-blur-sm');
     expect(backdrop).toBeTruthy();
     if (backdrop) {
       await user.click(backdrop);

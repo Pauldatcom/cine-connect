@@ -4,6 +4,7 @@
 
 import { createTestWrapper, mockFilm, mockUser } from '@/__tests__/test-utils';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 // Mock TanStack Router - spread props to preserve className
@@ -31,6 +32,7 @@ const mockAddCommentMutate = vi.fn((_content: string, options?: { onSuccess?: ()
   }
 });
 const mockDeleteCommentMutate = vi.fn();
+const mockDeleteReviewMutate = vi.fn();
 vi.mock('@/hooks', () => ({
   useReviewComments: vi.fn((reviewId?: string) => ({
     data: reviewId
@@ -54,6 +56,10 @@ vi.mock('@/hooks', () => ({
   })),
   useDeleteComment: vi.fn(() => ({
     mutate: mockDeleteCommentMutate,
+    isPending: false,
+  })),
+  useDeleteReview: vi.fn(() => ({
+    mutate: mockDeleteReviewMutate,
     isPending: false,
   })),
 }));
@@ -463,6 +469,39 @@ describe('ReviewCard', () => {
 
       // Should have rating stars
       expect(container.querySelector('.fill-letterboxd-green')).toBeInTheDocument();
+    });
+  });
+
+  describe('review ownership actions', () => {
+    it('shows actions menu with delete for the author', async () => {
+      const user = userEvent.setup();
+      const Wrapper = createTestWrapper();
+      render(
+        <ReviewCard
+          {...defaultReviewProps}
+          id="review-own"
+          currentUserId={mockUser.id}
+          filmId="film-b"
+          user={{ id: mockUser.id, name: mockUser.name }}
+        />,
+        { wrapper: Wrapper }
+      );
+      await user.click(screen.getByLabelText('Review actions'));
+      expect(screen.getByRole('menuitem', { name: /delete review/i })).toBeInTheDocument();
+    });
+
+    it('hides actions menu for other users reviews', () => {
+      const Wrapper = createTestWrapper();
+      render(
+        <ReviewCard
+          {...defaultReviewProps}
+          id="review-other"
+          currentUserId={mockUser.id}
+          user={{ id: 'other-user', name: 'Stranger' }}
+        />,
+        { wrapper: Wrapper }
+      );
+      expect(screen.queryByLabelText('Review actions')).not.toBeInTheDocument();
     });
   });
 
