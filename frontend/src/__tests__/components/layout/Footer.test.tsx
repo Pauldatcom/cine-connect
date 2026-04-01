@@ -71,7 +71,7 @@ describe('Footer', () => {
     it('renders copyright notice', () => {
       const Wrapper = createTestWrapper();
       render(<Footer />, { wrapper: Wrapper });
-      expect(screen.getByText(/© 2024 CinéConnect/)).toBeInTheDocument();
+      expect(screen.getByText(/© 2026 CinéConnect/)).toBeInTheDocument();
     });
 
     it('renders TMDb attribution', () => {
