@@ -1,32 +1,52 @@
 # Contributing
 
-## Quick Start
+How we work on CinéConnect: setup, conventions, and PR expectations.
+
+## Where to read first
+
+| Doc                                         | Purpose                                                         |
+| ------------------------------------------- | --------------------------------------------------------------- |
+| [README.md](../README.md)                   | Monorepo overview, quick start, root scripts                    |
+| [frontend/README.md](../frontend/README.md) | Frontend stack, folders, env, commands                          |
+| [backend/README.md](../backend/README.md)   | API stack, Clean Architecture, DB commands                      |
+| **[README.md](./README.md)**                | Full documentation map (guidelines, setup guides, architecture) |
+
+---
+
+## Quick start
 
 ```bash
 git clone <repo-url>
 cd cine-connect
 pnpm install
-docker-compose up -d
-pnpm db:push
+docker-compose up -d          # or use Supabase / remote DATABASE_URL only
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+pnpm db:migrate               # apply migrations (from repo root)
 pnpm dev
 ```
 
-Frontend: http://localhost:5173  
-Backend: http://localhost:3000  
-API Docs: http://localhost:3000/api-docs
+| URL                            | Service     |
+| ------------------------------ | ----------- |
+| http://localhost:5173          | Frontend    |
+| http://localhost:3000          | Backend API |
+| http://localhost:3000/api-docs | Swagger     |
+
+For Windows / WSL or detailed env notes: [setup.md](./setup.md), [setup-windows.md](./setup-windows.md), [setup-wsl.md](./setup-wsl.md).
 
 ---
 
-## Project Structure
+## Project structure (where to change what)
 
-| Need to...           | Go to                           |
-| -------------------- | ------------------------------- |
-| Add a page           | `frontend/src/routes/`          |
-| Add a UI component   | `frontend/src/components/ui/`   |
-| Add an API endpoint  | `backend/src/routes/`           |
-| Add a database table | `backend/src/db/schema/`        |
-| Add shared types     | `shared/src/types/index.ts`     |
-| Add shared constants | `shared/src/constants/index.ts` |
+| Need to…           | Location                                                   |
+| ------------------ | ---------------------------------------------------------- |
+| Add a page / route | `frontend/src/routes/`                                     |
+| Add a UI primitive | `frontend/src/components/ui/`                              |
+| Add an API route   | `backend/src/routes/` (thin handlers → use cases)          |
+| Add a DB table     | `backend/src/db/schema/` then `pnpm db:generate` / migrate |
+| Add shared types   | `shared/src/types/index.ts`                                |
+
+See [new-api-module.md](./guidelines/new-api-module.md) for backend feature work.
 
 ---
 
@@ -38,12 +58,11 @@ function FilmPoster() { ... }
 
 // Functions: camelCase, verb + noun
 function getMovieDetails() { ... }
-function handleSubmit() { ... }
 
 // Constants: SCREAMING_SNAKE_CASE
 const MAX_RATING = 5;
 
-// Types: PascalCase
+// Types / interfaces: PascalCase
 interface User { ... }
 
 // Files: PascalCase.tsx for components, camelCase.ts otherwise
@@ -51,12 +70,11 @@ interface User { ... }
 
 ---
 
-## Import Order
+## Import order
 
 ```typescript
 // 1. External
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 
 // 2. Shared
 import { User } from '@cine-connect/shared';
@@ -69,57 +87,51 @@ import { FilmPoster } from '@/components/FilmPoster';
 
 ## Testing
 
-Every file needs tests.
+New behaviour should include tests. See [guidelines/testing.md](./guidelines/testing.md).
 
 ```bash
-pnpm test              # Run all
-pnpm test:coverage     # With coverage
+pnpm test
+pnpm test:coverage
 ```
 
-Test file naming:
-
-- `FilmPoster.tsx` → `FilmPoster.test.tsx`
-- `auth.ts` → `auth.test.ts`
+Naming: `FilmPoster.tsx` → `FilmPoster.test.tsx`, `auth.ts` → `auth.test.ts`.
 
 ---
 
-## Git Workflow
+## Git workflow
 
 ```bash
-# Create branch
 git checkout -b feature/your-feature
-
-# Commit with clear message
-git commit -m "feat: add star rating component"
-git commit -m "fix: resolve auth token issue"
-
-# Push and create PR
+git commit -m "feat: short imperative description"
 git push origin feature/your-feature
 ```
 
----
-
-## Scripts
-
-| Command              | Description             |
-| -------------------- | ----------------------- |
-| `pnpm dev`           | Start all services      |
-| `pnpm build`         | Build for production    |
-| `pnpm test`          | Run tests               |
-| `pnpm test:coverage` | Tests with coverage     |
-| `pnpm lint`          | Check code style        |
-| `pnpm lint:fix`      | Fix code style          |
-| `pnpm format`        | Format with Prettier    |
-| `pnpm db:push`       | Push schema to database |
-| `pnpm db:studio`     | Open Drizzle Studio     |
+Commit style: [guidelines/commit-messages.md](./guidelines/commit-messages.md).
 
 ---
 
-## Checklist Before PR
+## Scripts (root)
 
-- [ ] Code follows naming conventions
-- [ ] TypeScript types defined (no `any`)
-- [ ] Tests written and passing
-- [ ] Swagger docs for API endpoints
-- [ ] No console.log in code
-- [ ] Linting passes
+| Command                            | Description                                      |
+| ---------------------------------- | ------------------------------------------------ |
+| `pnpm dev`                         | Frontend + backend                               |
+| `pnpm build`                       | Production build                                 |
+| `pnpm test` / `pnpm test:coverage` | Vitest                                           |
+| `pnpm lint` / `pnpm lint:fix`      | ESLint                                           |
+| `pnpm format`                      | Prettier                                         |
+| `pnpm db:migrate`                  | Apply Drizzle migrations                         |
+| `pnpm db:push`                     | Dev-only schema sync (avoid for shared prod DBs) |
+| `pnpm db:studio`                   | Drizzle Studio                                   |
+
+---
+
+## Checklist before opening a PR
+
+- [ ] Naming and structure match this doc and package READMEs
+- [ ] No unnecessary `any`; types updated
+- [ ] Tests added/updated and passing
+- [ ] New or changed HTTP endpoints documented in Swagger (backend)
+- [ ] No stray `console.log` in production paths
+- [ ] `pnpm lint` passes
+
+For bug reports: [guidelines/bug-reports.md](./guidelines/bug-reports.md).

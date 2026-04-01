@@ -4,15 +4,11 @@
 
 **CinéConnect** is a full-stack web app for discovering films (via TMDb-backed data), rating them, managing a watchlist, adding friends, and real-time messaging. The stack is a **pnpm monorepo**: React (Vite, TanStack Router/Query), Express API, Drizzle ORM, PostgreSQL, Socket.io, JWT auth, and Swagger.
 
-Deliverables and grading criteria for the academic project are spelled out in the long-form brief (French).
+## Academic brief (course)
 
-## Full project brief (French)
+The official cahier des charges, phases, grading grid, and deadlines are provided by your **course / instructors** (PDF, LMS, or classroom handout) — they are not duplicated in this repository.
 
-The complete cahier des charges, phases, evaluation grid, and semester timeline are in:
-
-- **[readme.md](./readme.md)** — authoritative academic specification (French).
-
-Use this file for a short English overview; use `readme.md` when you need exact assignment wording.
+Use this file for a concise English scope; follow course materials for exact assignment wording.
 
 ## Related technical docs
 
@@ -21,3 +17,4 @@ Use this file for a short English overview; use `readme.md` when you need exact 
 | System design      | [ARCHITECTURE.md](./ARCHITECTURE.md)               |
 | API surface        | Swagger at `/api-docs` when the backend is running |
 | Progress / backlog | [PROJECT_STATUS.md](./PROJECT_STATUS.md)           |
+| Full doc map       | [README.md](./README.md)                           |

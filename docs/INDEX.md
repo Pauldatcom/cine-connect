@@ -1,30 +1,15 @@
-# Documentation
+# Documentation index
 
-## Contents
+The full map of all guides is in **[README.md](./README.md)** (this is what GitHub shows when you open the `docs/` folder).
 
-| Document                 | Description                |
-| ------------------------ | -------------------------- |
-| [CONTRIBUTING.md]        | Setup and coding standards |
-| [ARCHITECTURE.md]        | System design              |
-| [PROJECT_STATUS.md]      | Progress tracking          |
-| [CLEAN_CODE_ANALYSIS.md] | Code quality assessment    |
-| [readme.md]              | Project requirements (FR)  |
+**→ [docs/README.md](./README.md)**
 
-[CONTRIBUTING.md]: ./CONTRIBUTING.md
-[ARCHITECTURE.md]: ./ARCHITECTURE.md
-[PROJECT_STATUS.md]: ./PROJECT_STATUS.md
-[CLEAN_CODE_ANALYSIS.md]: ./CLEAN_CODE_ANALYSIS.md
-[readme.md]: ./readme.md
+---
 
-## Quick Links
+## Quick links
 
-- API Docs: http://localhost:3000/api-docs
-- Database Studio: `pnpm db:studio`
-- Test Coverage: `pnpm test:coverage`
-
-## Getting Started
-
-1. Read CONTRIBUTING.md
-2. Read ARCHITECTURE.md
-3. Check PROJECT_STATUS.md for available tasks
-4. Run `pnpm dev`
+| Resource       | URL / command                  |
+| -------------- | ------------------------------ |
+| API (Swagger)  | http://localhost:3000/api-docs |
+| Drizzle Studio | `pnpm db:studio`               |
+| Test coverage  | `pnpm test:coverage`           |
