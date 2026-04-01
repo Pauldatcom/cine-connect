@@ -89,7 +89,7 @@ export function Footer() {
       <div className="border-border border-t py-6">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 md:flex-row">
           <p className="text-text-tertiary text-center text-sm md:text-left">
-            © 2024 CinéConnect. Made with 🎬 for film lovers.
+            © 2026 CinéConnect. Made with 🎬 for film lovers.
           </p>
           <p className="text-text-tertiary text-sm">
             Film data from{' '}

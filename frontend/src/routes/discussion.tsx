@@ -12,6 +12,7 @@ import {
 } from '@/hooks';
 import { createFileRoute, Link, useNavigate, useSearch } from '@tanstack/react-router';
 import {
+  ChevronLeft,
   Loader2,
   LogIn,
   MessageCircle,
@@ -24,6 +25,7 @@ import {
   Video,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { cn } from '@/lib/utils';
 import { z } from 'zod';
 
 const discussionSearchSchema = z.object({
@@ -54,6 +56,8 @@ export function DiscussionPage() {
   const [showFriendPicker, setShowFriendPicker] = useState(false);
   /** Scrollable message list — scroll this node only; avoid scrollIntoView (scrolls the whole page). */
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  /** When true, new messages auto-scroll the thread to the bottom (user is following the tail). */
+  const stickToBottomRef = useRef(true);
 
   // Socket.io hooks
   const { isConnected, setTyping } = useSocket();
@@ -101,15 +105,28 @@ export function DiscussionPage() {
     }
   }, [search.with, navigate]);
 
-  // Scroll only the message column (instant — smooth() can still interact badly with the window on open)
+  // Follow new messages only while the user is near the bottom (avoid yanking scroll when reading history).
   useEffect(() => {
+    stickToBottomRef.current = true;
+  }, [selectedConversation]);
+
+  useEffect(() => {
+    const el = messagesContainerRef.current;
+    if (!el || !messages) return;
+    if (!stickToBottomRef.current) return;
     const id = requestAnimationFrame(() => {
-      const el = messagesContainerRef.current;
-      if (!el) return;
       el.scrollTop = el.scrollHeight;
     });
     return () => cancelAnimationFrame(id);
-  }, [messages]);
+  }, [messages, selectedConversation]);
+
+  const handleMessagesScroll = () => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    const threshold = 120;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    stickToBottomRef.current = distanceFromBottom < threshold;
+  };
 
   // Mark messages as read when conversation is selected (safe for new threads; backend no-ops)
   useEffect(() => {
@@ -168,6 +185,7 @@ export function DiscussionPage() {
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim() && selectedConversation) {
+      stickToBottomRef.current = true;
       sendMessageMutation.mutate(
         { receiverId: selectedConversation, content: message.trim() },
         { onSuccess: () => setMessage('') }
@@ -198,9 +216,14 @@ export function DiscussionPage() {
       {/* 100dvh: mobile URL bar; height capped so main+footer rarely force body scroll */}
       <div className="card flex h-[calc(100dvh-10rem)] min-h-0 flex-col overflow-hidden p-0">
         {/* min-h-0 lets flex children shrink so overflow-y scroll stays inside the card (not the page) */}
-        <div className="grid h-full min-h-0 lg:grid-cols-[320px,1fr]">
-          {/* Sidebar - Conversations */}
-          <div className="border-border flex min-h-0 min-w-0 flex-col border-r">
+        {/* sm+: list + thread side by side (WhatsApp-style). Below sm: list OR thread + back. */}
+        <div className="grid h-full min-h-0 sm:grid-cols-[minmax(0,280px),1fr]">
+          <div
+            className={cn(
+              'border-border flex min-h-0 min-w-0 flex-col border-r',
+              selectedConversation ? 'hidden sm:flex' : 'flex'
+            )}
+          >
             {/* Header + New message */}
             <div className="border-border flex items-center justify-between gap-2 border-b p-4">
               <h2 className="font-display text-text-primary text-lg font-semibold">Messages</h2>
@@ -332,171 +355,196 @@ export function DiscussionPage() {
             </div>
           </div>
 
-          {/* Chat Area */}
-          {selectedConversation && selectedPartner ? (
-            <div className="flex min-h-0 min-w-0 flex-col">
-              {/* Chat Header */}
-              <div className="border-border flex items-center justify-between gap-3 border-b px-6 py-4">
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <div className="bg-bg-tertiary border-border flex h-10 w-10 items-center justify-center rounded-full border">
-                      {selectedPartner.partner.avatarUrl ? (
-                        <img
-                          src={selectedPartner.partner.avatarUrl}
-                          alt=""
-                          className="h-full w-full rounded-full object-cover"
-                        />
-                      ) : (
-                        <User className="text-text-tertiary h-5 w-5" />
+          <div
+            className={cn(
+              'min-h-0 min-w-0 flex-col overflow-hidden',
+              selectedConversation ? 'flex' : 'hidden sm:flex'
+            )}
+          >
+            {selectedConversation && selectedPartner ? (
+              <div className="flex min-h-0 min-w-0 flex-col">
+                {/* Chat Header — sticky so partner name stays visible if anything shifts */}
+                <div className="bg-bg-secondary border-border sticky top-0 z-10 flex shrink-0 items-center justify-between gap-2 border-b px-3 py-3 sm:px-6 sm:py-4">
+                  <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedConversation(null)}
+                      className="btn-ghost shrink-0 rounded-full p-2 sm:hidden"
+                      aria-label="Back to conversations"
+                      data-testid="back-to-conversations"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+                    <div className="relative shrink-0">
+                      <div className="bg-bg-tertiary border-border flex h-10 w-10 items-center justify-center rounded-full border">
+                        {selectedPartner.partner.avatarUrl ? (
+                          <img
+                            src={selectedPartner.partner.avatarUrl}
+                            alt=""
+                            className="h-full w-full rounded-full object-cover"
+                          />
+                        ) : (
+                          <User className="text-text-tertiary h-5 w-5" />
+                        )}
+                      </div>
+                      {isPartnerOnline && (
+                        <div className="border-bg-secondary bg-letterboxd-green absolute bottom-0 right-0 h-3 w-3 rounded-full border-2" />
                       )}
                     </div>
-                    {isPartnerOnline && (
-                      <div className="border-bg-secondary bg-letterboxd-green absolute bottom-0 right-0 h-3 w-3 rounded-full border-2" />
-                    )}
-                  </div>
-                  <div>
-                    <h2 className="text-text-primary font-medium">
-                      {selectedPartner.partner.username}
-                    </h2>
-                    <p
-                      className={`text-xs ${
-                        isPartnerTyping
-                          ? 'text-letterboxd-green'
-                          : isPartnerOnline
+                    <div className="min-w-0">
+                      <h2 className="text-text-primary truncate font-medium">
+                        {selectedPartner.partner.username}
+                      </h2>
+                      <p
+                        className={`text-xs ${
+                          isPartnerTyping
                             ? 'text-letterboxd-green'
-                            : 'text-text-tertiary'
-                      }`}
-                    >
-                      {isPartnerTyping ? 'Typing...' : isPartnerOnline ? 'Online' : 'Offline'}
-                    </p>
+                            : isPartnerOnline
+                              ? 'text-letterboxd-green'
+                              : 'text-text-tertiary'
+                        }`}
+                      >
+                        {isPartnerTyping ? 'Typing...' : isPartnerOnline ? 'Online' : 'Offline'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button className="btn-ghost rounded-full p-2">
+                      <Phone className="h-5 w-5" />
+                    </button>
+                    <button className="btn-ghost rounded-full p-2">
+                      <Video className="h-5 w-5" />
+                    </button>
+                    <button className="btn-ghost rounded-full p-2">
+                      <MoreVertical className="h-5 w-5" />
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button className="btn-ghost rounded-full p-2">
-                    <Phone className="h-5 w-5" />
-                  </button>
-                  <button className="btn-ghost rounded-full p-2">
-                    <Video className="h-5 w-5" />
-                  </button>
-                  <button className="btn-ghost rounded-full p-2">
-                    <MoreVertical className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
 
-              {/* Messages */}
-              <div
-                ref={messagesContainerRef}
-                className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-6"
-                data-testid="chat-messages"
-              >
-                {messagesLoading ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="text-text-tertiary h-6 w-6 animate-spin" />
-                  </div>
-                ) : messages && messages.length > 0 ? (
-                  <div className="space-y-4">
-                    {messages.map((msg) => {
-                      const isMe = msg.senderId === user?.id;
-                      return (
-                        <div
-                          key={msg.id}
-                          className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
-                        >
+                {/* Messages */}
+                <div
+                  ref={messagesContainerRef}
+                  onScroll={handleMessagesScroll}
+                  className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-4 sm:p-6"
+                  data-testid="chat-messages"
+                >
+                  {messagesLoading ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="text-text-tertiary h-6 w-6 animate-spin" />
+                    </div>
+                  ) : messages && messages.length > 0 ? (
+                    <div className="space-y-4">
+                      {messages.map((msg) => {
+                        const isMe = msg.senderId === user?.id;
+                        return (
                           <div
-                            className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
-                              isMe
-                                ? 'bg-letterboxd-green text-bg-primary'
-                                : 'bg-bg-tertiary text-text-primary'
-                            }`}
+                            key={msg.id}
+                            className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
                           >
-                            <p>{msg.content}</p>
-                            <p
-                              className={`mt-1 text-xs ${
-                                isMe ? 'text-bg-primary/70' : 'text-text-tertiary'
+                            <div
+                              className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
+                                isMe
+                                  ? 'bg-letterboxd-green text-bg-primary'
+                                  : 'bg-bg-tertiary text-text-primary'
                               }`}
                             >
-                              {new Date(msg.createdAt).toLocaleTimeString([], {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </p>
+                              <p>{msg.content}</p>
+                              <p
+                                className={`mt-1 text-xs ${
+                                  isMe ? 'text-bg-primary/70' : 'text-text-tertiary'
+                                }`}
+                              >
+                                {new Date(msg.createdAt).toLocaleTimeString([], {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-text-tertiary py-8 text-center text-sm">
-                    No messages yet. Start the conversation!
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-text-tertiary py-8 text-center text-sm">
+                      No messages yet. Start the conversation!
+                    </div>
+                  )}
+                </div>
+
+                {/* Typing Indicator */}
+                {isPartnerTyping && (
+                  <div className="text-text-tertiary px-6 pb-2 text-sm">
+                    {selectedPartner.partner.username} is typing...
                   </div>
                 )}
-              </div>
 
-              {/* Typing Indicator */}
-              {isPartnerTyping && (
-                <div className="text-text-tertiary px-6 pb-2 text-sm">
-                  {selectedPartner.partner.username} is typing...
-                </div>
-              )}
-
-              {/* Input */}
-              <form onSubmit={handleSend} className="border-border border-t p-4">
-                <div className="flex gap-3">
-                  <input
-                    type="text"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Type a message..."
-                    className="input flex-1"
-                    disabled={sendMessageMutation.isPending}
-                  />
-                  <button
-                    type="submit"
-                    className="btn-primary px-4"
-                    disabled={!message.trim() || sendMessageMutation.isPending}
-                    aria-label="Send message"
-                  >
-                    {sendMessageMutation.isPending ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <Send className="h-5 w-5" />
-                    )}
-                  </button>
-                </div>
-              </form>
-            </div>
-          ) : selectedConversation && needPartnerFetch && partnerLoading ? (
-            <div className="flex flex-1 items-center justify-center p-8">
-              <Loader2 className="text-letterboxd-green h-8 w-8 animate-spin" />
-            </div>
-          ) : selectedConversation && needPartnerFetch && partnerError ? (
-            <div className="flex flex-col items-center justify-center p-8 text-center">
-              <p className="text-text-secondary">
-                User not found or you are not friends. Start a conversation from the list or add
-                them as a friend first.
-              </p>
-              <button
-                type="button"
-                onClick={() => setSelectedConversation(null)}
-                className="btn-secondary mt-4"
-              >
-                Back to conversations
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center p-8 text-center">
-              <div className="bg-bg-tertiary flex h-20 w-20 items-center justify-center rounded-full">
-                <MessageCircle className="text-text-tertiary h-10 w-10" />
+                {/* Input */}
+                <form onSubmit={handleSend} className="border-border border-t p-4">
+                  <div className="flex gap-3">
+                    <input
+                      type="text"
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      placeholder="Type a message..."
+                      className="input flex-1"
+                      disabled={sendMessageMutation.isPending}
+                    />
+                    <button
+                      type="submit"
+                      className="btn-primary px-4"
+                      disabled={!message.trim() || sendMessageMutation.isPending}
+                      aria-label="Send message"
+                    >
+                      {sendMessageMutation.isPending ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Send className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+                </form>
               </div>
-              <h2 className="font-display text-text-primary mt-6 text-xl font-semibold">
-                Your Messages
-              </h2>
-              <p className="text-text-secondary mt-2 max-w-xs text-sm">
-                Select a conversation or start a new message with a friend
-              </p>
-            </div>
-          )}
+            ) : selectedConversation && needPartnerFetch && partnerLoading ? (
+              <div className="flex flex-1 flex-col items-center justify-center p-8">
+                <Loader2 className="text-letterboxd-green h-8 w-8 animate-spin" />
+              </div>
+            ) : selectedConversation && needPartnerFetch && partnerError ? (
+              <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
+                <button
+                  type="button"
+                  onClick={() => setSelectedConversation(null)}
+                  className="btn-ghost mb-4 flex items-center gap-1 self-start sm:hidden"
+                  aria-label="Back to conversations"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                  Back
+                </button>
+                <p className="text-text-secondary">
+                  User not found or you are not friends. Start a conversation from the list or add
+                  them as a friend first.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSelectedConversation(null)}
+                  className="btn-secondary mt-4"
+                >
+                  Back to conversations
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
+                <div className="bg-bg-tertiary flex h-20 w-20 items-center justify-center rounded-full">
+                  <MessageCircle className="text-text-tertiary h-10 w-10" />
+                </div>
+                <h2 className="font-display text-text-primary mt-6 text-xl font-semibold">
+                  Your Messages
+                </h2>
+                <p className="text-text-secondary mt-2 max-w-xs text-sm">
+                  Select a conversation or start a new message with a friend
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
