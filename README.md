@@ -72,8 +72,8 @@ More detail: [docs/setup.md](docs/setup.md) · [backend/README.md](backend/READM
 | Direct messaging (real-time, Socket.io)           | 🚧     |
 | Public pages (about, help, legal)                 | ✅     |
 | PWA (Vite plugin)                                 | 🚧     |
-| Light mode toggle                                 | ❌     |
-| Email / push notifications                        | ❌     |
+| Light mode toggle                                 | ✅     |
+| Email / push notifications                        | ✅     |
 
 ### Tooling & quality
 
