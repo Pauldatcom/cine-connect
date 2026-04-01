@@ -36,6 +36,13 @@
       "when": 1775000001000,
       "tag": "0004_google_oauth_user_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1775100000000,
+      "tag": "0005_enable_rls_public_tables",
+      "breakpoints": true
     }
   ]
 }
