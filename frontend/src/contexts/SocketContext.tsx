@@ -1,67 +1,47 @@
 /**
- * Socket Context - Real-time socket.io connection management
+ * Socket Context — Socket.IO client aligned with backend/src/socket (WS_EVENTS from shared).
  *
- * Provides socket instance and connection state to the entire app.
- * Connects automatically when user is authenticated.
+ * - Emits use the same event names as the server expects (e.g. join_room, typing with receiverId).
+ * - Listens for server events: connect, disconnect, online, message, typing.
  */
 
-import { createContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { WS_EVENTS } from '@cine-connect/shared';
+import { useQueryClient } from '@tanstack/react-query';
+import { createContext, useCallback, useEffect, useState, type ReactNode } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 import { tokenStorage } from '@/lib/api/client';
 
-// Socket event types (match backend)
-export interface SocketEvents {
-  // Client -> Server
-  JOIN_ROOM: { roomId: string };
-  LEAVE_ROOM: { roomId: string };
-  MESSAGE: { roomId: string; content: string };
-  TYPING: { roomId: string; isTyping: boolean };
-
-  // Server -> Client
-  USER_JOINED: { userId: string; roomId: string };
-  USER_LEFT: { userId: string; roomId: string };
-  NEW_MESSAGE: { id: string; senderId: string; content: string; createdAt: string };
-  USER_TYPING: { userId: string; roomId: string; isTyping: boolean };
-  USER_ONLINE: { userId: string };
-  USER_OFFLINE: { userId: string };
-  ONLINE_USERS: { users: string[] };
-}
-
-// Context value type
 export interface SocketContextValue {
   socket: Socket | null;
   isConnected: boolean;
   onlineUsers: string[];
-  typingUsers: Record<string, string>; // userId -> roomId
+  /** userId of the person typing → truthy value while they are typing */
+  typingUsers: Record<string, string>;
   joinRoom: (roomId: string) => void;
   leaveRoom: (roomId: string) => void;
-  sendMessage: (roomId: string, content: string) => void;
-  setTyping: (roomId: string, isTyping: boolean) => void;
+  /** Prefer REST useSendMessage for persistence; this matches server socket relay shape. */
+  sendMessage: (receiverId: string, content: string) => void;
+  /** Notify peer (receiverId) that you are typing; must match backend { receiverId, isTyping }. */
+  setTyping: (receiverId: string, isTyping: boolean) => void;
 }
 
-// Create context with default values
 export const SocketContext = createContext<SocketContextValue | null>(null);
 
-// Provider props
 interface SocketProviderProps {
   children: ReactNode;
 }
 
-/**
- * Socket Provider - Wraps app to provide socket connection
- */
 export function SocketProvider({ children }: SocketProviderProps) {
+  const queryClient = useQueryClient();
   const { isAuthenticated } = useAuth();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [typingUsers, setTypingUsers] = useState<Record<string, string>>({});
 
-  // Connect/disconnect based on auth state
   useEffect(() => {
     if (!isAuthenticated) {
-      // Disconnect if logged out
       if (socket) {
         socket.disconnect();
         setSocket(null);
@@ -72,12 +52,9 @@ export function SocketProvider({ children }: SocketProviderProps) {
       return;
     }
 
-    // Get token for auth
     const token = tokenStorage.getAccessToken();
     if (!token) return;
 
-    // Create socket connection — use only the origin, not the /api/v1 path
-    // (socket.io-client interprets any path as a namespace)
     const rawUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
     const socketUrl = new URL(rawUrl).origin;
     const newSocket = io(socketUrl, {
@@ -86,7 +63,6 @@ export function SocketProvider({ children }: SocketProviderProps) {
       autoConnect: true,
     });
 
-    // Connection handlers
     newSocket.on('connect', () => {
       setIsConnected(true);
     });
@@ -99,82 +75,86 @@ export function SocketProvider({ children }: SocketProviderProps) {
       console.error('[Socket] Connection error:', error.message);
     });
 
-    // Online users handlers
-    newSocket.on('ONLINE_USERS', ({ users }) => {
-      setOnlineUsers(users);
-    });
-
-    newSocket.on('USER_ONLINE', ({ userId }) => {
-      setOnlineUsers((prev) => (prev.includes(userId) ? prev : [...prev, userId]));
-    });
-
-    newSocket.on('USER_OFFLINE', ({ userId }) => {
-      setOnlineUsers((prev) => prev.filter((id) => id !== userId));
-      // Also remove from typing users
-      setTypingUsers((prev) => {
-        const next = { ...prev };
-        delete next[userId];
-        return next;
+    // Backend: io.emit(WS_EVENTS.ONLINE, { userId, online: boolean })
+    newSocket.on(WS_EVENTS.ONLINE, ({ userId, online }: { userId: string; online: boolean }) => {
+      setOnlineUsers((prev) => {
+        if (online) {
+          return prev.includes(userId) ? prev : [...prev, userId];
+        }
+        return prev.filter((id) => id !== userId);
       });
-    });
-
-    // Typing indicator handler
-    newSocket.on('USER_TYPING', ({ userId, roomId, isTyping }) => {
-      setTypingUsers((prev) => {
-        if (isTyping) {
-          return { ...prev, [userId]: roomId };
-        } else {
+      if (!online) {
+        setTypingUsers((prev) => {
           const next = { ...prev };
           delete next[userId];
           return next;
-        }
-      });
+        });
+      }
     });
+
+    // Real-time DM relay (HTTP POST still persists); refresh thread when a message arrives
+    newSocket.on(
+      WS_EVENTS.MESSAGE,
+      (payload: { senderId: string; content: string; createdAt: string }) => {
+        queryClient.invalidateQueries({ queryKey: ['messages', payload.senderId] });
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      }
+    );
+
+    // Backend: { userId, isTyping } — userId is the person typing
+    newSocket.on(
+      WS_EVENTS.TYPING,
+      ({ userId, isTyping }: { userId: string; isTyping: boolean }) => {
+        setTypingUsers((prev) => {
+          if (isTyping) {
+            return { ...prev, [userId]: 'typing' };
+          }
+          const next = { ...prev };
+          delete next[userId];
+          return next;
+        });
+      }
+    );
 
     setSocket(newSocket);
 
-    // Cleanup on unmount
     return () => {
       newSocket.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated]);
+  }, [isAuthenticated, queryClient]);
 
-  // Join a room (conversation)
   const joinRoom = useCallback(
     (roomId: string) => {
       if (socket && isConnected) {
-        socket.emit('JOIN_ROOM', { roomId });
+        socket.emit(WS_EVENTS.JOIN_ROOM, { roomId });
       }
     },
     [socket, isConnected]
   );
 
-  // Leave a room
   const leaveRoom = useCallback(
     (roomId: string) => {
       if (socket && isConnected) {
-        socket.emit('LEAVE_ROOM', { roomId });
+        socket.emit(WS_EVENTS.LEAVE_ROOM, { roomId });
       }
     },
     [socket, isConnected]
   );
 
-  // Send a message to a room
   const sendMessage = useCallback(
-    (roomId: string, content: string) => {
+    (receiverId: string, content: string) => {
       if (socket && isConnected) {
-        socket.emit('MESSAGE', { roomId, content });
+        socket.emit(WS_EVENTS.MESSAGE, { receiverId, content });
       }
     },
     [socket, isConnected]
   );
 
-  // Set typing indicator
   const setTyping = useCallback(
-    (roomId: string, isTyping: boolean) => {
+    (receiverId: string, isTyping: boolean) => {
       if (socket && isConnected) {
-        socket.emit('TYPING', { roomId, isTyping });
+        socket.emit(WS_EVENTS.TYPING, { receiverId, isTyping });
       }
     },
     [socket, isConnected]
