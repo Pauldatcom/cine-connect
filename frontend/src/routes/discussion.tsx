@@ -52,7 +52,8 @@ export function DiscussionPage() {
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showFriendPicker, setShowFriendPicker] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  /** Scrollable message list — scroll this node only; avoid scrollIntoView (scrolls the whole page). */
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   // Socket.io hooks
   const { isConnected, setTyping } = useSocket();
@@ -100,9 +101,14 @@ export function DiscussionPage() {
     }
   }, [search.with, navigate]);
 
-  // Scroll to bottom when messages change
+  // Scroll only the message column (instant — smooth() can still interact badly with the window on open)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const id = requestAnimationFrame(() => {
+      const el = messagesContainerRef.current;
+      if (!el) return;
+      el.scrollTop = el.scrollHeight;
+    });
+    return () => cancelAnimationFrame(id);
   }, [messages]);
 
   // Mark messages as read when conversation is selected (safe for new threads; backend no-ops)
@@ -180,19 +186,21 @@ export function DiscussionPage() {
   const isPartnerTyping = selectedConversation ? !!typingUsers[selectedConversation] : false;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6">
+    <div className="mx-auto flex min-h-0 max-w-7xl flex-col px-4 py-4">
       {/* Connection status indicator */}
       {!isConnected && (
-        <div className="bg-letterboxd-orange/20 text-letterboxd-orange mb-4 rounded-lg px-4 py-2 text-center text-sm">
+        <div className="bg-letterboxd-orange/20 text-letterboxd-orange mb-3 rounded-lg px-4 py-2 text-center text-sm">
           <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
           Connecting to chat server...
         </div>
       )}
 
-      <div className="card h-[calc(100vh-10rem)] overflow-hidden p-0">
-        <div className="grid h-full lg:grid-cols-[320px,1fr]">
+      {/* 100dvh: mobile URL bar; height capped so main+footer rarely force body scroll */}
+      <div className="card flex h-[calc(100dvh-10rem)] min-h-0 flex-col overflow-hidden p-0">
+        {/* min-h-0 lets flex children shrink so overflow-y scroll stays inside the card (not the page) */}
+        <div className="grid h-full min-h-0 lg:grid-cols-[320px,1fr]">
           {/* Sidebar - Conversations */}
-          <div className="border-border flex flex-col border-r">
+          <div className="border-border flex min-h-0 min-w-0 flex-col border-r">
             {/* Header + New message */}
             <div className="border-border flex items-center justify-between gap-2 border-b p-4">
               <h2 className="font-display text-text-primary text-lg font-semibold">Messages</h2>
@@ -266,7 +274,7 @@ export function DiscussionPage() {
             </div>
 
             {/* Conversation List */}
-            <div className="scrollbar-thin flex-1 overflow-y-auto">
+            <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overscroll-contain">
               {conversationsLoading ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="text-text-tertiary h-6 w-6 animate-spin" />
@@ -326,7 +334,7 @@ export function DiscussionPage() {
 
           {/* Chat Area */}
           {selectedConversation && selectedPartner ? (
-            <div className="flex flex-col">
+            <div className="flex min-h-0 min-w-0 flex-col">
               {/* Chat Header */}
               <div className="border-border flex items-center justify-between gap-3 border-b px-6 py-4">
                 <div className="flex items-center gap-3">
@@ -378,7 +386,8 @@ export function DiscussionPage() {
 
               {/* Messages */}
               <div
-                className="scrollbar-thin flex-1 overflow-y-auto p-6"
+                ref={messagesContainerRef}
+                className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-6"
                 data-testid="chat-messages"
               >
                 {messagesLoading ? (
@@ -416,7 +425,6 @@ export function DiscussionPage() {
                         </div>
                       );
                     })}
-                    <div ref={messagesEndRef} />
                   </div>
                 ) : (
                   <div className="text-text-tertiary py-8 text-center text-sm">

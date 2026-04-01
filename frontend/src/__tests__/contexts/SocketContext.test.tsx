@@ -5,6 +5,8 @@
 import AuthContext from '@/contexts/AuthContext';
 import { SocketProvider } from '@/contexts/SocketContext';
 import { useSocket } from '@/hooks/useSocket';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { WS_EVENTS } from '@cine-connect/shared';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -83,10 +85,16 @@ function createAuthWrapper(isAuthenticated: boolean) {
     refreshUser: vi.fn(),
   };
 
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+
   return ({ children }: { children: ReactNode }) => (
-    <AuthContext.Provider value={authValue}>
-      <SocketProvider>{children}</SocketProvider>
-    </AuthContext.Provider>
+    <QueryClientProvider client={queryClient}>
+      <AuthContext.Provider value={authValue}>
+        <SocketProvider>{children}</SocketProvider>
+      </AuthContext.Provider>
+    </QueryClientProvider>
   );
 }
 
@@ -159,10 +167,9 @@ describe('SocketContext', () => {
       expect(mockSocket.on).toHaveBeenCalledWith('connect', expect.any(Function));
       expect(mockSocket.on).toHaveBeenCalledWith('disconnect', expect.any(Function));
       expect(mockSocket.on).toHaveBeenCalledWith('connect_error', expect.any(Function));
-      expect(mockSocket.on).toHaveBeenCalledWith('ONLINE_USERS', expect.any(Function));
-      expect(mockSocket.on).toHaveBeenCalledWith('USER_ONLINE', expect.any(Function));
-      expect(mockSocket.on).toHaveBeenCalledWith('USER_OFFLINE', expect.any(Function));
-      expect(mockSocket.on).toHaveBeenCalledWith('USER_TYPING', expect.any(Function));
+      expect(mockSocket.on).toHaveBeenCalledWith(WS_EVENTS.ONLINE, expect.any(Function));
+      expect(mockSocket.on).toHaveBeenCalledWith(WS_EVENTS.MESSAGE, expect.any(Function));
+      expect(mockSocket.on).toHaveBeenCalledWith(WS_EVENTS.TYPING, expect.any(Function));
     });
 
     it('should disconnect on unmount', async () => {
@@ -248,7 +255,7 @@ describe('SocketContext', () => {
       consoleSpy.mockRestore();
     });
 
-    it('should handle ONLINE_USERS event', async () => {
+    it('should handle online event - user goes online', async () => {
       const eventHandlers: Record<string, (...args: unknown[]) => void> = {};
       mockSocket.on.mockImplementation((event: string, handler: (...args: unknown[]) => void) => {
         eventHandlers[event] = handler;
@@ -262,35 +269,13 @@ describe('SocketContext', () => {
       });
 
       await act(async () => {
-        eventHandlers['ONLINE_USERS']?.({ users: ['user-1', 'user-2', 'user-3'] });
-      });
-
-      expect(screen.getByTestId('online-users')).toHaveTextContent('3');
-      expect(screen.getByTestId('online-list')).toHaveTextContent('user-1,user-2,user-3');
-    });
-
-    it('should handle USER_ONLINE event - add new user', async () => {
-      const eventHandlers: Record<string, (...args: unknown[]) => void> = {};
-      mockSocket.on.mockImplementation((event: string, handler: (...args: unknown[]) => void) => {
-        eventHandlers[event] = handler;
-        return mockSocket;
-      });
-
-      const Wrapper = createAuthWrapper(true);
-
-      await act(async () => {
-        render(<TestConsumer />, { wrapper: Wrapper });
-      });
-
-      // Add a user
-      await act(async () => {
-        eventHandlers['USER_ONLINE']?.({ userId: 'new-user' });
+        eventHandlers[WS_EVENTS.ONLINE]?.({ userId: 'new-user', online: true });
       });
 
       expect(screen.getByTestId('online-list')).toHaveTextContent('new-user');
     });
 
-    it('should handle USER_ONLINE event - not duplicate existing user', async () => {
+    it('should handle online event - not duplicate existing user', async () => {
       const eventHandlers: Record<string, (...args: unknown[]) => void> = {};
       mockSocket.on.mockImplementation((event: string, handler: (...args: unknown[]) => void) => {
         eventHandlers[event] = handler;
@@ -303,20 +288,17 @@ describe('SocketContext', () => {
         render(<TestConsumer />, { wrapper: Wrapper });
       });
 
-      // Set initial users
       await act(async () => {
-        eventHandlers['ONLINE_USERS']?.({ users: ['user-1'] });
+        eventHandlers[WS_EVENTS.ONLINE]?.({ userId: 'user-1', online: true });
       });
-
-      // Try to add same user again
       await act(async () => {
-        eventHandlers['USER_ONLINE']?.({ userId: 'user-1' });
+        eventHandlers[WS_EVENTS.ONLINE]?.({ userId: 'user-1', online: true });
       });
 
       expect(screen.getByTestId('online-users')).toHaveTextContent('1');
     });
 
-    it('should handle USER_OFFLINE event', async () => {
+    it('should handle online event - user goes offline', async () => {
       const eventHandlers: Record<string, (...args: unknown[]) => void> = {};
       mockSocket.on.mockImplementation((event: string, handler: (...args: unknown[]) => void) => {
         eventHandlers[event] = handler;
@@ -329,15 +311,14 @@ describe('SocketContext', () => {
         render(<TestConsumer />, { wrapper: Wrapper });
       });
 
-      // Set initial users
       await act(async () => {
-        eventHandlers['ONLINE_USERS']?.({ users: ['user-1', 'user-2'] });
+        eventHandlers[WS_EVENTS.ONLINE]?.({ userId: 'user-1', online: true });
+        eventHandlers[WS_EVENTS.ONLINE]?.({ userId: 'user-2', online: true });
       });
       expect(screen.getByTestId('online-users')).toHaveTextContent('2');
 
-      // Remove user
       await act(async () => {
-        eventHandlers['USER_OFFLINE']?.({ userId: 'user-1' });
+        eventHandlers[WS_EVENTS.ONLINE]?.({ userId: 'user-1', online: false });
       });
 
       expect(screen.getByTestId('online-users')).toHaveTextContent('1');
@@ -357,20 +338,18 @@ describe('SocketContext', () => {
         render(<TestConsumer />, { wrapper: Wrapper });
       });
 
-      // User starts typing
       await act(async () => {
-        eventHandlers['USER_TYPING']?.({ userId: 'user-1', roomId: 'room-1', isTyping: true });
+        eventHandlers[WS_EVENTS.TYPING]?.({ userId: 'user-1', isTyping: true });
       });
       expect(screen.getByTestId('typing-users')).toHaveTextContent('1');
 
-      // User goes offline
       await act(async () => {
-        eventHandlers['USER_OFFLINE']?.({ userId: 'user-1' });
+        eventHandlers[WS_EVENTS.ONLINE]?.({ userId: 'user-1', online: false });
       });
       expect(screen.getByTestId('typing-users')).toHaveTextContent('0');
     });
 
-    it('should handle USER_TYPING event - start typing', async () => {
+    it('should handle typing event - start typing', async () => {
       const eventHandlers: Record<string, (...args: unknown[]) => void> = {};
       mockSocket.on.mockImplementation((event: string, handler: (...args: unknown[]) => void) => {
         eventHandlers[event] = handler;
@@ -384,14 +363,14 @@ describe('SocketContext', () => {
       });
 
       await act(async () => {
-        eventHandlers['USER_TYPING']?.({ userId: 'user-1', roomId: 'room-1', isTyping: true });
+        eventHandlers[WS_EVENTS.TYPING]?.({ userId: 'user-1', isTyping: true });
       });
 
       expect(screen.getByTestId('typing-users')).toHaveTextContent('1');
-      expect(screen.getByTestId('typing-list')).toHaveTextContent('"user-1":"room-1"');
+      expect(screen.getByTestId('typing-list')).toContainHTML('user-1');
     });
 
-    it('should handle USER_TYPING event - stop typing', async () => {
+    it('should handle typing event - stop typing', async () => {
       const eventHandlers: Record<string, (...args: unknown[]) => void> = {};
       mockSocket.on.mockImplementation((event: string, handler: (...args: unknown[]) => void) => {
         eventHandlers[event] = handler;
@@ -404,15 +383,13 @@ describe('SocketContext', () => {
         render(<TestConsumer />, { wrapper: Wrapper });
       });
 
-      // Start typing
       await act(async () => {
-        eventHandlers['USER_TYPING']?.({ userId: 'user-1', roomId: 'room-1', isTyping: true });
+        eventHandlers[WS_EVENTS.TYPING]?.({ userId: 'user-1', isTyping: true });
       });
       expect(screen.getByTestId('typing-users')).toHaveTextContent('1');
 
-      // Stop typing
       await act(async () => {
-        eventHandlers['USER_TYPING']?.({ userId: 'user-1', roomId: 'room-1', isTyping: false });
+        eventHandlers[WS_EVENTS.TYPING]?.({ userId: 'user-1', isTyping: false });
       });
       expect(screen.getByTestId('typing-users')).toHaveTextContent('0');
     });
@@ -442,7 +419,7 @@ describe('SocketContext', () => {
         fireEvent.click(screen.getByTestId('join-btn'));
       });
 
-      expect(mockSocket.emit).toHaveBeenCalledWith('JOIN_ROOM', { roomId: 'room-1' });
+      expect(mockSocket.emit).toHaveBeenCalledWith(WS_EVENTS.JOIN_ROOM, { roomId: 'room-1' });
     });
 
     it('should emit LEAVE_ROOM when calling leaveRoom', async () => {
@@ -468,7 +445,7 @@ describe('SocketContext', () => {
         fireEvent.click(screen.getByTestId('leave-btn'));
       });
 
-      expect(mockSocket.emit).toHaveBeenCalledWith('LEAVE_ROOM', { roomId: 'room-1' });
+      expect(mockSocket.emit).toHaveBeenCalledWith(WS_EVENTS.LEAVE_ROOM, { roomId: 'room-1' });
     });
 
     it('should emit MESSAGE when calling sendMessage', async () => {
@@ -494,8 +471,8 @@ describe('SocketContext', () => {
         fireEvent.click(screen.getByTestId('send-btn'));
       });
 
-      expect(mockSocket.emit).toHaveBeenCalledWith('MESSAGE', {
-        roomId: 'room-1',
+      expect(mockSocket.emit).toHaveBeenCalledWith(WS_EVENTS.MESSAGE, {
+        receiverId: 'room-1',
         content: 'Hello',
       });
     });
@@ -523,7 +500,10 @@ describe('SocketContext', () => {
         fireEvent.click(screen.getByTestId('type-btn'));
       });
 
-      expect(mockSocket.emit).toHaveBeenCalledWith('TYPING', { roomId: 'room-1', isTyping: true });
+      expect(mockSocket.emit).toHaveBeenCalledWith(WS_EVENTS.TYPING, {
+        receiverId: 'room-1',
+        isTyping: true,
+      });
     });
 
     it('should not emit when not connected', async () => {
@@ -574,12 +554,17 @@ describe('SocketContext', () => {
         refreshUser: vi.fn(),
       };
 
+      const qc = new QueryClient({
+        defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      });
       const DynamicWrapper = ({ children }: { children: ReactNode }) => (
-        <AuthContext.Provider
-          value={{ ...authValue, isAuthenticated: isAuth, user: isAuth ? authValue.user : null }}
-        >
-          <SocketProvider>{children}</SocketProvider>
-        </AuthContext.Provider>
+        <QueryClientProvider client={qc}>
+          <AuthContext.Provider
+            value={{ ...authValue, isAuthenticated: isAuth, user: isAuth ? authValue.user : null }}
+          >
+            <SocketProvider>{children}</SocketProvider>
+          </AuthContext.Provider>
+        </QueryClientProvider>
       );
 
       const { rerender } = render(<TestConsumer />, { wrapper: DynamicWrapper });

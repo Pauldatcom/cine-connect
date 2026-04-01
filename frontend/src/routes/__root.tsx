@@ -44,8 +44,8 @@ function RootLayout() {
       {/* Navigation */}
       <Navbar />
 
-      {/* Main Content */}
-      <main className="flex-1">
+      {/* Main: min-h-0 so flex children (e.g. chat) can shrink — avoids full-page growth + footer jump */}
+      <main className="min-h-0 flex-1">
         <Outlet />
       </main>
 

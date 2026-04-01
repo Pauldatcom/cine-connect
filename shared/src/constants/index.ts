@@ -20,7 +20,11 @@ export const COMMENT_MAX_LENGTH = 1000;
 /** bcrypt cost factor — keep in sync across register and password change. */
 export const PASSWORD_BCRYPT_ROUNDS = 12;
 
-// WebSocket Events
+/**
+ * Socket.IO event names — shared by client and server (lowercase / snake_case).
+ * Client also uses the native `'connect'` / `'disconnect'` on the socket instance.
+ * Server must listen with `io.on('connection', ...)` — not `'connect'`.
+ */
 export const WS_EVENTS = {
   CONNECT: 'connect',
   DISCONNECT: 'disconnect',
@@ -30,6 +34,9 @@ export const WS_EVENTS = {
   JOIN_ROOM: 'join_room',
   LEAVE_ROOM: 'leave_room',
 } as const;
+
+/** Server-side only: `io.on(SOCKET_IO_SERVER_CONNECTION, socket => …)`. */
+export const SOCKET_IO_SERVER_CONNECTION = 'connection' as const;
 
 // HTTP Status Codes
 export const HTTP_STATUS = {
